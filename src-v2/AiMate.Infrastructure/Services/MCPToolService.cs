@@ -11,12 +11,16 @@ namespace AiMate.Infrastructure.Services;
 public class MCPToolService : IMCPToolService
 {
     private readonly ILogger<MCPToolService> _logger;
+    private readonly IDatasetGeneratorService? _datasetGenerator;
     private readonly Dictionary<string, MCPTool> _registeredTools = new();
     private readonly Dictionary<string, Func<Dictionary<string, object>, Task<MCPToolResult>>> _toolExecutors = new();
 
-    public MCPToolService(ILogger<MCPToolService> logger)
+    public MCPToolService(
+        ILogger<MCPToolService> logger,
+        IDatasetGeneratorService? datasetGenerator = null)
     {
         _logger = logger;
+        _datasetGenerator = datasetGenerator;
         RegisterBuiltInTools();
     }
 
@@ -183,6 +187,43 @@ public class MCPToolService : IMCPToolService
         _registeredTools[knowledgeSearchTool.Name] = knowledgeSearchTool;
         _toolExecutors[knowledgeSearchTool.Name] = ExecuteKnowledgeSearchAsync;
 
+        // Dataset Generator Tool (for Guardian fine-tuning)
+        if (_datasetGenerator != null)
+        {
+            var datasetGenTool = new MCPTool
+            {
+                Name = "generate_dataset",
+                Description = "Generate synthetic training dataset for personality fine-tuning (template-based, safe for mental health)",
+                Parameters = new Dictionary<string, MCPToolParameter>
+                {
+                    ["personality"] = new MCPToolParameter
+                    {
+                        Type = "string",
+                        Description = "Personality name (e.g., 'Guardian')",
+                        Required = true
+                    },
+                    ["num_examples"] = new MCPToolParameter
+                    {
+                        Type = "integer",
+                        Description = "Number of training examples to generate",
+                        Required = false,
+                        DefaultValue = 100
+                    },
+                    ["export_format"] = new MCPToolParameter
+                    {
+                        Type = "string",
+                        Description = "Export format: 'jsonl' for fine-tuning or 'json' for review",
+                        Required = false,
+                        DefaultValue = "jsonl"
+                    }
+                },
+                RequiresAuth = true
+            };
+
+            _registeredTools[datasetGenTool.Name] = datasetGenTool;
+            _toolExecutors[datasetGenTool.Name] = ExecuteDatasetGeneratorAsync;
+        }
+
         _logger.LogInformation("Built-in tools registered: {Count}", _registeredTools.Count);
     }
 
@@ -287,5 +328,92 @@ public class MCPToolService : IMCPToolService
                 ["vector_similarity"] = true
             }
         };
+    }
+
+    private async Task<MCPToolResult> ExecuteDatasetGeneratorAsync(Dictionary<string, object> parameters)
+    {
+        if (_datasetGenerator == null)
+        {
+            return new MCPToolResult
+            {
+                Success = false,
+                Error = "Dataset generator service not available"
+            };
+        }
+
+        try
+        {
+            var personality = parameters["personality"].ToString() ?? "Guardian";
+            var numExamples = parameters.ContainsKey("num_examples")
+                ? Convert.ToInt32(parameters["num_examples"])
+                : 100;
+            var exportFormat = parameters.ContainsKey("export_format")
+                ? parameters["export_format"].ToString()
+                : "jsonl";
+
+            _logger.LogInformation(
+                "Generating {Count} training examples for {Personality}",
+                numExamples, personality);
+
+            // Generate dataset from templates
+            var dataset = await _datasetGenerator.GenerateFromTemplatesAsync(
+                personality,
+                numExamples);
+
+            // Validate quality
+            var validation = await _datasetGenerator.ValidateDatasetAsync(dataset);
+
+            // Export in requested format
+            string exportedData;
+            if (exportFormat?.ToLower() == "jsonl")
+            {
+                exportedData = await _datasetGenerator.ExportToJsonLinesAsync(dataset);
+            }
+            else
+            {
+                exportedData = JsonSerializer.Serialize(dataset, new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                });
+            }
+
+            return new MCPToolResult
+            {
+                Success = true,
+                Result = new
+                {
+                    personality = personality,
+                    total_examples = dataset.TotalExamples,
+                    generated_at = dataset.GeneratedAt,
+                    scenario_distribution = dataset.ScenarioDistribution,
+                    validation = new
+                    {
+                        is_valid = validation.IsValid,
+                        quality_score = validation.QualityScore,
+                        warnings = validation.Warnings,
+                        crisis_distribution = validation.CrisisLevelDistribution,
+                        cultural_markers = validation.CulturalMarkerCount,
+                        resources_mentioned = validation.ResourceMentionCount
+                    },
+                    export_format = exportFormat,
+                    data = exportedData
+                },
+                Metadata = new Dictionary<string, object>
+                {
+                    ["generation_method"] = "template_based",
+                    ["safe_for_mental_health"] = true,
+                    ["human_validation_required"] = true
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Dataset generation failed");
+            return new MCPToolResult
+            {
+                Success = false,
+                Error = $"Dataset generation failed: {ex.Message}"
+            };
+        }
     }
 }
