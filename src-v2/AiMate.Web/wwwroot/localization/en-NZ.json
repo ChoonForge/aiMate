@@ -1,0 +1,88 @@
+{
+  "common": {
+    "appName": "aiMate",
+    "tagline": "Your AI Mate. Free for Kiwis. Fair for Everyone.",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "search": "Search",
+    "yes": "Yeah",
+    "no": "Nah",
+    "ok": "Sweet as",
+    "error": "Ah bugger, something went wrong",
+    "success": "Sweet as!",
+    "confirm": "You sure?"
+  },
+  "sidebar": {
+    "newChat": "Start a new chat",
+    "search": "Search",
+    "notes": "Notes",
+    "knowledge": "Knowledge",
+    "files": "Files",
+    "projects": "Projects",
+    "newProject": "New Project",
+    "settings": "Settings",
+    "archived": "Archived",
+    "adminPanel": "Admin Panel",
+    "about": "About",
+    "logout": "Logout"
+  },
+  "chat": {
+    "typeMessage": "Send a Message",
+    "sendMessage": "Send",
+    "newChat": "New Chat",
+    "noMessages": "No messages yet. Give it a go!",
+    "streaming": "Thinking...",
+    "regenerate": "Regenerate",
+    "copy": "Copy",
+    "edit": "Edit",
+    "delete": "Delete",
+    "rate": "Rate this response",
+    "feedback": "Leave feedback"
+  },
+  "personality": {
+    "kiwiMate": "Kiwi Mate",
+    "kiwiMateDesc": "Casual, helpful - talks like a real Kiwi",
+    "kiwiProfessional": "Kiwi Professional",
+    "kiwiProfessionalDesc": "Business appropriate but still authentic",
+    "kiwiDev": "Kiwi Dev",
+    "kiwiDevDesc": "Technical tasks with NZ flavor",
+    "teReoMaori": "Te Reo Māori",
+    "teReoMaoriDesc": "Bilingual support, cultural context",
+    "mentalHealth": "Mental Health Support",
+    "mentalHealthDesc": "Empathetic, resource-focused",
+    "standard": "Standard AI",
+    "standardDesc": "Generic AI mode"
+  },
+  "workspace": {
+    "create": "Create Workspace",
+    "name": "Workspace Name",
+    "description": "Description",
+    "type": "Workspace Type",
+    "general": "General",
+    "code": "Code",
+    "research": "Research",
+    "creative": "Creative",
+    "dataAnalysis": "Data Analysis",
+    "learning": "Learning"
+  },
+  "tiers": {
+    "free": "Free",
+    "freeDesc": "All Kiwis, fair use limits",
+    "byok": "BYOK",
+    "byokDesc": "$10/month, bring your own API keys",
+    "developer": "Developer",
+    "developerDesc": "$30/month, Blazor generator + API access"
+  },
+  "settings": {
+    "general": "General",
+    "interface": "Interface",
+    "connections": "Connections",
+    "personalisation": "Personalisation",
+    "account": "Account",
+    "usage": "Usage"
+  }
+}

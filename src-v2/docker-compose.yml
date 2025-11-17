@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: AiMate.Web/Dockerfile
+    ports:
+      - "5000:80"
+      - "5001:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__PostgreSQL=Host=postgres;Database=aimate;Username=aimate;Password=change_me_in_production
+      - LiteLLM__BaseUrl=http://litellm:4000
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - aimate-network
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      - POSTGRES_DB=aimate
+      - POSTGRES_USER=aimate
+      - POSTGRES_PASSWORD=change_me_in_production
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - aimate-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - aimate-network
+
+  litellm:
+    image: ghcr.io/berriai/litellm:latest
+    ports:
+      - "4000:4000"
+    environment:
+      - LITELLM_MASTER_KEY=sk-1234
+    volumes:
+      - ./litellm_config.yaml:/app/config.yaml
+    networks:
+      - aimate-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  aimate-network:
+    driver: bridge

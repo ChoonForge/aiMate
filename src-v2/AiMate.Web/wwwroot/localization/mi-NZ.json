@@ -1,0 +1,88 @@
+{
+  "common": {
+    "appName": "aiMate",
+    "tagline": "Tō AI Hoa. Kore utu mō ngā Kiwi. Tika mō ngā tāngata katoa.",
+    "loading": "E uta ana...",
+    "save": "Tiaki",
+    "cancel": "Whakakore",
+    "delete": "Mukuhia",
+    "edit": "Whakatika",
+    "close": "Kati",
+    "search": "Rapu",
+    "yes": "Āe",
+    "no": "Kāo",
+    "ok": "Kei te pai",
+    "error": "Aue, he hapa",
+    "success": "Kei te pai!",
+    "confirm": "E tika ana?"
+  },
+  "sidebar": {
+    "newChat": "Tīmata kōrero hou",
+    "search": "Rapu",
+    "notes": "Ngā Tuhipoka",
+    "knowledge": "Mātauranga",
+    "files": "Ngā Kōnae",
+    "projects": "Ngā Kaupapa",
+    "newProject": "Kaupapa Hou",
+    "settings": "Ngā Tautuhinga",
+    "archived": "Kua Rokirokihia",
+    "adminPanel": "Papa Kaiwhakahaere",
+    "about": "Mō",
+    "logout": "Takiputa"
+  },
+  "chat": {
+    "typeMessage": "Tukuna he Karere",
+    "sendMessage": "Tuku",
+    "newChat": "Kōrero Hou",
+    "noMessages": "Kāore anō ngā karere. Whakamātauria!",
+    "streaming": "E whakaaro ana...",
+    "regenerate": "Hanga anō",
+    "copy": "Tārua",
+    "edit": "Whakatika",
+    "delete": "Mukuhia",
+    "rate": "Whakatauranga",
+    "feedback": "Urupare"
+  },
+  "personality": {
+    "kiwiMate": "Hoa Kiwi",
+    "kiwiMateDesc": "Māmā, āwhina - kōrero pēnei i te Kiwi tūturu",
+    "kiwiProfessional": "Kiwi Ngaio",
+    "kiwiProfessionalDesc": "Tōtika mō te pakihi engari pūtake tonu",
+    "kiwiDev": "Kiwi Dev",
+    "kiwiDevDesc": "Ngā mahi hangarau me te kakano Kiwi",
+    "teReoMaori": "Te Reo Māori",
+    "teReoMaoriDesc": "Tautoko reo rua, horopaki ahurea",
+    "mentalHealth": "Tautoko Hauora Hinengaro",
+    "mentalHealthDesc": "Aroha, aro ki ngā rauemi",
+    "standard": "AI Paerewa",
+    "standardDesc": "Aratau AI noa"
+  },
+  "workspace": {
+    "create": "Waihanga Wāhi Mahi",
+    "name": "Ingoa Wāhi Mahi",
+    "description": "Whakamāramatanga",
+    "type": "Momo Wāhi Mahi",
+    "general": "Whānui",
+    "code": "Waehere",
+    "research": "Rangahau",
+    "creative": "Auaha",
+    "dataAnalysis": "Wetewete Raraunga",
+    "learning": "Ako"
+  },
+  "tiers": {
+    "free": "Kore utu",
+    "freeDesc": "Ngā Kiwi katoa, ngā here whakamahi tika",
+    "byok": "BYOK",
+    "byokDesc": "$10 ia marama, kawe mai ō kī API",
+    "developer": "Kaiwhakawhanake",
+    "developerDesc": "$30 ia marama, kaihanga Blazor + uru API"
+  },
+  "settings": {
+    "general": "Whānui",
+    "interface": "Mata",
+    "connections": "Ngā Hononga",
+    "personalisation": "Whaiaro",
+    "account": "Pūkete",
+    "usage": "Whakamahi"
+  }
+}

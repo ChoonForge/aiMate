@@ -1,0 +1,61 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="@_theme" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<div class="main-layout">
+    <Sidebar />
+
+    <div class="main-content">
+        <TopBar />
+
+        <div class="chat-container">
+            @Body
+        </div>
+    </div>
+</div>
+
+@code {
+    private MudTheme _theme = new()
+    {
+        Palette = new PaletteLight
+        {
+            Primary = "#8B5CF6",
+            Secondary = "#3B82F6",
+            AppbarBackground = "#1A1A1A",
+            Background = "#0F0F0F",
+            BackgroundGrey = "#1A1A1A",
+            Surface = "#242424",
+            DrawerBackground = "#1A1A1A",
+            DrawerText = "rgba(255,255,255, 0.70)",
+            AppbarText = "rgba(255,255,255, 0.90)",
+            TextPrimary = "#FFFFFF",
+            TextSecondary = "#A0A0A0",
+            TextDisabled = "#707070",
+            ActionDefault = "#A0A0A0",
+            ActionDisabled = "#707070",
+            ActionDisabledBackground = "#2A2A2A",
+            Divider = "#2A2A2A",
+            DividerLight = "#1A1A1A",
+            TableLines = "#2A2A2A",
+            LinesDefault = "#2A2A2A",
+            LinesInputs = "#2A2A2A",
+            Success = "#10B981",
+            Error = "#EF4444",
+            Warning = "#F59E0B",
+            Info = "#3B82F6",
+            Dark = "#0F0F0F",
+            HoverOpacity = 0.06,
+        },
+        Typography = new Typography
+        {
+            Default = new Default
+            {
+                FontFamily = new[] { "Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif" },
+                FontSize = "14px",
+                LineHeight = 1.5,
+            }
+        }
+    };
+}

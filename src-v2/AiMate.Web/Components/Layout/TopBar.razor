@@ -1,0 +1,36 @@
+@* Top bar with model selector and actions *@
+
+<div class="top-bar">
+    <div class="top-bar-left">
+        <div class="model-selector">
+            <svg class="model-selector-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+            </svg>
+            <span class="model-selector-text">GPT-4</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+                <polyline points="6 9 12 15 18 9"/>
+            </svg>
+        </div>
+    </div>
+
+    <div class="top-bar-right">
+        <button class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <span>New Chat</span>
+        </button>
+
+        <button class="btn btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
+                <circle cx="12" cy="12" r="1"/>
+                <circle cx="19" cy="12" r="1"/>
+                <circle cx="5" cy="12" r="1"/>
+            </svg>
+        </button>
+    </div>
+</div>
+
+@code {
+    private string selectedModel = "GPT-4";
+}
