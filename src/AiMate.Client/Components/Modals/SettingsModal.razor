@@ -1,0 +1,402 @@
+﻿@inject AppStateService AppState
+@inject ISnackbar Snackbar
+@using MudBlazor
+
+<MudDialog @bind-Visible="@IsOpen" Options="@_dialogOptions">
+    <DialogContent>
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+            
+            @* Tab 1: General Settings *@
+            <MudTabPanel Text="General" Icon="@Icons.Material.Filled.Settings">
+                <MudStack Spacing="3">
+                    <MudText Typo="Typo.h6">General Settings</MudText>
+                    <MudDivider />
+
+                    <MudSelect @bind-Value="@_preferences.Theme" Label="Theme" Variant="Variant.Outlined">
+                        <MudSelectItem Value="@("dark")">Dark Mode</MudSelectItem>
+                        <MudSelectItem Value="@("light")">Light Mode</MudSelectItem>
+                        <MudSelectItem Value="@("auto")">Auto (System)</MudSelectItem>
+                    </MudSelect>
+
+                    <MudSelect @bind-Value="@_preferences.ColorScheme" Label="Color Scheme" Variant="Variant.Outlined">
+                        <MudSelectItem Value="@("purple")">Purple (Default)</MudSelectItem>
+                        <MudSelectItem Value="@("blue")">Blue</MudSelectItem>
+                        <MudSelectItem Value="@("green")">Green</MudSelectItem>
+                        <MudSelectItem Value="@("red")">Red</MudSelectItem>
+                    </MudSelect>
+
+                    <MudSlider @bind-Value="@_preferences.MessageFontSize" 
+                              Min="12" Max="20" Step="1" 
+                              Color="Color.Primary">
+                        Font Size: @_preferences.MessageFontSize px
+                    </MudSlider>
+
+                    <MudSwitch @bind-Value="@_preferences.ShowTimestamps" 
+                              Color="Color.Primary">
+                        Show Message Timestamps
+                    </MudSwitch>
+
+                    <MudSwitch @bind-Value="@_preferences.EnableSounds" 
+                              Color="Color.Primary">
+                        Enable Sound Effects
+                    </MudSwitch>
+
+                    <MudSwitch @bind-Value="@_preferences.EnableNotifications" 
+                              Color="Color.Primary">
+                        Enable Browser Notifications
+                    </MudSwitch>
+
+                    <MudSwitch @bind-Value="@_preferences.EnableMarkdown" 
+                              Color="Color.Primary">
+                        Enable Markdown Rendering
+                    </MudSwitch>
+
+                    <MudSwitch @bind-Value="@_preferences.EnableCodeHighlighting" 
+                              Color="Color.Primary">
+                        Enable Code Syntax Highlighting
+                    </MudSwitch>
+                </MudStack>
+            </MudTabPanel>
+
+            @* Tab 2: Models *@
+            <MudTabPanel Text="Models" Icon="@Icons.Material.Filled.Psychology">
+                <MudStack Spacing="3">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.h6">AI Models</MudText>
+                        <MudButton Variant="Variant.Filled" 
+                                  Color="Color.Primary" 
+                                  StartIcon="@Icons.Material.Filled.Add"
+                                  OnClick="@(() => _addModelOpen = true)">
+                            Add Model
+                        </MudButton>
+                    </MudStack>
+                    <MudDivider />
+
+                    @if (AppState.AvailableModels.Any())
+                    {
+                        <MudList T="object">
+                            @foreach (var model in AppState.AvailableModels)
+                            {
+                                <MudListItem>
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.body1">@model.Name</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @model.Provider • @model.Id
+                                            </MudText>
+                                            @if (model.Description != null)
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                    @model.Description
+                                                </MudText>
+                                            }
+                                        </MudStack>
+                                        <MudStack Row="true" Spacing="1">
+                                            <MudSwitch @bind-Value="@model.IsEnabled" Color="Color.Success" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" />
+                                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" />
+                                        </MudStack>
+                                    </MudStack>
+                                </MudListItem>
+                                <MudDivider />
+                            }
+                        </MudList>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info">No models configured. Add one to get started!</MudAlert>
+                    }
+
+                    <MudSelect @bind-Value="@_preferences.DefaultModel" Label="Default Model" Variant="Variant.Outlined">
+                        @foreach (var model in AppState.AvailableModels.Where(m => m.IsEnabled))
+                        {
+                            <MudSelectItem Value="@model.Id">@model.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudStack>
+            </MudTabPanel>
+
+            @* Tab 3: Connections *@
+            <MudTabPanel Text="Connections" Icon="@Icons.Material.Filled.Cloud">
+                <MudStack Spacing="3">
+                    <MudText Typo="Typo.h6">API Connections</MudText>
+                    <MudDivider />
+
+                    <MudTextField T="string" @bind-Value="@_liteLLMUrl" 
+                                 Label="LiteLLM Base URL" 
+                                 Variant="Variant.Outlined"
+                                 HelperText="The base URL for your LiteLLM proxy server" />
+
+                    <MudTextField T="string" @bind-Value="@_liteLLMApiKey" 
+                                 Label="LiteLLM API Key" 
+                                 Variant="Variant.Outlined"
+                                 InputType="InputType.Password"
+                                 HelperText="Optional: API key if your LiteLLM requires authentication" />
+
+                    <MudButton Variant="Variant.Filled" 
+                              Color="Color.Primary"
+                              OnClick="@TestConnection">
+                        Test Connection
+                    </MudButton>
+
+                    <MudDivider />
+
+                    <MudText Typo="Typo.subtitle1">OpenAI</MudText>
+                    <MudTextField T="string" Label="API Key" Variant="Variant.Outlined" InputType="InputType.Password" />
+
+                    <MudText Typo="Typo.subtitle1">Anthropic</MudText>
+                    <MudTextField T="string" Label="API Key" Variant="Variant.Outlined" InputType="InputType.Password" />
+
+                    <MudText Typo="Typo.subtitle1">Google AI</MudText>
+                    <MudTextField T="string" Label="API Key" Variant="Variant.Outlined" InputType="InputType.Password" />
+                </MudStack>
+            </MudTabPanel>
+
+            @* Tab 4: Tools *@
+            <MudTabPanel Text="Tools" Icon="@Icons.Material.Filled.Build">
+                <MudStack Spacing="3">
+                    <MudText Typo="Typo.h6">Tool Configuration</MudText>
+                    <MudDivider />
+
+                    <MudSwitch @bind-Value="@_webSearchEnabled" Color="Color.Primary">
+                        Enable Web Search
+                    </MudSwitch>
+
+                    <MudSwitch @bind-Value="@_codeInterpreterEnabled" Color="Color.Primary">
+                        Enable Code Interpreter
+                    </MudSwitch>
+
+                    <MudSwitch @bind-Value="@_mcpEnabled" Color="Color.Primary">
+                        Enable MCP Tools
+                    </MudSwitch>
+
+                    @if (_mcpEnabled)
+                    {
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-surface);">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2">MCP Servers</MudText>
+                            <MudButton Variant="Variant.Outlined" 
+                                      Color="Color.Primary" 
+                                      StartIcon="@Icons.Material.Filled.Add">
+                                Add MCP Server
+                            </MudButton>
+                        </MudPaper>
+                    }
+
+                    <MudDivider />
+
+                    <MudText Typo="Typo.subtitle1">Tool Permissions</MudText>
+                    <MudSwitch T="bool?" Color="Color.Primary">File System Access</MudSwitch>
+                    <MudSwitch T="bool?" Color="Color.Primary">Network Access</MudSwitch>
+                    <MudSwitch T="bool?" Color="Color.Primary">Database Access</MudSwitch>
+                </MudStack>
+            </MudTabPanel>
+
+            @* Tab 5: Advanced *@
+            <MudTabPanel Text="Advanced" Icon="@Icons.Material.Filled.Code">
+                <MudStack Spacing="3">
+                    <MudText Typo="Typo.h6">Advanced Settings</MudText>
+                    <MudDivider />
+
+                    <MudSwitch @bind-Value="@AppState.DebugMode" Color="Color.Warning">
+                        Enable Debug Mode
+                    </MudSwitch>
+
+                    @if (AppState.DebugMode)
+                    {
+                        <MudPaper Class="pa-4" Elevation="0" Style="background: var(--mud-palette-surface);">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                <MudText Typo="Typo.subtitle2">Debug Logs (@AppState.DebugLogs.Count)</MudText>
+                                <MudButton Size="Size.Small" OnClick="@AppState.ClearDebugLogs">Clear</MudButton>
+                            </MudStack>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                                Check browser console for detailed logs
+                            </MudText>
+                        </MudPaper>
+                    }
+
+                    <MudTextField T="string" Label="Max Tokens" 
+                                 Variant="Variant.Outlined" 
+                                 InputType="InputType.Number"
+                                 HelperText="Maximum tokens for model responses" />
+
+                    <MudSlider Min="0" Max="2" Step="0.1" 
+                              Color="Color.Primary"
+                              ValueLabel="true">
+                        Temperature: 0.7
+                    </MudSlider>
+
+                    <MudSwitch T="bool?" Color="Color.Primary">
+                        Stream Responses
+                    </MudSwitch>
+
+                    <MudSwitch T="bool?" Color="Color.Primary">
+                        Show Token Count
+                    </MudSwitch>
+
+                    <MudSwitch T="bool?" Color="Color.Primary">
+                        Enable Experimental Features
+                    </MudSwitch>
+
+                    <MudDivider />
+
+                    <MudText Typo="Typo.subtitle1">Data Management</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error">
+                        Clear All Conversations
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined">
+                        Export All Data
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined">
+                        Import Data
+                    </MudButton>
+                </MudStack>
+            </MudTabPanel>
+
+            @* Tab 6: About *@
+            <MudTabPanel Text="About" Icon="@Icons.Material.Filled.Info">
+                <MudStack Spacing="3" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Large" Color="Color.Primary" />
+                    <MudText Typo="Typo.h4" Class="gradient-text">aiMate</MudText>
+                    <MudText Typo="Typo.subtitle1" Color="Color.Secondary">
+                        AI Chat Platform • Version 1.0.0
+                    </MudText>
+
+                    <MudDivider Class="my-4" Style="width: 100%;" />
+
+                    <MudText Typo="Typo.body1" Align="Align.Center">
+                        A modern AI chat interface built with Blazor and MudBlazor.
+                        <br />
+                        Designed to work seamlessly with LiteLLM and multiple AI providers.
+                    </MudText>
+
+                    <MudDivider Class="my-4" Style="width: 100%;" />
+
+                    <MudStack Spacing="1" Style="width: 100%;">
+                        <MudText Typo="Typo.subtitle2">Technology Stack</MudText>
+                        <MudChip T="string" T="string" Size="Size.Small">Blazor WebAssembly</MudChip>
+                        <MudChip T="string" T="string" Size="Size.Small">.NET 9</MudChip>
+                        <MudChip T="string" T="string" Size="Size.Small">MudBlazor 7.20</MudChip>
+                        <MudChip T="string" T="string" Size="Size.Small">LiteLLM</MudChip>
+                    </MudStack>
+
+                    <MudDivider Class="my-4" Style="width: 100%;" />
+
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Outlined" 
+                                  Color="Color.Primary"
+                                  Href="https://github.com/yourusername/aimate" 
+                                  Target="_blank">
+                            GitHub
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" 
+                                  Color="Color.Primary"
+                                  Href="https://docs.aimate.com" 
+                                  Target="_blank">
+                            Documentation
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" 
+                                  Color="Color.Primary">
+                            Check for Updates
+                        </MudButton>
+                    </MudStack>
+
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-4">
+                        © 2025 aiMate. Built with ❤️ in New Zealand.
+                    </MudText>
+                </MudStack>
+            </MudTabPanel>
+
+        </MudTabs>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Save">
+            Save Changes
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* Add Model Dialog *@
+<MudDialog @bind-Visible="@_addModelOpen">
+    <DialogContent>
+        <MudText Typo="Typo.h6">Add New Model</MudText>
+        <MudTextField T="string" Label="Model ID" Variant="Variant.Outlined" Class="mt-3" />
+        <MudTextField T="string" Label="Display Name" Variant="Variant.Outlined" Class="mt-3" />
+        <MudSelect T="int" Label="Provider" Variant="Variant.Outlined" Class="mt-3">
+            <MudSelectItem Value="@("openai")">OpenAI</MudSelectItem>
+            <MudSelectItem Value="@("anthropic")">Anthropic</MudSelectItem>
+            <MudSelectItem Value="@("google")">Google AI</MudSelectItem>
+            <MudSelectItem Value="@("custom")">Custom</MudSelectItem>
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _addModelOpen = false)">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary">Add Model</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsOpenChanged { get; set; }
+
+    private DialogOptions _dialogOptions = new DialogOptions
+    {
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.Large,
+        FullWidth = true
+    };
+
+    private UserPreferences _preferences = new();
+    private string _liteLLMUrl = "http://localhost:4000";
+    private string? _liteLLMApiKey;
+    private bool _webSearchEnabled = false;
+    private bool _codeInterpreterEnabled = false;
+    private bool _mcpEnabled = false;
+    private bool _addModelOpen = false;
+
+    protected override void OnInitialized()
+    {
+        _preferences = AppState.Preferences;
+    }
+
+    private async Task TestConnection()
+    {
+        try
+        {
+            // TODO: Implement connection test
+            Snackbar.Add("Connection successful!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Connection failed: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            await AppState.SaveState();
+            Snackbar.Add("Settings saved successfully!", Severity.Success);
+            await Close();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to save settings: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task Cancel()
+    {
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(IsOpen);
+    }
+}

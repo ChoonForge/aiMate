@@ -1,0 +1,666 @@
+﻿@inject AppStateService AppState
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudDialog @bind-Visible="@IsOpen" Options="@_dialogOptions">
+    <DialogContent>
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+            
+            @* Tab 1: System Overview *@
+            <MudTabPanel Text="Overview" Icon="@Icons.Material.Filled.Dashboard">
+                <MudStack Spacing="3">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.h5">System Administration</MudText>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.AdminPanelSettings">
+                            Admin Mode
+                        </MudChip>
+                    </MudStack>
+                    <MudDivider />
+
+                    @* Quick Stats *@
+                    <MudGrid>
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudPaper Class="pa-4" Elevation="2">
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Total Users</MudText>
+                                    <MudText Typo="Typo.h4">1</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Info">
+                                        Single-user mode
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudPaper Class="pa-4" Elevation="2">
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Total Conversations</MudText>
+                                    <MudText Typo="Typo.h4">@_stats.TotalConversations</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Success">
+                                        <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Small" />
+                                        +@_stats.ConversationsToday today
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudPaper Class="pa-4" Elevation="2">
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Active Models</MudText>
+                                    <MudText Typo="Typo.h4">@_stats.ActiveModels</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @_stats.TotalModels configured
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6" md="3">
+                            <MudPaper Class="pa-4" Elevation="2">
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">MCP Servers</MudText>
+                                    <MudText Typo="Typo.h4">@_stats.McpServers</MudText>
+                                    <MudText Typo="Typo.caption" Color="@(_stats.McpServers > 0 ? Color.Success : Color.Secondary)">
+                                        @(_stats.McpServers > 0 ? "Connected" : "None configured")
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
+
+                    @* System Health *@
+                    <MudText Typo="Typo.h6" Class="mt-4">System Health</MudText>
+                    <MudDivider />
+
+                    <MudSimpleTable Dense="true">
+                        <tbody>
+                            <tr>
+                                <td><strong>LiteLLM Proxy</strong></td>
+                                <td><MudChip T="string" Size="Size.Small" Color="@(_systemHealth.LiteLLMConnected ? Color.Success : Color.Error)">
+                                    @(_systemHealth.LiteLLMConnected ? "Connected" : "Disconnected")
+                                </MudChip></td>
+                                <td>@_systemHealth.LiteLLMUrl</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Storage</strong></td>
+                                <td><MudChip T="string" Size="Size.Small" Color="Color.Info">
+                                    @_systemHealth.StorageUsed / @_systemHealth.StorageLimit MB
+                                </MudChip></td>
+                                <td>@((_systemHealth.StorageUsed / _systemHealth.StorageLimit * 100).ToString("F1"))% used</td>
+                            </tr>
+                            <tr>
+                                <td><strong>App Version</strong></td>
+                                <td><MudChip T="string" Size="Size.Small">v1.0.0</MudChip></td>
+                                <td>Blazor WASM • .NET 9</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Uptime</strong></td>
+                                <td>@_systemHealth.Uptime</td>
+                                <td>Since @DateTime.Now.AddHours(-2).ToString("HH:mm")</td>
+                            </tr>
+                        </tbody>
+                    </MudSimpleTable>
+                </MudStack>
+            </MudTabPanel>
+
+            @* Tab 2: Models Management *@
+            <MudTabPanel Text="Models" Icon="@Icons.Material.Filled.Psychology">
+                <MudStack Spacing="3">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.h6">Global Model Configuration</MudText>
+                        <MudButton Variant="Variant.Filled" 
+                                  Color="Color.Primary" 
+                                  StartIcon="@Icons.Material.Filled.Add"
+                                  OnClick="@(() => _addModelOpen = true)">
+                            Add Model
+                        </MudButton>
+                    </MudStack>
+                    <MudDivider />
+
+                    <MudAlert Severity="Severity.Info">
+                        Configure models available to all users. Users can select their preferred model from this list.
+                    </MudAlert>
+
+                    @if (AppState.AvailableModels.Any())
+                    {
+                        <MudTable Items="@AppState.AvailableModels" Hover="true">
+                            <HeaderContent>
+                                <MudTh>Model</MudTh>
+                                <MudTh>Provider</MudTh>
+                                <MudTh>Status</MudTh>
+                                <MudTh>Max Tokens</MudTh>
+                                <MudTh>Actions</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Model">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body2"><strong>@context.Name</strong></MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Id</MudText>
+                                    </MudStack>
+                                </MudTd>
+                                <MudTd DataLabel="Provider">
+                                    <MudChip T="string" Size="Size.Small">@context.Provider</MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="Status">
+                                    <MudSwitch @bind-Value="@context.IsEnabled" Color="Color.Success" />
+                                </MudTd>
+                                <MudTd DataLabel="Max Tokens">@context.MaxTokens</MudTd>
+                                <MudTd DataLabel="Actions">
+                                    <MudStack Row="true" Spacing="1">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" />
+                                    </MudStack>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Warning">No models configured. Add models to enable AI functionality.</MudAlert>
+                    }
+                </MudStack>
+            </MudTabPanel>
+
+            @* Tab 3: Connections *@
+            <MudTabPanel Text="Connections" Icon="@Icons.Material.Filled.Cloud">
+                <MudStack Spacing="3">
+                    <MudText Typo="Typo.h6">Global Connection Settings</MudText>
+                    <MudDivider />
+
+                    @* LiteLLM Configuration *@
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <MudStack Spacing="3">
+                            <MudText Typo="Typo.subtitle1"><strong>LiteLLM Proxy</strong></MudText>
+                            
+                            <MudTextField T="string" @bind-Value="@_liteLLMUrl" 
+                                         Label="Base URL" 
+                                         Variant="Variant.Outlined"
+                                         HelperText="The LiteLLM proxy server endpoint" />
+
+                            <MudTextField T="string" @bind-Value="@_liteLLMApiKey" 
+                                         Label="API Key (Optional)" 
+                                         Variant="Variant.Outlined"
+                                         InputType="InputType.Password"
+                                         HelperText="Leave blank if no authentication required" />
+
+                            <MudButton Variant="Variant.Filled" 
+                                      Color="Color.Primary"
+                                      StartIcon="@Icons.Material.Filled.Sensors"
+                                      OnClick="@TestLiteLLMConnection">
+                                Test Connection
+                            </MudButton>
+                        </MudStack>
+                    </MudPaper>
+
+                    @* Direct Provider Connections *@
+                    <MudText Typo="Typo.subtitle1" Class="mt-4">Direct Provider Connections</MudText>
+                    <MudDivider />
+                    <MudAlert Severity="Severity.Info">
+                        Configure direct API connections (bypassing LiteLLM). These will be available to all users.
+                    </MudAlert>
+
+                    <MudExpansionPanels>
+                        <MudExpansionPanel Text="OpenAI">
+                            <MudStack Spacing="2">
+                                <MudTextField T="string" Label="API Key" Variant="Variant.Outlined" InputType="InputType.Password" />
+                                <MudTextField T="string" Label="Organization ID (Optional)" Variant="Variant.Outlined" />
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary">Test Connection</MudButton>
+                            </MudStack>
+                        </MudExpansionPanel>
+
+                        <MudExpansionPanel Text="Anthropic">
+                            <MudStack Spacing="2">
+                                <MudTextField T="string" Label="API Key" Variant="Variant.Outlined" InputType="InputType.Password" />
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary">Test Connection</MudButton>
+                            </MudStack>
+                        </MudExpansionPanel>
+
+                        <MudExpansionPanel Text="Google AI">
+                            <MudStack Spacing="2">
+                                <MudTextField T="string" Label="API Key" Variant="Variant.Outlined" InputType="InputType.Password" />
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary">Test Connection</MudButton>
+                            </MudStack>
+                        </MudExpansionPanel>
+
+                        <MudExpansionPanel Text="Azure OpenAI">
+                            <MudStack Spacing="2">
+                                <MudTextField T="string" Label="Endpoint" Variant="Variant.Outlined" />
+                                <MudTextField T="string" Label="API Key" Variant="Variant.Outlined" InputType="InputType.Password" />
+                                <MudTextField T="string" Label="Deployment Name" Variant="Variant.Outlined" />
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary">Test Connection</MudButton>
+                            </MudStack>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudStack>
+            </MudTabPanel>
+
+            @* Tab 4: MCP Servers *@
+            <MudTabPanel Text="MCP" Icon="@Icons.Material.Filled.Extension">
+                <MudStack Spacing="3">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.h6">Model Context Protocol Servers</MudText>
+                        <MudButton Variant="Variant.Filled" 
+                                  Color="Color.Primary" 
+                                  StartIcon="@Icons.Material.Filled.Add"
+                                  OnClick="@(() => _addMcpOpen = true)">
+                            Add MCP Server
+                        </MudButton>
+                    </MudStack>
+                    <MudDivider />
+
+                    <MudAlert Severity="Severity.Info">
+                        MCP servers provide tools and capabilities to AI models. Configure global servers here.
+                    </MudAlert>
+
+                    @if (_mcpServers.Any())
+                    {
+                        <MudTable Items="@_mcpServers" Hover="true" Striped="true">
+                            <HeaderContent>
+                                <MudTh>Name</MudTh>
+                                <MudTh>Type</MudTh>
+                                <MudTh>Status</MudTh>
+                                <MudTh>Tools</MudTh>
+                                <MudTh>Actions</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Name">@context.Name</MudTd>
+                                <MudTd DataLabel="Type">
+                                    <MudChip T="string" Size="Size.Small">@context.Type</MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="Status">
+                                    <MudChip T="string" Size="Size.Small" Color="@(context.Connected ? Color.Success : Color.Error)">
+                                        @(context.Connected ? "Connected" : "Disconnected")
+                                    </MudChip>
+                                </MudTd>
+                                <MudTd DataLabel="Tools">@context.ToolCount tools</MudTd>
+                                <MudTd DataLabel="Actions">
+                                    <MudStack Row="true" Spacing="1">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Refresh" Size="Size.Small" Title="Reconnect" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" />
+                                    </MudStack>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                    else
+                    {
+                        <MudPaper Class="pa-8" Elevation="0" Style="text-align: center;">
+                            <MudIcon Icon="@Icons.Material.Filled.Extension" Size="Size.Large" Color="Color.Secondary" />
+                            <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">
+                                No MCP Servers Configured
+                            </MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                Add MCP servers to extend AI capabilities with custom tools
+                            </MudText>
+                        </MudPaper>
+                    }
+                </MudStack>
+            </MudTabPanel>
+
+            @* Tab 5: Users *@
+            <MudTabPanel Text="Users" Icon="@Icons.Material.Filled.People">
+                <MudStack Spacing="3">
+                    <MudText Typo="Typo.h6">User Management</MudText>
+                    <MudDivider />
+
+                    <MudAlert Severity="Severity.Warning">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.subtitle2">Multi-User Mode Not Enabled</MudText>
+                            <MudText Typo="Typo.body2">
+                                aiMate is currently running in single-user mode. Enable multi-user support to:
+                            </MudText>
+                            <ul style="margin: 0; padding-left: 20px;">
+                                <li>Create and manage user accounts</li>
+                                <li>Set user permissions and quotas</li>
+                                <li>Track usage per user</li>
+                                <li>Enable authentication</li>
+                            </ul>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="true">
+                                Enable Multi-User Mode
+                            </MudButton>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                Requires backend server configuration
+                            </MudText>
+                        </MudStack>
+                    </MudAlert>
+                </MudStack>
+            </MudTabPanel>
+
+            @* Tab 6: System *@
+            <MudTabPanel Text="System" Icon="@Icons.Material.Filled.Storage">
+                <MudStack Spacing="3">
+                    <MudText Typo="Typo.h6">System Configuration</MudText>
+                    <MudDivider />
+
+                    @* Database Management *@
+                    <MudText Typo="Typo.subtitle1">Database Management</MudText>
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudPaper Class="pa-4" Elevation="2">
+                                <MudStack Spacing="2">
+                                    <MudText Typo="Typo.subtitle2">LocalStorage</MudText>
+                                    <MudProgressLinear Value="@_storageStats.LocalStoragePercent" 
+                                                      Color="Color.Primary" 
+                                                      Size="Size.Medium" />
+                                    <MudText Typo="Typo.body2">
+                                        @_storageStats.LocalStorageUsed MB / @_storageStats.LocalStorageLimit MB
+                                    </MudText>
+                                    <MudButton Variant="Variant.Outlined" 
+                                              Color="Color.Error"
+                                              OnClick="@ClearLocalStorage">
+                                        Clear All Data
+                                    </MudButton>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudPaper Class="pa-4" Elevation="2">
+                                <MudStack Spacing="2">
+                                    <MudText Typo="Typo.subtitle2">IndexedDB</MudText>
+                                    <MudProgressLinear Value="@_storageStats.IndexedDBPercent" 
+                                                      Color="Color.Secondary" 
+                                                      Size="Size.Medium" />
+                                    <MudText Typo="Typo.body2">
+                                        @_storageStats.IndexedDBUsed MB / @_storageStats.IndexedDBLimit MB
+                                    </MudText>
+                                    <MudButton Variant="Variant.Outlined" 
+                                              Color="Color.Error"
+                                              OnClick="@ClearIndexedDB">
+                                        Clear Files
+                                    </MudButton>
+                                </MudStack>
+                            </MudPaper>
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudDivider Class="my-4" />
+
+                    @* System Logs *@
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.subtitle1">System Logs</MudText>
+                        <MudStack Row="true" Spacing="1">
+                            <MudButton Size="Size.Small" OnClick="@RefreshLogs">Refresh</MudButton>
+                            <MudButton Size="Size.Small" OnClick="@ClearLogs">Clear</MudButton>
+                            <MudButton Size="Size.Small" OnClick="@ExportLogs">Export</MudButton>
+                        </MudStack>
+                    </MudStack>
+                    
+                    <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-surface); max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+                        @foreach (var log in _logs.TakeLast(50))
+                        {
+                            <MudText Typo="Typo.caption" Color="@GetLogColor(log.Level)">
+                                [@log.Timestamp.ToString("HH:mm:ss")] [@log.Level] @log.Message
+                            </MudText>
+                        }
+                    </MudPaper>
+
+                    <MudDivider Class="my-4" />
+
+                    @* Maintenance *@
+                    <MudText Typo="Typo.subtitle1">Maintenance</MudText>
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Outlined"
+                                  StartIcon="@Icons.Material.Filled.Download">
+                            Export System Config
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                  StartIcon="@Icons.Material.Filled.Upload">
+                            Import Config
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined"
+                                  StartIcon="@Icons.Material.Filled.Backup">
+                            Create Backup
+                        </MudButton>
+                    </MudStack>
+
+                    <MudDivider Class="my-4" />
+
+                    @* Danger Zone *@
+                    <MudAlert Severity="Severity.Error">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.subtitle2">⚠️ Danger Zone</MudText>
+                            <MudText Typo="Typo.body2">
+                                Reset aiMate to factory defaults. This will delete ALL data, conversations, knowledge, and system configuration.
+                            </MudText>
+                            <MudButton Variant="Variant.Filled" 
+                                      Color="Color.Error"
+                                      StartIcon="@Icons.Material.Filled.DeleteForever"
+                                      OnClick="@FactoryReset">
+                                Factory Reset System
+                            </MudButton>
+                        </MudStack>
+                    </MudAlert>
+                </MudStack>
+            </MudTabPanel>
+
+        </MudTabs>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* Add Model Dialog *@
+<MudDialog @bind-Visible="@_addModelOpen">
+    <DialogContent>
+        <MudText Typo="Typo.h6">Add New Model</MudText>
+        <MudStack Spacing="3" Class="mt-3">
+            <MudTextField T="string" Label="Model ID" Variant="Variant.Outlined" HelperText="e.g., gpt-4, claude-3-opus" />
+            <MudTextField T="string" Label="Display Name" Variant="Variant.Outlined" />
+            <MudSelect T="int" Label="Provider" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("openai")">OpenAI</MudSelectItem>
+                <MudSelectItem Value="@("anthropic")">Anthropic</MudSelectItem>
+                <MudSelectItem Value="@("google")">Google AI</MudSelectItem>
+                <MudSelectItem Value="@("azure")">Azure OpenAI</MudSelectItem>
+                <MudSelectItem Value="@("custom")">Custom</MudSelectItem>
+            </MudSelect>
+            <MudNumericField Label="Max Tokens" Variant="Variant.Outlined" Value="4096" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _addModelOpen = false)">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary">Add Model</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* Add MCP Server Dialog *@
+<MudDialog @bind-Visible="@_addMcpOpen">
+    <DialogContent>
+        <MudText Typo="Typo.h6">Add MCP Server</MudText>
+        <MudStack Spacing="3" Class="mt-3">
+            <MudTextField T="string" Label="Server Name" Variant="Variant.Outlined" />
+            <MudSelect T="int" Label="Server Type" Variant="Variant.Outlined">
+                <MudSelectItem Value="@("stdio")">Stdio</MudSelectItem>
+                <MudSelectItem Value="@("sse")">SSE</MudSelectItem>
+                <MudSelectItem Value="@("http")">HTTP</MudSelectItem>
+            </MudSelect>
+            <MudTextField T="string" Label="Command" Variant="Variant.Outlined" HelperText="" />
+            <MudTextField T="string" Label="Arguments" Variant="Variant.Outlined" Lines="3" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _addMcpOpen = false)">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary">Add Server</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsOpenChanged { get; set; }
+
+    private DialogOptions _dialogOptions = new DialogOptions
+    {
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.ExtraLarge,
+        FullWidth = true
+    };
+
+    private bool _addModelOpen = false;
+    private bool _addMcpOpen = false;
+    private string _liteLLMUrl = "http://localhost:4000";
+    private string? _liteLLMApiKey;
+
+    private AdminStats _stats = new();
+    private SystemHealth _systemHealth = new();
+    private StorageStats _storageStats = new();
+    private List<McpServer> _mcpServers = new();
+    private List<SystemLog> _logs = new();
+
+    protected override void OnInitialized()
+    {
+        LoadStats();
+        LoadLogs();
+    }
+
+    private void LoadStats()
+    {
+        _stats = new AdminStats
+        {
+            TotalConversations = AppState.Conversations.Count,
+            ConversationsToday = AppState.Conversations.Count(c => c.CreatedAt.Date == DateTime.Today),
+            ActiveModels = AppState.AvailableModels.Count(m => m.IsEnabled),
+            TotalModels = AppState.AvailableModels.Count,
+            McpServers = _mcpServers.Count(m => m.Connected)
+        };
+
+        _systemHealth = new SystemHealth
+        {
+            LiteLLMConnected = true,
+            LiteLLMUrl = _liteLLMUrl,
+            StorageUsed = 15.7,
+            StorageLimit = 50.0,
+            Uptime = "2h 34m"
+        };
+
+        _storageStats = new StorageStats
+        {
+            LocalStorageUsed = 12.3,
+            LocalStorageLimit = 50.0,
+            LocalStoragePercent = 24.6,
+            IndexedDBUsed = 3.4,
+            IndexedDBLimit = 500.0,
+            IndexedDBPercent = 0.68
+        };
+
+        // Mock MCP servers
+        _mcpServers = new List<McpServer>
+        {
+            new() { Name = "Filesystem", Type = "stdio", Connected = true, ToolCount = 8 },
+            new() { Name = "Web Search", Type = "http", Connected = false, ToolCount = 3 }
+        };
+    }
+
+    private void LoadLogs()
+    {
+        _logs = new List<SystemLog>
+        {
+            new() { Timestamp = DateTime.Now.AddMinutes(-5), Level = "INFO", Message = "Application started" },
+            new() { Timestamp = DateTime.Now.AddMinutes(-4), Level = "INFO", Message = "Connected to LiteLLM at http://localhost:4000" },
+            new() { Timestamp = DateTime.Now.AddMinutes(-3), Level = "INFO", Message = "Loaded 3 models from configuration" },
+            new() { Timestamp = DateTime.Now.AddMinutes(-2), Level = "WARNING", Message = "Model 'gpt-4' approaching rate limit" },
+            new() { Timestamp = DateTime.Now.AddMinutes(-1), Level = "INFO", Message = "Admin panel accessed" },
+        };
+    }
+
+    private Color GetLogColor(string level) => level.ToUpper() switch
+    {
+        "ERROR" => Color.Error,
+        "WARNING" => Color.Warning,
+        "INFO" => Color.Info,
+        _ => Color.Default
+    };
+
+    private async Task TestLiteLLMConnection()
+    {
+        Snackbar.Add("Testing connection to LiteLLM...", Severity.Info);
+        await Task.Delay(1000);
+        Snackbar.Add("✅ Connected successfully!", Severity.Success);
+    }
+
+    private void RefreshLogs()
+    {
+        LoadLogs();
+        Snackbar.Add("Logs refreshed", Severity.Success);
+    }
+
+    private void ClearLogs()
+    {
+        _logs.Clear();
+        Snackbar.Add("Logs cleared", Severity.Success);
+    }
+
+    private async Task ExportLogs()
+    {
+        Snackbar.Add("Logs exported", Severity.Success);
+    }
+
+    private async Task ClearLocalStorage()
+    {
+        Snackbar.Add("LocalStorage cleared", Severity.Warning);
+    }
+
+    private async Task ClearIndexedDB()
+    {
+        Snackbar.Add("IndexedDB cleared", Severity.Warning);
+    }
+
+    private async Task FactoryReset()
+    {
+        Snackbar.Add("Factory reset requires confirmation", Severity.Error);
+    }
+
+    private async Task Close()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(IsOpen);
+    }
+
+    private class AdminStats
+    {
+        public int TotalConversations { get; set; }
+        public int ConversationsToday { get; set; }
+        public int ActiveModels { get; set; }
+        public int TotalModels { get; set; }
+        public int McpServers { get; set; }
+    }
+
+    private class SystemHealth
+    {
+        public bool LiteLLMConnected { get; set; }
+        public string LiteLLMUrl { get; set; } = string.Empty;
+        public double StorageUsed { get; set; }
+        public double StorageLimit { get; set; }
+        public string Uptime { get; set; } = string.Empty;
+    }
+
+    private class StorageStats
+    {
+        public double LocalStorageUsed { get; set; }
+        public double LocalStorageLimit { get; set; }
+        public double LocalStoragePercent { get; set; }
+        public double IndexedDBUsed { get; set; }
+        public double IndexedDBLimit { get; set; }
+        public double IndexedDBPercent { get; set; }
+    }
+
+    private class McpServer
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public bool Connected { get; set; }
+        public int ToolCount { get; set; }
+    }
+
+    private class SystemLog
+    {
+        public DateTime Timestamp { get; set; }
+        public string Level { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+    }
+}

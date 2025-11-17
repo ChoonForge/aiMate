@@ -1,0 +1,279 @@
+﻿@inherits LayoutComponentBase
+@inject AppStateService AppState
+@inject IJSRuntime JS
+@implements IDisposable
+
+<MudThemeProvider @ref="@_mudThemeProvider" @bind-IsDarkMode="@_isDark" Theme="@_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    @* Sidebar Drawer *@
+    <MudDrawer @bind-Open="@_drawerOpen" Elevation="2" Variant="@DrawerVariant.Persistent">
+        <MudDrawerHeader>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width: 100%">
+                <MudText Typo="Typo.h6" Color="Color.Primary">
+                    <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Small" /> aiMate
+                </MudText>
+                <MudStack Row="true" Spacing="1">
+                    <MudIconButton Icon="@Icons.Material.Filled.AdminPanelSettings" 
+                                   Color="Color.Warning" 
+                                   Size="Size.Small"
+                                   OnClick="@(() => _adminOpen = true)"
+                                   Title="Admin Panel" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Add" 
+                                   Color="Color.Primary" 
+                                   Size="Size.Small"
+                                   OnClick="@CreateNewChat"
+                                   Title="New Chat" />
+                </MudStack>
+            </MudStack>
+        </MudDrawerHeader>
+
+        <MudDivider />
+
+        @* Search Bar *@
+        <MudStack Class="pa-2" Spacing="2">
+            <MudButton Variant="Variant.Outlined" 
+                      StartIcon="@Icons.Material.Filled.Search" 
+                      FullWidth="true"
+                      Size="Size.Small"
+                      OnClick="@(() => _searchOpen = true)">
+                Search...
+            </MudButton>
+        </MudStack>
+
+        @* Conversation List *@
+        <MudNavMenu>
+            @if (AppState.Conversations.Any(c => c.IsPinned && !c.IsArchived))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="px-4 pt-2">PINNED</MudText>
+                @foreach (var conversation in AppState.Conversations.Where(c => c.IsPinned && !c.IsArchived))
+                {
+                    <ConversationNavItem Conversation="@conversation" 
+                                        IsActive="@(AppState.ActiveConversation?.Id == conversation.Id)" 
+                                        OnDelete="@(() => DeleteConversation(conversation.Id))"
+                                        OnPin="@(() => AppState.PinConversation(conversation.Id, false))"
+                                        OnArchive="@(() => AppState.ArchiveConversation(conversation.Id))" />
+                }
+                <MudDivider Class="my-2" />
+            }
+
+            @if (AppState.Conversations.Any(c => !c.IsPinned && !c.IsArchived))
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="px-4 pt-2">RECENT</MudText>
+                @foreach (var conversation in AppState.Conversations.Where(c => !c.IsPinned && !c.IsArchived).Take(20))
+                {
+                    <ConversationNavItem Conversation="@conversation" 
+                                        IsActive="@(AppState.ActiveConversation?.Id == conversation.Id)"
+                                        OnDelete="@(() => DeleteConversation(conversation.Id))"
+                                        OnPin="@(() => AppState.PinConversation(conversation.Id))"
+                                        OnArchive="@(() => AppState.ArchiveConversation(conversation.Id))" />
+                }
+            }
+
+            @if (!AppState.Conversations.Any())
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">
+                    No conversations yet. Click + to start!
+                </MudText>
+            }
+        </MudNavMenu>
+
+        <MudSpacer />
+
+        @* Bottom Controls *@
+        <MudStack Class="pa-2" Spacing="1">
+            <MudDivider />
+            
+            <MudButton Variant="Variant.Text" 
+                      StartIcon="@Icons.Material.Filled.Code" 
+                      FullWidth="true"
+                      Size="Size.Small"
+                      OnClick="@(() => _codeOpen = true)">
+                Code Editor
+            </MudButton>
+
+            <MudButton Variant="Variant.Text" 
+                      StartIcon="@Icons.Material.Filled.Folder" 
+                      FullWidth="true"
+                      Size="Size.Small"
+                      OnClick="@(() => _knowledgeOpen = true)">
+                Knowledge
+            </MudButton>
+
+            <MudButton Variant="Variant.Text" 
+                      StartIcon="@Icons.Material.Filled.Archive" 
+                      FullWidth="true"
+                      Size="Size.Small"
+                      OnClick="@(() => _archiveOpen = true)">
+                Archive
+            </MudButton>
+
+            <MudButton Variant="Variant.Text" 
+                      StartIcon="@Icons.Material.Filled.Settings" 
+                      FullWidth="true"
+                      Size="Size.Small"
+                      OnClick="@(() => _settingsOpen = true)">
+                Settings
+            </MudButton>
+
+            <MudButton Variant="Variant.Text" 
+                      StartIcon="@(_isDark ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)" 
+                      FullWidth="true"
+                      Size="Size.Small"
+                      OnClick="@ToggleTheme">
+                @(_isDark ? "Light" : "Dark") Mode
+            </MudButton>
+        </MudStack>
+    </MudDrawer>
+
+    @* Main Content Area *@
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-0" Style="height: 100vh">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+@* Modals *@
+<SettingsModal @bind-IsOpen="@_settingsOpen" />
+<KnowledgeModal @bind-IsOpen="@_knowledgeOpen" />
+<SearchModal @bind-IsOpen="@_searchOpen" />
+@* <CodeModal @bind-IsOpen="@_codeOpen" /> *@
+<AdminModal @bind-IsOpen="@_adminOpen" />
+
+@* Archive Dialog *@
+<MudDialog @bind-Visible="@_archiveOpen" Options="@_dialogOptions">
+    <DialogContent>
+        <MudText Typo="Typo.h6">Archived Conversations</MudText>
+        @if (AppState.Conversations.Any(c => c.IsArchived))
+        {
+            <MudList T="object">
+                @foreach (var conv in AppState.Conversations.Where(c => c.IsArchived))
+                {
+                    <MudListItem>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudText>@conv.Title</MudText>
+                            <MudStack Row="true" Spacing="1">
+                                <MudIconButton Icon="@Icons.Material.Filled.Unarchive" 
+                                              Size="Size.Small"
+                                              OnClick="@(() => UnarchiveConversation(conv.Id))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                              Size="Size.Small" 
+                                              Color="Color.Error"
+                                              OnClick="@(() => DeleteConversation(conv.Id))" />
+                            </MudStack>
+                        </MudStack>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-4">
+                No archived conversations
+            </MudText>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _archiveOpen = false)">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private MudThemeProvider? _mudThemeProvider;
+    private bool _isDark = true;
+    private bool _drawerOpen = true;
+    private bool _settingsOpen = false;
+    private bool _knowledgeOpen = false;
+    private bool _searchOpen = false;
+    private bool _archiveOpen = false;
+    private bool _codeOpen = false;
+    private bool _adminOpen = false;
+
+    private DialogOptions _dialogOptions = new DialogOptions 
+    { 
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true
+    };
+
+    // Custom theme matching the purple-to-blue gradient
+    private MudTheme _theme = new MudTheme
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#8B5CF6", // Purple
+            Secondary = "#3B82F6", // Blue
+            AppbarBackground = "#F9FAFB",
+            Background = "#FFFFFF",
+            Surface = "#F9FAFB",
+            DrawerBackground = "#FFFFFF",
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#8B5CF6", // Purple
+            Secondary = "#3B82F6", // Blue
+            AppbarBackground = "#1F2937",
+            Background = "#111827",
+            Surface = "#1F2937",
+            DrawerBackground = "#1F2937",
+        },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography
+            {
+                FontFamily = new[] { "Inter", "system-ui", "sans-serif" }
+            }
+        }
+    };
+
+    protected override void OnInitialized()
+    {
+        AppState.OnChange += StateHasChanged;
+        
+        // Create a default conversation if none exist
+        if (!AppState.Conversations.Any())
+        {
+            AppState.CreateNewConversation();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Set up keyboard shortcuts
+            await JS.InvokeVoidAsync("setupKeyboardShortcuts");
+        }
+    }
+
+    private void CreateNewChat()
+    {
+        AppState.CreateNewConversation();
+    }
+
+    private void DeleteConversation(string id)
+    {
+        AppState.DeleteConversation(id);
+    }
+
+    private void UnarchiveConversation(string id)
+    {
+        AppState.UpdateConversation(id, c => c.IsArchived = false);
+    }
+
+    private async Task ToggleTheme()
+    {
+        _isDark = !_isDark;
+        AppState.Preferences.Theme = _isDark ? "dark" : "light";
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        AppState.OnChange -= StateHasChanged;
+    }
+}

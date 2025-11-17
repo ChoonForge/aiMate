@@ -1,0 +1,141 @@
+﻿@* @using BlazorMonaco
+@using BlazorMonaco.Editor
+@inject IJSRuntime JS
+
+<div class="monaco-editor-container" style="height: @Height; width: 100%;">
+    <StandaloneCodeEditor @ref="_editor"
+                         Id="@EditorId"
+                         ConstructionOptions="EditorConstructionOptions"
+                         OnDidInit="OnEditorInit"
+                         OnDidChangeModelContent="OnContentChanged"
+                         CssClass="monaco-editor-instance" />
+</div>
+
+@code {
+    [Parameter]
+    public string EditorId { get; set; } = Guid.NewGuid().ToString();
+
+    [Parameter]
+    public string Language { get; set; } = "csharp";
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string> ValueChanged { get; set; }
+
+    [Parameter]
+    public string Height { get; set; } = "600px";
+
+    [Parameter]
+    public bool ReadOnly { get; set; } = false;
+
+    [Parameter]
+    public string Theme { get; set; } = "vs-dark";
+
+    private StandaloneCodeEditor? _editor;
+    private string _currentValue = string.Empty;
+
+    private StandaloneEditorConstructionOptions EditorConstructionOptions(StandaloneCodeEditor editor)
+    {
+        return new StandaloneEditorConstructionOptions
+        {
+            Language = Language,
+            Value = Value ?? string.Empty,
+            Theme = Theme,
+            AutomaticLayout = true,
+            ReadOnly = ReadOnly,
+            Minimap = new EditorMinimapOptions { Enabled = true },
+            ScrollBeyondLastLine = false,
+            FontSize = 14,
+            FontFamily = "'Fira Code', 'Cascadia Code', 'Consolas', monospace",
+            TabSize = 4,
+            InsertSpaces = true,
+            WordWrap = "on",
+            LineNumbers = "on",
+            RenderWhitespace = "selection",
+            BracketPairColorization = new BracketPairColorizationOptions { Enabled = true },
+            SuggestOnTriggerCharacters = true,
+            AcceptSuggestionOnEnter = "on",
+            QuickSuggestions = BlazorMonaco.Editor.QuickSuggestionsOptions()
+        };
+    }
+
+    private async Task OnEditorInit()
+    {
+        if (_editor != null && !string.IsNullOrEmpty(Value))
+        {
+            await _editor.SetValue(Value);
+        }
+    }
+
+    private async Task OnContentChanged(ModelContentChangedEvent e)
+    {
+        if (_editor != null)
+        {
+            var newValue = await _editor.GetValue();
+            if (newValue != _currentValue)
+            {
+                _currentValue = newValue;
+                await ValueChanged.InvokeAsync(newValue);
+            }
+        }
+    }
+
+    public async Task<string> GetValueAsync()
+    {
+        if (_editor != null)
+        {
+            return await _editor.GetValue();
+        }
+        return string.Empty;
+    }
+
+    public async Task SetValueAsync(string value)
+    {
+        if (_editor != null)
+        {
+            await _editor.SetValue(value);
+            _currentValue = value;
+        }
+    }
+
+    public async Task SetLanguageAsync(string language)
+    {
+        if (_editor != null)
+        {
+            var model = await _editor.GetModel();
+            if (model != null)
+            {
+                await Global.SetModelLanguage(JS, model, language);
+            }
+        }
+    }
+
+    public async Task FormatDocumentAsync()
+    {
+        if (_editor != null)
+        {
+            await _editor.Trigger("", "editor.action.formatDocument");
+        }
+    }
+
+    public async Task SetThemeAsync(string theme)
+    {
+        await Global.SetTheme(JS, theme);
+    }
+}
+
+<style>
+    .monaco-editor-container {
+        border: 1px solid var(--mud-palette-divider);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .monaco-editor-instance {
+        height: 100%;
+        width: 100%;
+    }
+</style>
+ *@

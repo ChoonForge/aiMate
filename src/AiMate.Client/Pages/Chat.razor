@@ -1,0 +1,414 @@
+﻿@page "/chat"
+@page "/chat/{ConversationId}"
+@inject AppStateService AppState
+@inject LiteLLMService LiteLLM
+@inject ISnackbar Snackbar
+@implements IDisposable
+
+<MudStack Style="height: 100vh" Spacing="0">
+    @* Chat Header *@
+    <MudPaper Elevation="1" Class="pa-3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudText Typo="Typo.h6">
+                    @(AppState.ActiveConversation?.Title ?? "New Chat")
+                </MudText>
+                
+                @if (AppState.SelectedModel != null)
+                {
+                    <MudMenu Icon="@Icons.Material.Filled.ArrowDropDown" 
+                            Size="Size.Small"
+                            Dense="true"
+                            Label="@AppState.SelectedModel.Name"
+                            Variant="Variant.Outlined"
+                            Color="Color.Primary">
+                        @foreach (var model in AppState.AvailableModels.Where(m => m.IsEnabled))
+                        {
+                            <MudMenuItem OnClick="@(() => AppState.SetSelectedModel(model.Id))">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2">@model.Name</MudText>
+                                    @if (model.Description != null)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @model.Description
+                                        </MudText>
+                                    }
+                                </MudStack>
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                }
+            </MudStack>
+
+            <MudStack Row="true" Spacing="1">
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" 
+                              Size="Size.Small" 
+                              Color="Color.Default"
+                              Title="Regenerate Response" />
+                <MudIconButton Icon="@Icons.Material.Filled.Download" 
+                              Size="Size.Small" 
+                              Color="Color.Default"
+                              Title="Export Conversation" />
+                <MudIconButton Icon="@Icons.Material.Filled.MoreVert" 
+                              Size="Size.Small" 
+                              Color="Color.Default"
+                              Title="Chat Options" />
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    @* Messages Area *@
+    <MudScrollToBottom Class="flex-grow-1 overflow-y-auto" id="chat-scroll">
+        <MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
+            @if (messages.Any())
+            {
+                @foreach (var message in messages)
+                {
+                    <MudPaper Elevation="0" Class="mb-4 pa-3" Style="@GetMessageStyle(message.Role)" id="@message.Id">
+                        <MudStack Spacing="2">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@GetMessageIcon(message.Role)" Size="Size.Small" />
+                                    <MudText Typo="Typo.subtitle2">
+                                        @(message.Role == "user" ? "You" : AppState.SelectedModel?.Name ?? "Assistant")
+                                    </MudText>
+                                </MudStack>
+                                
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    @if (AppState.Preferences.ShowTimestamps && message.Timestamp != default)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @message.Timestamp.ToString("HH:mm")
+                                        </MudText>
+                                    }
+                                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true">
+                                        <MudMenuItem Icon="@Icons.Material.Filled.ContentCopy">Copy</MudMenuItem>
+                                        <MudMenuItem Icon="@Icons.Material.Filled.Edit">Edit</MudMenuItem>
+                                        <MudMenuItem Icon="@Icons.Material.Filled.ThumbUp">Good Response</MudMenuItem>
+                                        <MudMenuItem Icon="@Icons.Material.Filled.ThumbDown">Bad Response</MudMenuItem>
+                                        <MudDivider />
+                                        <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error">
+                                            <MudText Color="Color.Error">Delete</MudText>
+                                        </MudMenuItem>
+                                    </MudMenu>
+                                </MudStack>
+                            </MudStack>
+
+                            @if (AppState.Preferences.EnableMarkdown && message.Role == "assistant")
+                            {
+                                <MarkdownRenderer Content="@message.Content" />
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body1" Style="white-space: pre-wrap">
+                                    @message.Content
+                                </MudText>
+                            }
+
+                            @if (message.IsStreaming)
+                            {
+                                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Size="Size.Small" />
+                            }
+
+                            @if (message.Metadata?.TokensUsed != null)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @message.Metadata.TokensUsed tokens
+                                </MudText>
+                            }
+                        </MudStack>
+                    </MudPaper>
+                }
+            }
+            else
+            {
+                <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="height: 60vh">
+                    <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Typo="Typo.h5" Color="Color.Secondary">Start a conversation</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                        Ask me anything, and I'll help you out!<br />
+                        You can attach files, reference knowledge, or just chat.
+                    </MudText>
+                    
+                    @* Quick Start Prompts *@
+                    <MudStack Row="true" Spacing="2" Class="mt-4">
+                        <MudButton Variant="Variant.Outlined" 
+                                  Color="Color.Primary"
+                                  OnClick="@(() => SetPrompt("Explain quantum computing in simple terms"))">
+                            Explain quantum computing
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" 
+                                  Color="Color.Primary"
+                                  OnClick="@(() => SetPrompt("Write a Python function to sort a list"))">
+                            Write a Python function
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" 
+                                  Color="Color.Primary"
+                                  OnClick="@(() => SetPrompt("Help me plan a healthy meal prep for the week"))">
+                            Plan a meal prep
+                        </MudButton>
+                    </MudStack>
+                </MudStack>
+            }
+        </MudContainer>
+    </MudScrollToBottom>
+
+    @* Input Area *@
+    <MudPaper Elevation="3" Class="pa-3">
+        <MudStack Spacing="2">
+            @* Attachments (if any) *@
+            @if (_attachments.Any())
+            {
+                <MudStack Row="true" Spacing="1">
+                    @foreach (var attachment in _attachments)
+                    {
+                        <MudChip T="string" Size="Size.Small" 
+                                OnClose="@(() => RemoveAttachment(attachment))"
+                                CloseIcon="@Icons.Material.Filled.Close"
+                                Icon="@GetAttachmentIcon(attachment.Type)">
+                            @attachment.Name
+                        </MudChip>
+                    }
+                </MudStack>
+            }
+
+            @* Input Field *@
+            <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2">
+                <MudTextField T="string" @bind-Value="@_inputText"
+                             Label="Message"
+                             Variant="Variant.Outlined"
+                             Lines="1"
+                             MaxLines="5"
+                             AutoGrow="true"
+                             Disabled="@_isSending"
+                             OnKeyDown="@HandleKeyDown"
+                             Class="flex-grow-1"
+                             @ref="_inputField" />
+
+                <MudStack Row="true" Spacing="1">
+                    <MudMenu Icon="@Icons.Material.Filled.AttachFile" 
+                            Size="Size.Medium"
+                            Dense="true"
+                            Disabled="@_isSending">
+                        <MudMenuItem Icon="@Icons.Material.Filled.UploadFile">Upload File</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.LibraryBooks">Attach Knowledge</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Link">Add URL</MudMenuItem>
+                    </MudMenu>
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Send" 
+                                  Size="Size.Medium"
+                                  Color="Color.Primary"
+                                  Disabled="@(_isSending || string.IsNullOrWhiteSpace(_inputText))"
+                                  OnClick="@SendMessage"
+                                  Title="Send Message (Enter)" />
+                </MudStack>
+            </MudStack>
+
+            @* Status indicator *@
+            @if (_isSending)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    @AppState.SelectedModel?.Name is generating a response...
+                </MudText>
+            }
+        </MudStack>
+    </MudPaper>
+</MudStack>
+
+@code {
+    [Parameter]
+    public string? ConversationId { get; set; }
+
+    private MudTextField<string>? _inputField;
+    private string _inputText = string.Empty;
+    private bool _isSending = false;
+    private List<Attachment> _attachments = new();
+    private List<Message> messages = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        AppState.OnChange += StateHasChanged;
+        AppState.OnConversationChanged += OnConversationChanged;
+        
+        // Load available models
+        try
+        {
+            var models = await LiteLLM.GetModelsAsync();
+            AppState.LoadModels(models);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load models: {ex.Message}", Severity.Warning);
+        }
+
+        LoadMessages();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(ConversationId))
+        {
+            AppState.SetActiveConversation(ConversationId);
+        }
+        LoadMessages();
+    }
+
+    private void OnConversationChanged(Conversation conversation)
+    {
+        LoadMessages();
+        StateHasChanged();
+    }
+
+    private void LoadMessages()
+    {
+        messages = AppState.ActiveConversation?.Messages.ToList() ?? new();
+        StateHasChanged();
+    }
+
+    private void SetPrompt(string prompt)
+    {
+        _inputText = prompt;
+        StateHasChanged();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SendMessage();
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(_inputText) || _isSending) return;
+
+        var conversationId = AppState.ActiveConversation?.Id;
+        if (string.IsNullOrEmpty(conversationId))
+        {
+            AppState.CreateNewConversation();
+            conversationId = AppState.ActiveConversation?.Id;
+        }
+
+        if (string.IsNullOrEmpty(conversationId)) return;
+
+        var userMessage = new Message
+        {
+            Role = "user",
+            Content = _inputText.Trim(),
+            Timestamp = DateTime.UtcNow,
+            Attachments = _attachments.Any() ? new List<Attachment>(_attachments) : null
+        };
+
+        AppState.AddMessage(conversationId, userMessage);
+        _inputText = string.Empty;
+        _attachments.Clear();
+        _isSending = true;
+
+        // Create assistant message placeholder
+        var assistantMessage = new Message
+        {
+            Role = "assistant",
+            Content = string.Empty,
+            Timestamp = DateTime.UtcNow,
+            IsStreaming = true,
+            Model = AppState.SelectedModel?.Id
+        };
+
+        AppState.AddMessage(conversationId, assistantMessage);
+        LoadMessages();
+
+        try
+        {
+            var model = AppState.SelectedModel?.Id ?? "gpt-3.5-turbo";
+            var conversationMessages = AppState.ActiveConversation!.Messages
+                .Where(m => m.Id != assistantMessage.Id) // Exclude the placeholder
+                .ToList();
+
+            // Stream the response
+            var contentBuilder = new System.Text.StringBuilder();
+            
+            await foreach (var chunk in LiteLLM.CreateChatCompletionStreamAsync(
+                model, 
+                conversationMessages))
+            {
+                if (chunk.Choices.Any() && chunk.Choices[0].Delta?.Content != null)
+                {
+                    contentBuilder.Append(chunk.Choices[0].Delta.Content);
+                    
+                    AppState.UpdateMessage(conversationId, assistantMessage.Id, msg =>
+                    {
+                        msg.Content = contentBuilder.ToString();
+                    });
+                    
+                    LoadMessages();
+                    StateHasChanged();
+                }
+            }
+
+            // Finalize the message
+            AppState.UpdateMessage(conversationId, assistantMessage.Id, msg =>
+            {
+                msg.IsStreaming = false;
+                msg.Status = MessageStatus.Delivered;
+            });
+
+            Snackbar.Add("Response complete!", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            
+            AppState.UpdateMessage(conversationId, assistantMessage.Id, msg =>
+            {
+                msg.Content = $"Error generating response: {ex.Message}";
+                msg.IsStreaming = false;
+                msg.Status = MessageStatus.Error;
+            });
+        }
+        finally
+        {
+            _isSending = false;
+            LoadMessages();
+            StateHasChanged();
+        }
+    }
+
+    private void RemoveAttachment(Attachment attachment)
+    {
+        _attachments.Remove(attachment);
+    }
+
+    private string GetMessageIcon(string role)
+    {
+        return role == "user" 
+            ? Icons.Material.Filled.Person 
+            : Icons.Material.Filled.SmartToy;
+    }
+
+    private string GetAttachmentIcon(string type)
+    {
+        return type switch
+        {
+            "file" => Icons.Material.Filled.AttachFile,
+            "knowledge" => Icons.Material.Filled.LibraryBooks,
+            "url" => Icons.Material.Filled.Link,
+            "image" => Icons.Material.Filled.Image,
+            _ => Icons.Material.Filled.AttachFile
+        };
+    }
+
+    private string GetMessageStyle(string role)
+    {
+        return role == "user"
+            ? "background: var(--mud-palette-primary-lighten); border-left: 4px solid var(--mud-palette-primary);"
+            : "background: var(--mud-palette-surface); border-left: 4px solid var(--mud-palette-secondary);";
+    }
+
+    public void Dispose()
+    {
+        AppState.OnChange -= StateHasChanged;
+        AppState.OnConversationChanged -= OnConversationChanged;
+    }
+}

@@ -1,0 +1,314 @@
+﻿@inject AppStateService AppState
+@inject ISnackbar Snackbar
+
+<MudDialog @bind-Visible="@IsOpen" Options="@_dialogOptions">
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.h5">Knowledge Base</MudText>
+                <MudButton Variant="Variant.Filled" 
+                          Color="Color.Primary" 
+                          StartIcon="@Icons.Material.Filled.Add"
+                          OnClick="@(() => _addKnowledgeOpen = true)">
+                    Add Knowledge
+                </MudButton>
+            </MudStack>
+
+            <MudTextField T="string" @bind-Value="@_searchQuery" 
+                         Label="Search knowledge..." 
+                         Variant="Variant.Outlined"
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="@Icons.Material.Filled.Search"
+                         Immediate="true" />
+
+            <MudStack Row="true" Spacing="1">
+                <MudChip T="string" Size="Size.Small" 
+                        Color="@(_selectedFilter == "all" ? Color.Primary : Color.Default)"
+                        OnClick="@(() => _selectedFilter = "all")">
+                    All (@AppState.KnowledgeItems.Count)
+                </MudChip>
+                <MudChip T="string" Size="Size.Small" 
+                        Color="@(_selectedFilter == "document" ? Color.Primary : Color.Default)"
+                        OnClick="@(() => _selectedFilter = "document")">
+                    Documents
+                </MudChip>
+                <MudChip T="string" Size="Size.Small" 
+                        Color="@(_selectedFilter == "webpage" ? Color.Primary : Color.Default)"
+                        OnClick="@(() => _selectedFilter = "webpage")">
+                    Web Pages
+                </MudChip>
+                <MudChip T="string" Size="Size.Small" 
+                        Color="@(_selectedFilter == "note" ? Color.Primary : Color.Default)"
+                        OnClick="@(() => _selectedFilter = "note")">
+                    Notes
+                </MudChip>
+            </MudStack>
+
+            <MudDivider />
+
+            @if (FilteredKnowledge.Any())
+            {
+                <MudList T="object">
+                    @foreach (var item in FilteredKnowledge)
+                    {
+                        <MudListItem T="MudStack">
+                            <MudStack Spacing="1">
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                    <MudText Typo="Typo.subtitle1">@item.Title</MudText>
+                                    <MudStack Row="true" Spacing="1">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                      Size="Size.Small"
+                                                      OnClick="@(() => EditKnowledge(item))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                      Size="Size.Small" 
+                                                      Color="Color.Error"
+                                                      OnClick="@(() => DeleteKnowledge(item))" />
+                                    </MudStack>
+                                </MudStack>
+
+                                @if (!string.IsNullOrEmpty(item.Description))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @item.Description
+                                    </MudText>
+                                }
+
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudChip T="string"  Size="Size.Small" Variant="Variant.Outlined">
+                                        @item.Type.ToString()
+                                    </MudChip>
+                                    @foreach (var tag in item.Tags.Take(3))
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Primary">@tag</MudChip>
+                                    }
+                                    @if (item.Tags.Count > 3)
+                                    {
+                                        <MudText Typo="Typo.caption">+@(item.Tags.Count - 3) more</MudText>
+                                    }
+                                </MudStack>
+
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    Updated @item.UpdatedAt.ToString("MMM dd, yyyy HH:mm")
+                                </MudText>
+                            </MudStack>
+                        </MudListItem>
+                        <MudDivider />
+                    }
+                </MudList>
+            }
+            else
+            {
+                <MudPaper Class="pa-8" Elevation="0" Style="text-align: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.LibraryBooks" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">
+                        No knowledge items found
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Add your first knowledge item to get started!
+                    </MudText>
+                </MudPaper>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* Add/Edit Knowledge Dialog *@
+<MudDialog @bind-Visible="@_addKnowledgeOpen" Options="@_addDialogOptions">
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.h6">@(_editingItem != null ? "Edit" : "Add") Knowledge</MudText>
+
+            <MudTextField T="string" @bind-Value="@_newTitle" 
+                         Label="Title" 
+                         Variant="Variant.Outlined"
+                         Required="true" />
+
+            <MudTextField T="string" @bind-Value="@_newDescription" 
+                         Label="Description" 
+                         Variant="Variant.Outlined"
+                         Lines="2" />
+
+            <MudSelect @bind-Value="@_newType" Label="Type" Variant="Variant.Outlined">
+                <MudSelectItem Value="@KnowledgeType.Document">Document</MudSelectItem>
+                <MudSelectItem Value="@KnowledgeType.WebPage">Web Page</MudSelectItem>
+                <MudSelectItem Value="@KnowledgeType.Note">Note</MudSelectItem>
+                <MudSelectItem Value="@KnowledgeType.Code">Code</MudSelectItem>
+                <MudSelectItem Value="@KnowledgeType.File">File</MudSelectItem>
+            </MudSelect>
+
+            <MudTextField T="string" @bind-Value="@_newContent" 
+                         Label="Content" 
+                         Variant="Variant.Outlined"
+                         Lines="10"
+                         AutoGrow="true" />
+
+            <MudChipSet T="string" Set @bind-SelectedChips="@_selectedTags" MultiSelection="true">
+                @foreach (var tag in _availableTags)
+                {
+                    <MudChip T="string" Text="@tag" Color="Color.Primary" />
+                }
+            </MudChipSet>
+
+            <MudTextField T="string" @bind-Value="@_newTag" 
+                         Label="Add new tag" 
+                         Variant="Variant.Outlined"
+                         Adornment="Adornment.End"
+                         AdornmentIcon="@Icons.Material.Filled.Add"
+                         OnAdornmentClick="@AddTag" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@CancelAddKnowledge">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" 
+                  Color="Color.Primary" 
+                  OnClick="@SaveKnowledge"
+                  Disabled="@string.IsNullOrWhiteSpace(_newTitle)">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsOpenChanged { get; set; }
+
+    private DialogOptions _dialogOptions = new DialogOptions
+    {
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.Large,
+        FullWidth = true
+    };
+
+    private DialogOptions _addDialogOptions = new DialogOptions
+    {
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true
+    };
+
+    private string _searchQuery = string.Empty;
+    private string _selectedFilter = "all";
+    private bool _addKnowledgeOpen = false;
+
+    // Add/Edit form fields
+    private KnowledgeItem? _editingItem;
+    private string _newTitle = string.Empty;
+    private string _newDescription = string.Empty;
+    private string _newContent = string.Empty;
+    private KnowledgeType _newType = KnowledgeType.Document;
+    private string _newTag = string.Empty;
+    private List<string> _availableTags = new() { "Important", "Reference", "Tutorial", "API", "Documentation" };
+    private MudChip<object>[] _selectedTags = Array.Empty<MudChip<object>>();
+
+    private IEnumerable<KnowledgeItem> FilteredKnowledge
+    {
+        get
+        {
+            var items = AppState.KnowledgeItems.AsEnumerable();
+
+            // Apply type filter
+            if (_selectedFilter != "all")
+            {
+                if (Enum.TryParse<KnowledgeType>(_selectedFilter, true, out var type))
+                {
+                    items = items.Where(k => k.Type == type);
+                }
+            }
+
+            // Apply search filter
+            if (!string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                var query = _searchQuery.ToLower();
+                items = items.Where(k =>
+                    k.Title.ToLower().Contains(query) ||
+                    k.Description?.ToLower().Contains(query) == true ||
+                    k.Tags.Any(t => t.ToLower().Contains(query))
+                );
+            }
+
+            return items.OrderByDescending(k => k.UpdatedAt);
+        }
+    }
+
+    private void EditKnowledge(KnowledgeItem item)
+    {
+        _editingItem = item;
+        _newTitle = item.Title;
+        _newDescription = item.Description ?? string.Empty;
+        _newContent = item.Content;
+        _newType = item.Type;
+        // TODO: Set selected tags
+        _addKnowledgeOpen = true;
+    }
+
+    private void DeleteKnowledge(KnowledgeItem item)
+    {
+        AppState.DeleteKnowledgeItem(item.Id);
+        Snackbar.Add("Knowledge item deleted", Severity.Success);
+    }
+
+    private void AddTag()
+    {
+        if (!string.IsNullOrWhiteSpace(_newTag) && !_availableTags.Contains(_newTag))
+        {
+            _availableTags.Add(_newTag);
+            _newTag = string.Empty;
+        }
+    }
+
+    private void SaveKnowledge()
+    {
+        if (_editingItem != null)
+        {
+            // Update existing
+            AppState.UpdateKnowledgeItem(_editingItem.Id, item =>
+            {
+                item.Title = _newTitle;
+                item.Description = _newDescription;
+                item.Content = _newContent;
+                item.Type = _newType;
+                item.Tags = _selectedTags.Select(c => c.Text).ToList();
+            });
+            Snackbar.Add("Knowledge updated!", Severity.Success);
+        }
+        else
+        {
+            // Create new
+            var newItem = new KnowledgeItem
+            {
+                Title = _newTitle,
+                Description = _newDescription,
+                Content = _newContent,
+                Type = _newType,
+                Tags = _selectedTags.Select(c => c.Text).ToList()
+            };
+            AppState.AddKnowledgeItem(newItem);
+            Snackbar.Add("Knowledge added!", Severity.Success);
+        }
+
+        CancelAddKnowledge();
+    }
+
+    private void CancelAddKnowledge()
+    {
+        _addKnowledgeOpen = false;
+        _editingItem = null;
+        _newTitle = string.Empty;
+        _newDescription = string.Empty;
+        _newContent = string.Empty;
+        _newType = KnowledgeType.Document;
+        _selectedTags = Array.Empty<MudChip<object>>();
+    }
+
+    private async Task Close()
+    {
+        IsOpen = false;
+        await IsOpenChanged.InvokeAsync(IsOpen);
+    }
+}
