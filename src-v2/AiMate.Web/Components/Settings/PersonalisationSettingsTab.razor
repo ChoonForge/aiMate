@@ -1,0 +1,92 @@
+@using Fluxor
+@using AiMate.Web.Store.Settings
+@using AiMate.Core.Enums
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<SettingsState> SettingsState
+@inject IDispatcher Dispatcher
+
+<MudText Typo="Typo.h6" Class="mb-4">Personalisation Settings</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudSelect @bind-Value="@_defaultPersonality"
+                  Label="Default Personality"
+                  Variant="Variant.Outlined"
+                  OnValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateDefaultPersonalityAction(value)))">
+            <MudSelectItem Value="@(PersonalityMode.KiwiMate.ToString())">Kiwi Mate (Casual & Friendly)</MudSelectItem>
+            <MudSelectItem Value="@(PersonalityMode.KiwiProfessional.ToString())">Kiwi Professional</MudSelectItem>
+            <MudSelectItem Value="@(PersonalityMode.KiwiDev.ToString())">Kiwi Dev (Technical)</MudSelectItem>
+            <MudSelectItem Value="@(PersonalityMode.TeReoMaori.ToString())">Te Reo Māori</MudSelectItem>
+            <MudSelectItem Value="@(PersonalityMode.MentalHealthSupport.ToString())">Mental Health Support</MudSelectItem>
+            <MudSelectItem Value="@(PersonalityMode.Standard.ToString())">Standard AI</MudSelectItem>
+        </MudSelect>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudSelect @bind-Value="@_defaultModel"
+                  Label="Default Model"
+                  Variant="Variant.Outlined"
+                  OnValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateDefaultModelAction(value)))">
+            <MudSelectItem Value="@("gpt-4")">GPT-4</MudSelectItem>
+            <MudSelectItem Value="@("gpt-3.5-turbo")">GPT-3.5 Turbo</MudSelectItem>
+            <MudSelectItem Value="@("claude-3-5-sonnet-20241022")">Claude 3.5 Sonnet</MudSelectItem>
+            <MudSelectItem Value="@("claude-3-opus-20240229")">Claude 3 Opus</MudSelectItem>
+            <MudSelectItem Value="@("gemini-pro")">Gemini Pro</MudSelectItem>
+        </MudSelect>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudSlider @bind-Value="@_temperature"
+                  Min="0"
+                  Max="2"
+                  Step="0.1"
+                  Color="Color.Primary"
+                  ValueChanged="@((double value) => Dispatcher.Dispatch(new UpdateTemperatureAction(value)))">
+            Temperature: @_temperature.ToString("F1")
+        </MudSlider>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Lower = more focused, Higher = more creative
+        </MudText>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudNumericField @bind-Value="@_maxTokens"
+                        Label="Max Tokens"
+                        Variant="Variant.Outlined"
+                        Min="100"
+                        Max="8000"
+                        Step="100"
+                        ValueChanged="@((int value) => Dispatcher.Dispatch(new UpdateMaxTokensAction(value)))" />
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudTextField @bind-Value="@_systemPromptOverride"
+                     Label="System Prompt Override (Advanced)"
+                     Variant="Variant.Outlined"
+                     Lines="5"
+                     Placeholder="Optional: Override the default system prompt"
+                     ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateSystemPromptOverrideAction(value)))" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Leave blank to use personality-specific prompts. Advanced users only!
+        </MudText>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string _defaultPersonality = PersonalityMode.KiwiMate.ToString();
+    private string _defaultModel = "gpt-4";
+    private double _temperature = 0.7;
+    private int _maxTokens = 2000;
+    private string _systemPromptOverride = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        _defaultPersonality = SettingsState.Value.DefaultPersonality;
+        _defaultModel = SettingsState.Value.DefaultModel;
+        _temperature = SettingsState.Value.Temperature;
+        _maxTokens = SettingsState.Value.MaxTokens;
+        _systemPromptOverride = SettingsState.Value.SystemPromptOverride;
+    }
+}

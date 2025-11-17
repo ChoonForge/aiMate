@@ -1,0 +1,107 @@
+@using Fluxor
+@using AiMate.Web.Store.Settings
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<SettingsState> SettingsState
+@inject IDispatcher Dispatcher
+
+<MudText Typo="Typo.h6" Class="mb-4">Account Settings</MudText>
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">Profile Information</MudText>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudTextField @bind-Value="@_username"
+                     Label="Username"
+                     Variant="Variant.Outlined"
+                     Placeholder="johndoe"
+                     ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateUsernameAction(value)))" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudTextField @bind-Value="@_email"
+                     Label="Email"
+                     Variant="Variant.Outlined"
+                     InputType="InputType.Email"
+                     Placeholder="john.doe@example.com"
+                     ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateEmailAction(value)))" />
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudTextField @bind-Value="@_avatarUrl"
+                     Label="Avatar URL"
+                     Variant="Variant.Outlined"
+                     Placeholder="https://example.com/avatar.jpg"
+                     ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateAvatarUrlAction(value)))" />
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudDivider Class="my-4" />
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">Subscription Tier</MudText>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudRadioGroup @bind-SelectedOption="@_userTier" T="string">
+            <MudRadio Option="@("Free")" Color="Color.Primary" Dense="true">
+                <MudText Typo="Typo.body1">Free Tier</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Fair use limits, all features available
+                </MudText>
+            </MudRadio>
+
+            <MudRadio Option="@("BYOK")" Color="Color.Primary" Dense="true" Class="mt-2">
+                <MudText Typo="Typo.body1">BYOK - $10/month</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Bring Your Own Keys, unlimited usage with your API keys
+                </MudText>
+            </MudRadio>
+
+            <MudRadio Option="@("Developer")" Color="Color.Primary" Dense="true" Class="mt-2">
+                <MudText Typo="Typo.body1">Developer - $30/month</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Blazor component generator, API access, priority support
+                </MudText>
+            </MudRadio>
+        </MudRadioGroup>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudDivider Class="my-4" />
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudAlert Severity="Severity.Info">
+            <strong>True Open Source</strong> - No gatekeeping, no "benefactors" model.
+            All tiers get full access to the codebase. Pay if you can, use free if you can't. 🇳🇿
+        </MudAlert>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudButton Variant="Variant.Outlined"
+                  Color="Color.Error"
+                  StartIcon="@Icons.Material.Filled.Delete">
+            Delete Account
+        </MudButton>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string? _username;
+    private string? _email;
+    private string? _avatarUrl;
+    private string _userTier = "Free";
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        _username = SettingsState.Value.Username;
+        _email = SettingsState.Value.Email;
+        _avatarUrl = SettingsState.Value.AvatarUrl;
+        _userTier = SettingsState.Value.UserTier;
+    }
+}

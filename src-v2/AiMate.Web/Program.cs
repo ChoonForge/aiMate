@@ -20,6 +20,62 @@ builder.Host.UseSerilog();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// API Controllers for Developer tier
+builder.Services.AddControllers();
+
+// Swagger/OpenAPI for API documentation
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "aiMate API",
+        Version = "v1",
+        Description = "REST API for aiMate - Developer tier access",
+        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+        {
+            Name = "aiMate",
+            Email = "support@aimate.co.nz"
+        }
+    });
+
+    // Add API Key authentication
+    c.AddSecurityDefinition("ApiKey", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "API Key authentication. Use format: Bearer {your-api-key}",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "ApiKey"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+// CORS for API access
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ApiCorsPolicy", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // MudBlazor
 builder.Services.AddMudServices();
 
@@ -47,11 +103,24 @@ builder.Services.AddHttpClient();
 // Add localization
 builder.Services.AddLocalization();
 
-// TODO: Add custom services
-// builder.Services.AddScoped<ILocalizationService, LocalizationService>();
-// builder.Services.AddScoped<IChatService, ChatService>();
-// builder.Services.AddScoped<IWorkspaceService, WorkspaceService>();
-// builder.Services.AddScoped<IPersonalityService, PersonalityService>();
+// Register our services
+builder.Services.AddScoped<AiMate.Core.Services.ILiteLLMService, AiMate.Infrastructure.Services.LiteLLMService>();
+builder.Services.AddScoped<AiMate.Core.Services.IPersonalityService, AiMate.Infrastructure.Services.PersonalityService>();
+builder.Services.AddScoped<AiMate.Core.Services.IKnowledgeGraphService, AiMate.Infrastructure.Services.KnowledgeGraphService>();
+builder.Services.AddScoped<AiMate.Core.Services.IWorkspaceService, AiMate.Infrastructure.Services.WorkspaceService>();
+builder.Services.AddScoped<AiMate.Core.Services.IAuthService, AiMate.Infrastructure.Services.AuthService>();
+builder.Services.AddScoped<AiMate.Core.Services.IFileUploadService, AiMate.Infrastructure.Services.FileUploadService>();
+builder.Services.AddScoped<AiMate.Core.Services.IEmbeddingService, AiMate.Infrastructure.Services.OpenAIEmbeddingService>();
+builder.Services.AddScoped<AiMate.Core.Services.IDatasetGeneratorService, AiMate.Infrastructure.Services.DatasetGeneratorService>();
+builder.Services.AddScoped<AiMate.Core.Services.IMCPToolService, AiMate.Infrastructure.Services.MCPToolService>();
+builder.Services.AddScoped<AiMate.Core.Services.IApiKeyService, AiMate.Infrastructure.Services.ApiKeyService>();
+
+// Register HttpClient for services that need it
+builder.Services.AddHttpClient<AiMate.Infrastructure.Services.LiteLLMService>();
+builder.Services.AddHttpClient<AiMate.Infrastructure.Services.OpenAIEmbeddingService>();
+builder.Services.AddHttpClient<AiMate.Infrastructure.Services.MCPToolService>();
+
+Log.Information("All services registered successfully (Phase 6 complete)");
 
 var app = builder.Build();
 
@@ -62,12 +131,52 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// Enable Swagger in all environments (production needs API docs too)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "aiMate API v1");
+    c.RoutePrefix = "api/docs"; // Access at /api/docs
+});
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 
+// CORS for API
+app.UseCors("ApiCorsPolicy");
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+// Map API controllers
+app.MapControllers();
+
+// Health check endpoint
+app.MapGet("/health", async (AiMateDbContext? db) =>
+{
+    if (db == null)
+    {
+        return Results.Json(new { status = "degraded", message = "Database not configured" }, statusCode: 200);
+    }
+
+    try
+    {
+        var canConnect = await db.Database.CanConnectAsync();
+        if (canConnect)
+        {
+            return Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow });
+        }
+        else
+        {
+            return Results.Json(new { status = "unhealthy", message = "Cannot connect to database" }, statusCode: 503);
+        }
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(new { status = "unhealthy", message = ex.Message }, statusCode: 503);
+    }
+});
 
 try
 {

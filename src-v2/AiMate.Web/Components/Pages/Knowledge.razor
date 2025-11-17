@@ -1,0 +1,242 @@
+@page "/knowledge"
+@using Fluxor
+@using AiMate.Web.Store.Knowledge
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<KnowledgeState> KnowledgeState
+@inject IDispatcher Dispatcher
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Knowledge Base</MudText>
+
+    @if (KnowledgeState.Value.Error != null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" CloseIconClicked="@(() => Dispatcher.Dispatch(new ClearKnowledgeErrorAction()))">
+            @KnowledgeState.Value.Error
+        </MudAlert>
+    }
+
+    <MudGrid>
+        <!-- Search and Filters -->
+        <MudItem xs="12" md="3">
+            <MudPaper Class="pa-4 mb-4">
+                <MudTextField @bind-Value="@_searchQuery"
+                             Label="Search Knowledge"
+                             Variant="Variant.Outlined"
+                             Adornment="Adornment.End"
+                             AdornmentIcon="@Icons.Material.Filled.Search"
+                             OnKeyUp="@HandleSearchKeyUp"
+                             Class="mb-4" />
+
+                <MudButton Variant="Variant.Filled"
+                          Color="Color.Primary"
+                          FullWidth="true"
+                          StartIcon="@Icons.Material.Filled.Search"
+                          OnClick="@HandleSearch"
+                          Disabled="@KnowledgeState.Value.IsSearching"
+                          Class="mb-4">
+                    @(KnowledgeState.Value.IsSearching ? "Searching..." : "Search")
+                </MudButton>
+
+                <MudDivider Class="mb-4" />
+
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Filter by Tags</MudText>
+
+                @if (KnowledgeState.Value.AllTags.Any())
+                {
+                    foreach (var tag in KnowledgeState.Value.AllTags)
+                    {
+                        var isSelected = KnowledgeState.Value.SelectedTags.Contains(tag);
+
+                        <MudChip Size="Size.Small"
+                                Color="@(isSelected ? Color.Primary : Color.Default)"
+                                Variant="@(isSelected ? Variant.Filled : Variant.Outlined)"
+                                OnClick="@(() => Dispatcher.Dispatch(new ToggleTagFilterAction(tag)))"
+                                Class="mb-1">
+                            @tag
+                        </MudChip>
+                    }
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">No tags yet</MudText>
+                }
+
+                @if (KnowledgeState.Value.SelectedTags.Any())
+                {
+                    <MudButton Size="Size.Small"
+                              Variant="Variant.Text"
+                              Color="Color.Secondary"
+                              OnClick="@(() => Dispatcher.Dispatch(new ClearTagFiltersAction()))"
+                              Class="mt-2">
+                        Clear Filters
+                    </MudButton>
+                }
+            </MudPaper>
+
+            <MudButton Variant="Variant.Filled"
+                      Color="Color.Primary"
+                      FullWidth="true"
+                      StartIcon="@Icons.Material.Filled.Add"
+                      OnClick="@(() => Dispatcher.Dispatch(new OpenKnowledgeItemEditorAction()))">
+                New Knowledge Item
+            </MudButton>
+        </MudItem>
+
+        <!-- Knowledge Items List -->
+        <MudItem xs="12" md="9">
+            @if (KnowledgeState.Value.IsLoading || KnowledgeState.Value.IsSearching)
+            {
+                <div class="d-flex justify-center pa-4">
+                    <MudProgressCircular Indeterminate="true" />
+                </div>
+            }
+            else if (DisplayedItems.Any())
+            {
+                <MudGrid>
+                    @foreach (var item in DisplayedItems)
+                    {
+                        var isSelected = item.Id == KnowledgeState.Value.SelectedItemId;
+
+                        <MudItem xs="12" sm="6" md="4">
+                            <MudCard Outlined="!isSelected"
+                                    Elevation="@(isSelected ? 4 : 0)"
+                                    Class="cursor-pointer"
+                                    @onclick="@(() => HandleSelectItem(item.Id))">
+                                <MudCardHeader>
+                                    <CardHeaderContent>
+                                        <MudText Typo="Typo.h6">@item.Title</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@item.Type</MudText>
+                                    </CardHeaderContent>
+                                </MudCardHeader>
+                                <MudCardContent>
+                                    <MudText Typo="Typo.body2" Class="mb-2">
+                                        @(item.Content.Length > 150 ? item.Content.Substring(0, 150) + "..." : item.Content)
+                                    </MudText>
+                                    @if (item.Tags.Any())
+                                    {
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @foreach (var tag in item.Tags.Take(3))
+                                            {
+                                                <MudChip Size="Size.Small" Color="Color.Default">@tag</MudChip>
+                                            }
+                                            @if (item.Tags.Count > 3)
+                                            {
+                                                <MudChip Size="Size.Small" Color="Color.Secondary">+@(item.Tags.Count - 3)</MudChip>
+                                            }
+                                        </div>
+                                    }
+                                </MudCardContent>
+                                <MudCardActions>
+                                    <MudButton Size="Size.Small"
+                                              Variant="Variant.Text"
+                                              Color="Color.Default"
+                                              OnClick="@(() => Dispatcher.Dispatch(new OpenKnowledgeItemEditorAction(item.Id)))">
+                                        Edit
+                                    </MudButton>
+                                    <MudButton Size="Size.Small"
+                                              Variant="Variant.Text"
+                                              Color="Color.Error"
+                                              OnClick="@((e) => HandleDelete(e, item.Id))">
+                                        Delete
+                                    </MudButton>
+                                </MudCardActions>
+                            </MudCard>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+            else
+            {
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.body1" Align="Align.Center">
+                        @if (!string.IsNullOrWhiteSpace(KnowledgeState.Value.SearchQuery))
+                        {
+                            <span>No knowledge items found for "@KnowledgeState.Value.SearchQuery"</span>
+                        }
+                        else if (KnowledgeState.Value.SelectedTags.Any())
+                        {
+                            <span>No items with selected tags</span>
+                        }
+                        else
+                        {
+                            <span>No knowledge items yet. Create your first item to get started!</span>
+                        }
+                    </MudText>
+                </MudPaper>
+            }
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<KnowledgeItemEditor />
+<KnowledgeItemViewer />
+
+@code {
+    private string _searchQuery = string.Empty;
+
+    private IEnumerable<Core.Entities.KnowledgeItem> DisplayedItems
+    {
+        get
+        {
+            // If search query exists, show search results
+            if (!string.IsNullOrWhiteSpace(KnowledgeState.Value.SearchQuery) && KnowledgeState.Value.SearchResults.Any())
+            {
+                return FilterByTags(KnowledgeState.Value.SearchResults);
+            }
+
+            // Otherwise show all items
+            return FilterByTags(KnowledgeState.Value.KnowledgeItems.Values);
+        }
+    }
+
+    private IEnumerable<Core.Entities.KnowledgeItem> FilterByTags(IEnumerable<Core.Entities.KnowledgeItem> items)
+    {
+        if (!KnowledgeState.Value.SelectedTags.Any())
+        {
+            return items;
+        }
+
+        return items.Where(i => i.Tags.Any(t => KnowledgeState.Value.SelectedTags.Contains(t)));
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // Load knowledge items on component init
+        if (!KnowledgeState.Value.KnowledgeItems.Any() && !KnowledgeState.Value.IsLoading)
+        {
+            Dispatcher.Dispatch(new LoadKnowledgeItemsAction());
+        }
+    }
+
+    private void HandleSearch()
+    {
+        if (!string.IsNullOrWhiteSpace(_searchQuery))
+        {
+            Dispatcher.Dispatch(new SearchKnowledgeAction(_searchQuery));
+        }
+    }
+
+    private void HandleSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            HandleSearch();
+        }
+    }
+
+    private void HandleSelectItem(Guid itemId)
+    {
+        Dispatcher.Dispatch(new SelectKnowledgeItemAction(itemId));
+        Dispatcher.Dispatch(new LoadRelatedItemsAction(itemId));
+    }
+
+    private void HandleDelete(MouseEventArgs e, Guid itemId)
+    {
+        e.StopPropagation();
+        // UX ENHANCEMENT: Add confirmation dialog before delete
+        // await DialogService.ShowMessageBox("Delete Knowledge Item?", "This action cannot be undone.", yesText: "Delete", cancelText: "Cancel")
+        Dispatcher.Dispatch(new DeleteKnowledgeItemAction(itemId));
+    }
+}

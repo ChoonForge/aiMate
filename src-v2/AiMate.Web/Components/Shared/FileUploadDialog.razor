@@ -1,0 +1,154 @@
+@using AiMate.Core.Services
+@inject IFileUploadService FileUploadService
+@inject ISnackbar Snackbar
+
+<MudDialog @bind-IsVisible="@IsVisible">
+    <TitleContent>
+        <MudText Typo="Typo.h6">Upload Files</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudFileUpload T="IBrowserFile"
+                      FilesChanged="@HandleFilesChanged"
+                      Accept=".txt,.md,.pdf,.png,.jpg,.jpeg,.doc,.docx"
+                      MaximumFileCount="5">
+            <ButtonTemplate>
+                <MudButton HtmlTag="label"
+                          Variant="Variant.Filled"
+                          Color="Color.Primary"
+                          StartIcon="@Icons.Material.Filled.CloudUpload"
+                          for="@context">
+                    Choose Files
+                </MudButton>
+            </ButtonTemplate>
+        </MudFileUpload>
+
+        @if (_selectedFiles.Any())
+        {
+            <MudList Dense="true" Class="mt-4">
+                @foreach (var file in _selectedFiles)
+                {
+                    <MudListItem>
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.body2">@file.Name</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @FormatFileSize(file.Size)
+                                </MudText>
+                            </div>
+                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                          Size="Size.Small"
+                                          OnClick="@(() => RemoveFile(file))" />
+                        </div>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+
+        @if (_isUploading)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mt-4" />
+            <MudText Typo="Typo.caption" Align="Align.Center" Class="mt-2">
+                Uploading files...
+            </MudText>
+        }
+
+        <MudAlert Severity="Severity.Info" Class="mt-4">
+            Max file size: @(FileUploadService.GetFileSizeLimit() / 1024 / 1024)MB per file
+        </MudAlert>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@HandleCancel" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton OnClick="@HandleUpload"
+                  Variant="Variant.Filled"
+                  Color="Color.Primary"
+                  Disabled="@(!_selectedFiles.Any() || _isUploading)">
+            Upload (@_selectedFiles.Count)
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsVisibleChanged { get; set; }
+
+    [Parameter]
+    public Guid WorkspaceId { get; set; }
+
+    [Parameter]
+    public EventCallback OnUploadComplete { get; set; }
+
+    private List<IBrowserFile> _selectedFiles = new();
+    private bool _isUploading = false;
+
+    private void HandleFilesChanged(IReadOnlyList<IBrowserFile> files)
+    {
+        _selectedFiles = files.ToList();
+    }
+
+    private void RemoveFile(IBrowserFile file)
+    {
+        _selectedFiles.Remove(file);
+    }
+
+    private async Task HandleUpload()
+    {
+        if (!_selectedFiles.Any())
+        {
+            return;
+        }
+
+        _isUploading = true;
+
+        try
+        {
+            foreach (var file in _selectedFiles)
+            {
+                using var stream = file.OpenReadStream(FileUploadService.GetFileSizeLimit());
+
+                await FileUploadService.UploadFileAsync(
+                    WorkspaceId,
+                    file.Name,
+                    stream,
+                    file.ContentType);
+            }
+
+            Snackbar.Add($"Successfully uploaded {_selectedFiles.Count} file(s)", Severity.Success);
+
+            _selectedFiles.Clear();
+            await IsVisibleChanged.InvokeAsync(false);
+            await OnUploadComplete.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Upload failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        _selectedFiles.Clear();
+        await IsVisibleChanged.InvokeAsync(false);
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+
+        return $"{len:0.##} {sizes[order]}";
+    }
+}

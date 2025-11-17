@@ -1,0 +1,147 @@
+@using Fluxor
+@using AiMate.Web.Store.Knowledge
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<KnowledgeState> KnowledgeState
+@inject IDispatcher Dispatcher
+
+<MudDialog @bind-IsVisible="@KnowledgeState.Value.ShowItemEditor" Options="@_dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Edit Knowledge Item" : "New Knowledge Item")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm>
+            <MudTextField @bind-Value="@_title"
+                         Label="Title"
+                         Variant="Variant.Outlined"
+                         Required="true"
+                         Class="mb-4" />
+
+            <MudTextField @bind-Value="@_content"
+                         Label="Content"
+                         Variant="Variant.Outlined"
+                         Lines="10"
+                         Required="true"
+                         Class="mb-4" />
+
+            <MudTextField @bind-Value="@_tagsInput"
+                         Label="Tags (comma-separated)"
+                         Variant="Variant.Outlined"
+                         Placeholder="ai, coding, research"
+                         Class="mb-4" />
+
+            <MudTextField @bind-Value="@_type"
+                         Label="Type"
+                         Variant="Variant.Outlined"
+                         Placeholder="Manual, Note, Web, etc."
+                         Class="mb-4" />
+
+            <MudTextField @bind-Value="@_sourceUrl"
+                         Label="Source URL (optional)"
+                         Variant="Variant.Outlined"
+                         Placeholder="https://example.com"
+                         Class="mb-4" />
+
+            @if (KnowledgeState.Value.Error != null)
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-4">
+                    @KnowledgeState.Value.Error
+                </MudAlert>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@HandleCancel" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton OnClick="@HandleSave"
+                  Variant="Variant.Filled"
+                  Color="Color.Primary"
+                  Disabled="@(KnowledgeState.Value.IsSaving || string.IsNullOrWhiteSpace(_title) || string.IsNullOrWhiteSpace(_content))">
+            @(KnowledgeState.Value.IsSaving ? "Saving..." : "Save")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string _title = string.Empty;
+    private string _content = string.Empty;
+    private string _tagsInput = string.Empty;
+    private string _type = "Manual";
+    private string _sourceUrl = string.Empty;
+
+    private bool IsEditMode => KnowledgeState.Value.EditingItemId.HasValue;
+
+    private DialogOptions _dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true
+    };
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        // Load existing item data if editing
+        if (KnowledgeState.Value.ShowItemEditor && KnowledgeState.Value.EditingItemId.HasValue)
+        {
+            var item = KnowledgeState.Value.KnowledgeItems.GetValueOrDefault(KnowledgeState.Value.EditingItemId.Value);
+            if (item != null)
+            {
+                _title = item.Title;
+                _content = item.Content;
+                _tagsInput = string.Join(", ", item.Tags);
+                _type = item.Type ?? "Manual";
+                _sourceUrl = item.SourceUrl ?? string.Empty;
+            }
+        }
+        else if (KnowledgeState.Value.ShowItemEditor)
+        {
+            // Reset for new item
+            _title = string.Empty;
+            _content = string.Empty;
+            _tagsInput = string.Empty;
+            _type = "Manual";
+            _sourceUrl = string.Empty;
+        }
+    }
+
+    private void HandleCancel()
+    {
+        Dispatcher.Dispatch(new CloseKnowledgeItemEditorAction());
+    }
+
+    private void HandleSave()
+    {
+        if (string.IsNullOrWhiteSpace(_title) || string.IsNullOrWhiteSpace(_content))
+        {
+            return;
+        }
+
+        var tags = _tagsInput
+            .Split(',')
+            .Select(t => t.Trim())
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .ToList();
+
+        if (IsEditMode)
+        {
+            var itemId = KnowledgeState.Value.EditingItemId!.Value;
+            Dispatcher.Dispatch(new UpdateKnowledgeItemAction(
+                itemId,
+                _title,
+                _content,
+                tags,
+                _type,
+                string.IsNullOrWhiteSpace(_sourceUrl) ? null : _sourceUrl));
+        }
+        else
+        {
+            Dispatcher.Dispatch(new CreateKnowledgeItemAction(
+                _title,
+                _content,
+                tags,
+                _type,
+                string.IsNullOrWhiteSpace(_sourceUrl) ? null : _sourceUrl));
+        }
+    }
+}

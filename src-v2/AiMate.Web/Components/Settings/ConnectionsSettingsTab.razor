@@ -1,0 +1,108 @@
+@using Fluxor
+@using AiMate.Web.Store.Settings
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<SettingsState> SettingsState
+@inject IDispatcher Dispatcher
+
+<MudText Typo="Typo.h6" Class="mb-4">Connection Settings</MudText>
+
+<MudGrid>
+    <MudItem xs="12">
+        <MudTextField @bind-Value="@_liteLLMUrl"
+                     Label="LiteLLM URL"
+                     Variant="Variant.Outlined"
+                     Placeholder="http://localhost:4000"
+                     ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateLiteLLMUrlAction(value)))" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            URL of your LiteLLM gateway instance
+        </MudText>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudTextField @bind-Value="@_apiKey"
+                     Label="API Key (optional)"
+                     Variant="Variant.Outlined"
+                     InputType="InputType.Password"
+                     Placeholder="sk-..."
+                     ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateApiKeyAction(value)))" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Optional API key for authentication (BYOK tier)
+        </MudText>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudNumericField @bind-Value="@_requestTimeout"
+                        Label="Request Timeout (seconds)"
+                        Variant="Variant.Outlined"
+                        Min="30"
+                        Max="300"
+                        ValueChanged="@((int value) => Dispatcher.Dispatch(new UpdateRequestTimeoutAction(value)))" />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudNumericField @bind-Value="@_maxRetries"
+                        Label="Max Retries"
+                        Variant="Variant.Outlined"
+                        Min="0"
+                        Max="10"
+                        ValueChanged="@((int value) => Dispatcher.Dispatch(new UpdateMaxRetriesAction(value)))" />
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudSwitch @bind-Checked="@_useStreamingByDefault"
+                  Label="Use Streaming by Default"
+                  Color="Color.Primary"
+                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateStreamingDefaultAction(value)))" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Stream responses token-by-token for faster perceived performance
+        </MudText>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudDivider Class="my-4" />
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudButton Variant="Variant.Filled"
+                  Color="Color.Primary"
+                  StartIcon="@Icons.Material.Filled.Cable"
+                  OnClick="@HandleTestConnection">
+            Test Connection
+        </MudButton>
+
+        @if (_connectionTestResult != null)
+        {
+            <MudAlert Severity="@(_connectionTestSuccess ? Severity.Success : Severity.Error)" Class="mt-4">
+                @_connectionTestResult
+            </MudAlert>
+        }
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string _liteLLMUrl = "http://localhost:4000";
+    private string? _apiKey;
+    private int _requestTimeout = 120;
+    private int _maxRetries = 3;
+    private bool _useStreamingByDefault = true;
+    private string? _connectionTestResult;
+    private bool _connectionTestSuccess = false;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        _liteLLMUrl = SettingsState.Value.LiteLLMUrl;
+        _apiKey = SettingsState.Value.ApiKey;
+        _requestTimeout = SettingsState.Value.RequestTimeout;
+        _maxRetries = SettingsState.Value.MaxRetries;
+        _useStreamingByDefault = SettingsState.Value.UseStreamingByDefault;
+    }
+
+    private void HandleTestConnection()
+    {
+        Dispatcher.Dispatch(new TestConnectionAction());
+        _connectionTestResult = "Testing connection...";
+        _connectionTestSuccess = true;
+    }
+}

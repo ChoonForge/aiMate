@@ -1,0 +1,99 @@
+@using Fluxor
+@using AiMate.Web.Store.Settings
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<SettingsState> SettingsState
+@inject IDispatcher Dispatcher
+
+<MudText Typo="Typo.h6" Class="mb-4">Interface Settings</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudSelect @bind-Value="@_theme"
+                  Label="Theme"
+                  Variant="Variant.Outlined"
+                  OnValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateThemeAction(value)))">
+            <MudSelectItem Value="@("dark")">Dark (Kiwi Night)</MudSelectItem>
+            <MudSelectItem Value="@("light")">Light</MudSelectItem>
+            <MudSelectItem Value="@("auto")">Auto (System)</MudSelectItem>
+        </MudSelect>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudSelect @bind-Value="@_codeTheme"
+                  Label="Code Theme"
+                  Variant="Variant.Outlined"
+                  OnValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateCodeThemeAction(value)))">
+            <MudSelectItem Value="@("dracula")">Dracula</MudSelectItem>
+            <MudSelectItem Value="@("monokai")">Monokai</MudSelectItem>
+            <MudSelectItem Value="@("github")">GitHub</MudSelectItem>
+            <MudSelectItem Value="@("nord")">Nord</MudSelectItem>
+            <MudSelectItem Value="@("solarized-dark")">Solarized Dark</MudSelectItem>
+        </MudSelect>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudSlider @bind-Value="@_fontSize"
+                  Min="10"
+                  Max="24"
+                  Step="1"
+                  Color="Color.Primary"
+                  ValueChanged="@((int value) => Dispatcher.Dispatch(new UpdateFontSizeAction(value)))">
+            Font Size: @_fontSize px
+        </MudSlider>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudDivider Class="my-4" />
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudSwitch @bind-Checked="@_compactMode"
+                  Label="Compact Mode"
+                  Color="Color.Primary"
+                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateCompactModeAction(value)))" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Reduce spacing and padding for more content density
+        </MudText>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudSwitch @bind-Checked="@_showLineNumbers"
+                  Label="Show Line Numbers"
+                  Color="Color.Primary"
+                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateShowLineNumbersAction(value)))" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Display line numbers in code blocks
+        </MudText>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudSwitch @bind-Checked="@_enableMarkdownPreview"
+                  Label="Enable Markdown Preview"
+                  Color="Color.Primary"
+                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateMarkdownPreviewAction(value)))" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Show live preview while typing messages
+        </MudText>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string _theme = "dark";
+    private string _codeTheme = "dracula";
+    private int _fontSize = 14;
+    private bool _compactMode = false;
+    private bool _showLineNumbers = true;
+    private bool _enableMarkdownPreview = true;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        _theme = SettingsState.Value.Theme;
+        _codeTheme = SettingsState.Value.CodeTheme;
+        _fontSize = SettingsState.Value.FontSize;
+        _compactMode = SettingsState.Value.CompactMode;
+        _showLineNumbers = SettingsState.Value.ShowLineNumbers;
+        _enableMarkdownPreview = SettingsState.Value.EnableMarkdownPreview;
+    }
+}

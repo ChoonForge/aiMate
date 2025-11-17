@@ -1,0 +1,113 @@
+@page "/settings"
+@using Fluxor
+@using AiMate.Web.Store.Settings
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<SettingsState> SettingsState
+@inject IDispatcher Dispatcher
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Settings</MudText>
+
+    @if (SettingsState.Value.Error != null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" CloseIconClicked="@(() => Dispatcher.Dispatch(new ClearSettingsErrorAction()))">
+            @SettingsState.Value.Error
+        </MudAlert>
+    }
+
+    @if (SettingsState.Value.IsSaving)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            Saving settings...
+        </MudAlert>
+    }
+
+    <MudPaper Class="pa-4">
+        <MudTabs Elevation="0" Rounded="true" ActivePanelIndex="@SettingsState.Value.ActiveTab" ActivePanelIndexChanged="@HandleTabChange">
+            <MudTabPanel Text="General" Icon="@Icons.Material.Filled.Settings">
+                <div class="pa-4">
+                    <GeneralSettingsTab />
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Interface" Icon="@Icons.Material.Filled.Palette">
+                <div class="pa-4">
+                    <InterfaceSettingsTab />
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Connections" Icon="@Icons.Material.Filled.Cable">
+                <div class="pa-4">
+                    <ConnectionsSettingsTab />
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Personalisation" Icon="@Icons.Material.Filled.Psychology">
+                <div class="pa-4">
+                    <PersonalisationSettingsTab />
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Account" Icon="@Icons.Material.Filled.AccountCircle">
+                <div class="pa-4">
+                    <AccountSettingsTab />
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Usage" Icon="@Icons.Material.Filled.Analytics">
+                <div class="pa-4">
+                    <UsageSettingsTab />
+                </div>
+            </MudTabPanel>
+        </MudTabs>
+
+        <MudDivider Class="my-4" />
+
+        <div class="d-flex justify-space-between pa-4">
+            <MudButton Variant="Variant.Outlined"
+                      Color="Color.Secondary"
+                      StartIcon="@Icons.Material.Filled.RestartAlt"
+                      OnClick="@HandleReset">
+                Reset to Defaults
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                      Color="Color.Primary"
+                      StartIcon="@Icons.Material.Filled.Save"
+                      OnClick="@HandleSave"
+                      Disabled="@SettingsState.Value.IsSaving">
+                @(SettingsState.Value.IsSaving ? "Saving..." : "Save Settings")
+            </MudButton>
+        </div>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // Load settings on component init
+        if (!SettingsState.Value.IsLoading)
+        {
+            Dispatcher.Dispatch(new LoadSettingsAction());
+        }
+    }
+
+    private void HandleTabChange(int index)
+    {
+        Dispatcher.Dispatch(new SetActiveTabAction(index));
+    }
+
+    private void HandleSave()
+    {
+        Dispatcher.Dispatch(new SaveSettingsAction());
+    }
+
+    private void HandleReset()
+    {
+        // UX ENHANCEMENT: Add MudBlazor confirmation dialog before reset
+        // await DialogService.ShowMessageBox("Reset Settings?", "This will reset all settings to defaults.", yesText: "Reset", cancelText: "Cancel")
+        Dispatcher.Dispatch(new ResetSettingsAction());
+    }
+}

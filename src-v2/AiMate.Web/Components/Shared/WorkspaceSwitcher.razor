@@ -1,0 +1,80 @@
+@using Fluxor
+@using AiMate.Web.Store.Workspace
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<WorkspaceState> WorkspaceState
+@inject IDispatcher Dispatcher
+@inject NavigationManager Navigation
+
+@if (ActiveWorkspace != null)
+{
+    <MudMenu Icon="@Icons.Material.Filled.Workspaces"
+             Color="Color.Inherit"
+             AnchorOrigin="Origin.BottomCenter"
+             TransformOrigin="Origin.TopCenter">
+        <ActivatorContent>
+            <MudButton Color="Color.Inherit"
+                      StartIcon="@Icons.Material.Filled.Workspaces"
+                      EndIcon="@Icons.Material.Filled.KeyboardArrowDown">
+                @ActiveWorkspace.Name
+            </MudButton>
+        </ActivatorContent>
+        <ChildContent>
+            <MudMenuItem OnClick="@(() => Navigation.NavigateTo("/workspaces"))"
+                        Icon="@Icons.Material.Filled.Settings">
+                Manage Workspaces
+            </MudMenuItem>
+            <MudDivider />
+            @foreach (var workspace in WorkspaceState.Value.Workspaces.Values.OrderByDescending(w => w.UpdatedAt))
+            {
+                var isActive = workspace.Id == WorkspaceState.Value.ActiveWorkspaceId;
+
+                <MudMenuItem OnClick="@(() => HandleSwitchWorkspace(workspace.Id))"
+                            Icon="@(isActive ? Icons.Material.Filled.Check : null)">
+                    <div class="d-flex flex-column">
+                        <MudText Typo="Typo.body2">@workspace.Name</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@workspace.Type</MudText>
+                    </div>
+                </MudMenuItem>
+            }
+            <MudDivider />
+            <MudMenuItem OnClick="@(() => Dispatcher.Dispatch(new OpenWorkspaceEditorAction()))"
+                        Icon="@Icons.Material.Filled.Add">
+                New Workspace
+            </MudMenuItem>
+        </ChildContent>
+    </MudMenu>
+}
+else
+{
+    <MudButton Color="Color.Inherit"
+              StartIcon="@Icons.Material.Filled.Workspaces"
+              OnClick="@(() => Dispatcher.Dispatch(new OpenWorkspaceEditorAction()))">
+        Create Workspace
+    </MudButton>
+}
+
+@code {
+    private Core.Entities.Workspace? ActiveWorkspace =>
+        WorkspaceState.Value.ActiveWorkspaceId.HasValue
+            ? WorkspaceState.Value.Workspaces.GetValueOrDefault(WorkspaceState.Value.ActiveWorkspaceId.Value)
+            : null;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // Load workspaces on component init
+        if (!WorkspaceState.Value.Workspaces.Any() && !WorkspaceState.Value.IsLoading)
+        {
+            Dispatcher.Dispatch(new LoadWorkspacesAction());
+        }
+    }
+
+    private void HandleSwitchWorkspace(Guid workspaceId)
+    {
+        if (workspaceId != WorkspaceState.Value.ActiveWorkspaceId)
+        {
+            Dispatcher.Dispatch(new SwitchWorkspaceAction(workspaceId));
+        }
+    }
+}

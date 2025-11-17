@@ -1,0 +1,77 @@
+@using Fluxor
+@using AiMate.Web.Store.Settings
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<SettingsState> SettingsState
+@inject IDispatcher Dispatcher
+
+<MudText Typo="Typo.h6" Class="mb-4">General Settings</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudSelect @bind-Value="@_language"
+                  Label="Language"
+                  Variant="Variant.Outlined"
+                  OnValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateLanguageAction(value)))">
+            <MudSelectItem Value="@("en-NZ")">English (New Zealand)</MudSelectItem>
+            <MudSelectItem Value="@("mi-NZ")">Te Reo Māori</MudSelectItem>
+            <MudSelectItem Value="@("en-US")">English (United States)</MudSelectItem>
+            <MudSelectItem Value="@("en-GB")">English (United Kingdom)</MudSelectItem>
+        </MudSelect>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudSelect @bind-Value="@_timeZone"
+                  Label="Time Zone"
+                  Variant="Variant.Outlined"
+                  OnValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateTimeZoneAction(value)))">
+            <MudSelectItem Value="@("Pacific/Auckland")">Pacific/Auckland (NZ)</MudSelectItem>
+            <MudSelectItem Value="@("Pacific/Chatham")">Pacific/Chatham (NZ)</MudSelectItem>
+            <MudSelectItem Value="@("Australia/Sydney")">Australia/Sydney</MudSelectItem>
+            <MudSelectItem Value="@("America/Los_Angeles")">America/Los_Angeles</MudSelectItem>
+            <MudSelectItem Value="@("America/New_York")">America/New_York</MudSelectItem>
+            <MudSelectItem Value="@("Europe/London")">Europe/London</MudSelectItem>
+            <MudSelectItem Value="@("UTC")">UTC</MudSelectItem>
+        </MudSelect>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudDivider Class="my-4" />
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudSwitch @bind-Checked="@_enableNotifications"
+                  Label="Enable Notifications"
+                  Color="Color.Primary"
+                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateNotificationsAction(value)))" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Show desktop notifications for important events
+        </MudText>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudSwitch @bind-Checked="@_enableSoundEffects"
+                  Label="Enable Sound Effects"
+                  Color="Color.Primary"
+                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateSoundEffectsAction(value)))" />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Play sounds for message sent/received
+        </MudText>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string _language = "en-NZ";
+    private string _timeZone = "Pacific/Auckland";
+    private bool _enableNotifications = true;
+    private bool _enableSoundEffects = false;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        _language = SettingsState.Value.Language;
+        _timeZone = SettingsState.Value.TimeZone;
+        _enableNotifications = SettingsState.Value.EnableNotifications;
+        _enableSoundEffects = SettingsState.Value.EnableSoundEffects;
+    }
+}

@@ -1,0 +1,131 @@
+@using Markdig
+@inject IJSRuntime JS
+
+<div class="markdown-content">
+    @((MarkupString)_renderedHtml)
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public required string Content { get; set; }
+
+    private string _renderedHtml = string.Empty;
+
+    private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .Build();
+
+    protected override void OnParametersSet()
+    {
+        _renderedHtml = Markdown.ToHtml(Content ?? string.Empty, Pipeline);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Highlight code blocks
+        try
+        {
+            await JS.InvokeVoidAsync("highlightCode");
+        }
+        catch
+        {
+            // Highlight.js not loaded yet, that's fine
+        }
+    }
+}
+
+<style>
+    .markdown-content {
+        line-height: 1.7;
+        color: var(--text-primary);
+    }
+
+    .markdown-content h1,
+    .markdown-content h2,
+    .markdown-content h3 {
+        margin-top: 24px;
+        margin-bottom: 12px;
+        font-weight: 600;
+    }
+
+    .markdown-content h1 {
+        font-size: 28px;
+    }
+
+    .markdown-content h2 {
+        font-size: 24px;
+    }
+
+    .markdown-content h3 {
+        font-size: 20px;
+    }
+
+    .markdown-content p {
+        margin-bottom: 12px;
+    }
+
+    .markdown-content code {
+        background-color: var(--bg-tertiary);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: 'Fira Code', 'Monaco', 'Courier New', monospace;
+        font-size: 13px;
+    }
+
+    .markdown-content pre {
+        background-color: var(--bg-tertiary);
+        border-radius: 8px;
+        padding: 16px;
+        overflow-x: auto;
+        margin: 12px 0;
+    }
+
+    .markdown-content pre code {
+        background: none;
+        padding: 0;
+    }
+
+    .markdown-content ul,
+    .markdown-content ol {
+        margin-bottom: 12px;
+        padding-left: 24px;
+    }
+
+    .markdown-content li {
+        margin-bottom: 4px;
+    }
+
+    .markdown-content a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .markdown-content a:hover {
+        text-decoration: underline;
+    }
+
+    .markdown-content blockquote {
+        border-left: 4px solid var(--primary-color);
+        padding-left: 16px;
+        margin: 12px 0;
+        color: var(--text-secondary);
+    }
+
+    .markdown-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0;
+    }
+
+    .markdown-content th,
+    .markdown-content td {
+        border: 1px solid var(--border-color);
+        padding: 8px 12px;
+        text-align: left;
+    }
+
+    .markdown-content th {
+        background-color: var(--bg-tertiary);
+        font-weight: 600;
+    }
+</style>

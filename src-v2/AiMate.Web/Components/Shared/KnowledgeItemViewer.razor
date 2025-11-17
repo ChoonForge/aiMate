@@ -1,0 +1,121 @@
+@using Fluxor
+@using AiMate.Web.Store.Knowledge
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<KnowledgeState> KnowledgeState
+@inject IDispatcher Dispatcher
+
+@if (SelectedItem != null)
+{
+    <MudDialog @bind-IsVisible="@_showViewer" Options="@_dialogOptions">
+        <TitleContent>
+            <MudText Typo="Typo.h5">@SelectedItem.Title</MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudPaper Class="pa-4 mb-4" Elevation="0">
+                <MudText Typo="Typo.body1" Class="mb-4">
+                    @SelectedItem.Content
+                </MudText>
+
+                @if (SelectedItem.Tags.Any())
+                {
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        @foreach (var tag in SelectedItem.Tags)
+                        {
+                            <MudChip Size="Size.Medium" Color="Color.Primary">@tag</MudChip>
+                        }
+                    </div>
+                }
+
+                <MudDivider Class="mb-4" />
+
+                <MudGrid>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Type</MudText>
+                        <MudText Typo="Typo.body2">@SelectedItem.Type</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Created</MudText>
+                        <MudText Typo="Typo.body2">@SelectedItem.CreatedAt.ToString("MMM dd, yyyy")</MudText>
+                    </MudItem>
+                    @if (!string.IsNullOrEmpty(SelectedItem.SourceUrl))
+                    {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Source</MudText>
+                            <MudLink Href="@SelectedItem.SourceUrl" Target="_blank" Typo="Typo.body2">
+                                @SelectedItem.SourceUrl
+                            </MudLink>
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudPaper>
+
+            @if (KnowledgeState.Value.RelatedItems.Any())
+            {
+                <MudText Typo="Typo.h6" Class="mb-2">Related Items</MudText>
+
+                @if (KnowledgeState.Value.IsLoading)
+                {
+                    <div class="d-flex justify-center pa-4">
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                    </div>
+                }
+                else
+                {
+                    <MudList>
+                        @foreach (var relatedItem in KnowledgeState.Value.RelatedItems.Take(5))
+                        {
+                            <MudListItem OnClick="@(() => HandleSelectRelatedItem(relatedItem.Id))">
+                                <div class="d-flex flex-column">
+                                    <MudText Typo="Typo.body2">@relatedItem.Title</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @(relatedItem.Content.Length > 100 ? relatedItem.Content.Substring(0, 100) + "..." : relatedItem.Content)
+                                    </MudText>
+                                </div>
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+            }
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@HandleClose" Variant="Variant.Text">Close</MudButton>
+            <MudButton OnClick="@HandleEdit" Variant="Variant.Filled" Color="Color.Primary">
+                Edit
+            </MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    private bool _showViewer => KnowledgeState.Value.SelectedItemId.HasValue;
+
+    private Core.Entities.KnowledgeItem? SelectedItem =>
+        KnowledgeState.Value.SelectedItemId.HasValue
+            ? KnowledgeState.Value.KnowledgeItems.GetValueOrDefault(KnowledgeState.Value.SelectedItemId.Value)
+            : null;
+
+    private DialogOptions _dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Large,
+        FullWidth = true
+    };
+
+    private void HandleClose()
+    {
+        Dispatcher.Dispatch(new SelectKnowledgeItemAction(Guid.Empty));
+    }
+
+    private void HandleEdit()
+    {
+        if (KnowledgeState.Value.SelectedItemId.HasValue)
+        {
+            Dispatcher.Dispatch(new OpenKnowledgeItemEditorAction(KnowledgeState.Value.SelectedItemId.Value));
+        }
+    }
+
+    private void HandleSelectRelatedItem(Guid itemId)
+    {
+        Dispatcher.Dispatch(new SelectKnowledgeItemAction(itemId));
+        Dispatcher.Dispatch(new LoadRelatedItemsAction(itemId));
+    }
+}

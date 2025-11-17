@@ -1,0 +1,186 @@
+@page "/login"
+@using Fluxor
+@using AiMate.Web.Store.Auth
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<AuthState> AuthState
+@inject IDispatcher Dispatcher
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudPaper Class="pa-8" Elevation="4">
+        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-4">
+            Welcome to aiMate 🇳🇿
+        </MudText>
+
+        <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary" Class="mb-6">
+            Your AI Mate. Free for Kiwis. Fair for Everyone.
+        </MudText>
+
+        @if (AuthState.Value.Error != null)
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" CloseIconClicked="@(() => Dispatcher.Dispatch(new ClearAuthErrorAction()))">
+                @AuthState.Value.Error
+            </MudAlert>
+        }
+
+        <MudTabs Elevation="0" Rounded="true" ActivePanelIndex="@_activeTab" ActivePanelIndexChanged="@((int index) => _activeTab = index)">
+            <MudTabPanel Text="Login" Icon="@Icons.Material.Filled.Login">
+                <div class="pa-4">
+                    <MudForm @ref="_loginForm">
+                        <MudTextField @bind-Value="@_loginEmail"
+                                     Label="Email"
+                                     Variant="Variant.Outlined"
+                                     InputType="InputType.Email"
+                                     Required="true"
+                                     RequiredError="Email is required"
+                                     Class="mb-4" />
+
+                        <MudTextField @bind-Value="@_loginPassword"
+                                     Label="Password"
+                                     Variant="Variant.Outlined"
+                                     InputType="InputType.Password"
+                                     Required="true"
+                                     RequiredError="Password is required"
+                                     Class="mb-4" />
+
+                        <MudButton Variant="Variant.Filled"
+                                  Color="Color.Primary"
+                                  FullWidth="true"
+                                  Size="Size.Large"
+                                  OnClick="@HandleLogin"
+                                  Disabled="@AuthState.Value.IsLoggingIn">
+                            @(AuthState.Value.IsLoggingIn ? "Logging in..." : "Login")
+                        </MudButton>
+                    </MudForm>
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Register" Icon="@Icons.Material.Filled.PersonAdd">
+                <div class="pa-4">
+                    <MudForm @ref="_registerForm">
+                        <MudTextField @bind-Value="@_registerEmail"
+                                     Label="Email"
+                                     Variant="Variant.Outlined"
+                                     InputType="InputType.Email"
+                                     Required="true"
+                                     RequiredError="Email is required"
+                                     Class="mb-4" />
+
+                        <MudTextField @bind-Value="@_registerUsername"
+                                     Label="Username"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     RequiredError="Username is required"
+                                     Class="mb-4" />
+
+                        <MudTextField @bind-Value="@_registerPassword"
+                                     Label="Password"
+                                     Variant="Variant.Outlined"
+                                     InputType="InputType.Password"
+                                     Required="true"
+                                     RequiredError="Password is required"
+                                     Class="mb-4" />
+
+                        <MudTextField @bind-Value="@_registerPasswordConfirm"
+                                     Label="Confirm Password"
+                                     Variant="Variant.Outlined"
+                                     InputType="InputType.Password"
+                                     Required="true"
+                                     RequiredError="Please confirm your password"
+                                     Class="mb-4" />
+
+                        <MudAlert Severity="Severity.Info" Class="mb-4">
+                            Free tier includes all features. No credit card required! 🎉
+                        </MudAlert>
+
+                        <MudButton Variant="Variant.Filled"
+                                  Color="Color.Primary"
+                                  FullWidth="true"
+                                  Size="Size.Large"
+                                  OnClick="@HandleRegister"
+                                  Disabled="@AuthState.Value.IsRegistering">
+                            @(AuthState.Value.IsRegistering ? "Creating Account..." : "Create Account")
+                        </MudButton>
+                    </MudForm>
+                </div>
+            </MudTabPanel>
+        </MudTabs>
+
+        <MudDivider Class="my-4" />
+
+        <MudText Typo="Typo.caption" Align="Align.Center" Color="Color.Secondary">
+            True Open Source • MIT License • No Gatekeeping
+        </MudText>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private MudForm? _loginForm;
+    private MudForm? _registerForm;
+    private int _activeTab = 0;
+
+    private string _loginEmail = string.Empty;
+    private string _loginPassword = string.Empty;
+
+    private string _registerEmail = string.Empty;
+    private string _registerUsername = string.Empty;
+    private string _registerPassword = string.Empty;
+    private string _registerPasswordConfirm = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // Redirect if already authenticated
+        if (AuthState.Value.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        // Redirect on successful login/register
+        if (AuthState.Value.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        if (_loginForm != null)
+        {
+            await _loginForm.Validate();
+
+            if (_loginForm.IsValid)
+            {
+                Dispatcher.Dispatch(new LoginAction(_loginEmail, _loginPassword));
+            }
+        }
+    }
+
+    private async Task HandleRegister()
+    {
+        if (_registerForm != null)
+        {
+            await _registerForm.Validate();
+
+            if (!_registerForm.IsValid)
+            {
+                return;
+            }
+
+            if (_registerPassword != _registerPasswordConfirm)
+            {
+                Dispatcher.Dispatch(new ClearAuthErrorAction());
+                Dispatcher.Dispatch(new RegisterFailureAction("Passwords do not match"));
+                return;
+            }
+
+            Dispatcher.Dispatch(new RegisterAction(_registerEmail, _registerUsername, _registerPassword));
+        }
+    }
+}

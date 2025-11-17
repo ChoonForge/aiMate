@@ -1,0 +1,49 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy solution and project files
+COPY AiMate.sln ./
+COPY AiMate.Core/AiMate.Core.csproj ./AiMate.Core/
+COPY AiMate.Infrastructure/AiMate.Infrastructure.csproj ./AiMate.Infrastructure/
+COPY AiMate.Web/AiMate.Web.csproj ./AiMate.Web/
+COPY AiMate.Shared/AiMate.Shared.csproj ./AiMate.Shared/
+
+# Restore dependencies
+RUN dotnet restore
+
+# Copy everything else
+COPY . .
+
+# Build the application
+WORKDIR /src/AiMate.Web
+RUN dotnet build -c Release -o /app/build
+
+# Publish the application
+FROM build AS publish
+RUN dotnet publish -c Release -o /app/publish /p:UseAppHost=false
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+
+# Install curl for healthchecks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Copy published app
+COPY --from=publish /app/publish .
+
+# Create directories for uploads and logs
+RUN mkdir -p /app/uploads /app/logs && \
+    chmod -R 755 /app/uploads /app/logs
+
+# Set environment variables
+ENV ASPNETCORE_URLS=http://+:5000
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+ENV DOTNET_EnableDiagnostics=0
+
+# Expose port
+EXPOSE 5000
+
+# Run the application
+ENTRYPOINT ["dotnet", "AiMate.Web.dll"]
