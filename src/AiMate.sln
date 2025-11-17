@@ -2,9 +2,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AiMate.Client", "src\AiMate.Client\AiMate.Client.csproj", "{FB2700C0-8CF7-335F-F574-352ADE511A71}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AiMate.Client", "AiMate.Client\AiMate.Client.csproj", "{C7E2DA9F-BDEF-FA0B-BF89-8CDE2244D196}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AiMate.Shared", "src\AiMate.Shared\AiMate.Shared.csproj", "{FC5F1470-849E-2CCC-27D5-4D3A93520EAD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AiMate.Server", "AiMate.Server\AiMate.Server.csproj", "{23CEBC69-7D06-3DC8-72BB-98FD31D5FD14}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AiMate.Shared", "AiMate.Shared\AiMate.Shared.csproj", "{511BE25E-AF31-CE7A-6A29-3A5E8296A16D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Screenshots for UI", "Screenshots for UI", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -12,14 +16,18 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{FB2700C0-8CF7-335F-F574-352ADE511A71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FB2700C0-8CF7-335F-F574-352ADE511A71}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FB2700C0-8CF7-335F-F574-352ADE511A71}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FB2700C0-8CF7-335F-F574-352ADE511A71}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FC5F1470-849E-2CCC-27D5-4D3A93520EAD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FC5F1470-849E-2CCC-27D5-4D3A93520EAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FC5F1470-849E-2CCC-27D5-4D3A93520EAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FC5F1470-849E-2CCC-27D5-4D3A93520EAD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C7E2DA9F-BDEF-FA0B-BF89-8CDE2244D196}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7E2DA9F-BDEF-FA0B-BF89-8CDE2244D196}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7E2DA9F-BDEF-FA0B-BF89-8CDE2244D196}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7E2DA9F-BDEF-FA0B-BF89-8CDE2244D196}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23CEBC69-7D06-3DC8-72BB-98FD31D5FD14}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23CEBC69-7D06-3DC8-72BB-98FD31D5FD14}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23CEBC69-7D06-3DC8-72BB-98FD31D5FD14}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23CEBC69-7D06-3DC8-72BB-98FD31D5FD14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{511BE25E-AF31-CE7A-6A29-3A5E8296A16D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{511BE25E-AF31-CE7A-6A29-3A5E8296A16D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{511BE25E-AF31-CE7A-6A29-3A5E8296A16D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{511BE25E-AF31-CE7A-6A29-3A5E8296A16D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
