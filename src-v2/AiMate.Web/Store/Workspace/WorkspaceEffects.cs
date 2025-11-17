@@ -22,8 +22,9 @@ public class WorkspaceEffects
     {
         try
         {
-            // TODO: Get actual user ID from auth context
-            // For now, use a hardcoded demo user ID
+            // DEMO MODE: Using hardcoded user ID
+            // IMPLEMENTATION NEEDED: Inject IState<AuthState> and get userId = state.Value.CurrentUser?.Id
+            // Requires authentication to be enabled and user logged in
             var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
             var workspaces = await _workspaceService.GetUserWorkspacesAsync(userId);
@@ -50,7 +51,7 @@ public class WorkspaceEffects
     {
         try
         {
-            // TODO: Get actual user ID from auth context
+            // DEMO MODE: Using hardcoded user ID (see HandleLoadWorkspaces for implementation notes)
             var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
             var workspace = new Core.Entities.Workspace

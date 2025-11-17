@@ -102,8 +102,11 @@ public class SettingsEffects
     {
         try
         {
-            // TODO: Implement actual connection test to LiteLLM
-            // For now, simulate a connection test
+            // IMPLEMENTATION NEEDED: Test actual LiteLLM connection
+            // 1. Inject ILiteLLMService into SettingsEffects constructor
+            // 2. Call: var models = await _liteLLMService.GetModelsAsync();
+            // 3. Dispatch success with model count: $"Connected! {models.Count} models available"
+            // Currently simulates successful connection
             await Task.Delay(1000);
 
             dispatcher.Dispatch(new TestConnectionSuccessAction("Connection successful!"));

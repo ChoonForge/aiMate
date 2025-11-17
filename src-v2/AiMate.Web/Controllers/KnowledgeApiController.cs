@@ -128,10 +128,13 @@ public class KnowledgeApiController : ControllerBase
 
         try
         {
-            // TODO: Implement GetByIdAsync in IKnowledgeGraphService
+            // IMPLEMENTATION NEEDED: Add GetByIdAsync to IKnowledgeGraphService
+            // Method signature: Task<KnowledgeItem?> GetByIdAsync(Guid id, Guid userId, CancellationToken)
+            // Implementation: _context.KnowledgeItems.FirstOrDefaultAsync(k => k.Id == id && k.UserId == userId)
+            // Then: var item = await _knowledgeService.GetByIdAsync(id, userId.Value);
             _logger.LogInformation("Fetching knowledge item {Id}", id);
 
-            return StatusCode(501, new { error = "Not yet implemented" });
+            return StatusCode(501, new { error = "GetByIdAsync not yet implemented in IKnowledgeGraphService" });
         }
         catch (Exception ex)
         {

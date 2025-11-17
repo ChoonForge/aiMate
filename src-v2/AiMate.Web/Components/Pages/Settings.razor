@@ -106,7 +106,8 @@
 
     private void HandleReset()
     {
-        // TODO: Add confirmation dialog
+        // UX ENHANCEMENT: Add MudBlazor confirmation dialog before reset
+        // await DialogService.ShowMessageBox("Reset Settings?", "This will reset all settings to defaults.", yesText: "Reset", cancelText: "Cancel")
         Dispatcher.Dispatch(new ResetSettingsAction());
     }
 }

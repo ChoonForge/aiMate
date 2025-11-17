@@ -76,31 +76,42 @@ public class ApiKeyService : IApiKeyService
             return null;
         }
 
-        // In production, query database for hashed keys and verify
-        // For now, basic validation
         _logger.LogInformation("API key validation attempted");
 
-        // TODO: Implement database lookup and BCrypt verification
-        // This is a placeholder - implement proper storage in ApiKey entity
+        // IMPLEMENTATION NEEDED: Add ApiKey entity to database schema
+        // 1. Create ApiKey entity with: Id, UserId, HashedKey, Name, CreatedAt, LastUsedAt, IsRevoked
+        // 2. Query: var keys = await _context.ApiKeys.Where(k => !k.IsRevoked).ToListAsync();
+        // 3. Verify: foreach (var key in keys) { if (BCrypt.Net.BCrypt.Verify(apiKey, key.HashedKey)) return key.UserId; }
+        // 4. Update LastUsedAt on successful validation
 
-        return null;
+        await Task.CompletedTask;
+        return null; // Returns null until database implementation added
     }
 
     public async Task<bool> RevokeApiKeyAsync(
         string apiKey,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Implement database update to mark key as revoked
-        _logger.LogInformation("API key revoked");
-        return true;
+        _logger.LogInformation("API key revocation requested");
+
+        // IMPLEMENTATION NEEDED: Requires ApiKey entity (see ValidateApiKeyAsync above)
+        // Update IsRevoked = true for matching hashed key in database
+
+        await Task.CompletedTask;
+        return false; // Returns false until database implementation added
     }
 
     public async Task<List<ApiKeyInfo>> GetUserApiKeysAsync(
         Guid userId,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Query database for user's API keys
         _logger.LogInformation("Fetching API keys for user {UserId}", userId);
-        return new List<ApiKeyInfo>();
+
+        // IMPLEMENTATION NEEDED: Requires ApiKey entity (see ValidateApiKeyAsync above)
+        // Query: var keys = await _context.ApiKeys.Where(k => k.UserId == userId).ToListAsync();
+        // Return: Masked keys (show only last 4 chars) with metadata
+
+        await Task.CompletedTask;
+        return new List<ApiKeyInfo>(); // Returns empty until database implementation added
     }
 }

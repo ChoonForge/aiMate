@@ -28,7 +28,10 @@ public class MCPToolService : IMCPToolService
         Guid workspaceId,
         CancellationToken cancellationToken = default)
     {
-        // TODO: Filter by workspace enabled tools
+        // FUTURE ENHANCEMENT: Filter tools by workspace settings
+        // Add WorkspaceTools table with EnabledTools JSON column
+        // Query and filter: tools.Where(t => workspaceTools.EnabledTools.Contains(t.Name))
+        // Currently returns all registered tools
         var tools = _registeredTools.Values.ToList();
         return Task.FromResult(tools);
     }
@@ -229,7 +232,11 @@ public class MCPToolService : IMCPToolService
 
     private async Task<MCPToolResult> ExecuteWebSearchAsync(Dictionary<string, object> parameters)
     {
-        // TODO: Implement actual web search (DuckDuckGo API or similar)
+        // MOCK IMPLEMENTATION: Returns example search results
+        // REAL IMPLEMENTATION OPTIONS:
+        // 1. DuckDuckGo HTML scraping: https://html.duckduckgo.com/html/?q={query}
+        // 2. SerpApi: https://serpapi.com/ (requires API key)
+        // 3. Brave Search API: https://brave.com/search/api/ (requires API key)
         var query = parameters["query"].ToString();
         var maxResults = parameters.ContainsKey("max_results")
             ? Convert.ToInt32(parameters["max_results"])
@@ -259,7 +266,12 @@ public class MCPToolService : IMCPToolService
 
     private async Task<MCPToolResult> ExecuteCodeInterpreterAsync(Dictionary<string, object> parameters)
     {
-        // TODO: Implement actual code execution in sandboxed environment
+        // MOCK IMPLEMENTATION: Code execution requires sandboxed environment
+        // REAL IMPLEMENTATION OPTIONS:
+        // 1. Docker container with Python image (security: network isolation, resource limits)
+        // 2. Process.Start with restricted permissions (Windows: Job Objects, Linux: cgroups)
+        // 3. E2B.dev API (https://e2b.dev) - Managed code execution sandbox
+        // 4. Pyodide (WebAssembly Python) - Browser-based, limited packages
         var code = parameters["code"].ToString();
         var timeout = parameters.ContainsKey("timeout")
             ? Convert.ToInt32(parameters["timeout"])

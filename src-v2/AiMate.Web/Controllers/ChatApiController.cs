@@ -43,8 +43,12 @@ public class ChatApiController : ControllerBase
         {
             _logger.LogInformation("Chat completion request for user {UserId}", userId);
 
-            // For now, return a placeholder response
-            // TODO: Integrate with LiteLLM service for actual completion
+            // IMPLEMENTATION NEEDED: Map OpenAI-compatible request to LiteLLM service
+            // 1. Convert ChatCompletionRequest to AiMate.Shared.Models.ChatCompletionRequest
+            // 2. Call: var response = await _liteLLMService.GetChatCompletionAsync(mappedRequest);
+            // 3. Map response back to OpenAI-compatible format
+            // Currently returns placeholder until API key validation is enabled
+
             return Ok(new
             {
                 id = Guid.NewGuid().ToString(),
@@ -93,7 +97,12 @@ public class ChatApiController : ControllerBase
             return Unauthorized(new { error = "Invalid API key" });
         }
 
-        // TODO: Implement SSE streaming
+        // IMPLEMENTATION NEEDED: SSE streaming for OpenAI-compatible API
+        // 1. Set Response.ContentType = "text/event-stream"
+        // 2. Map request to AiMate.Shared.Models.ChatCompletionRequest
+        // 3. Use: await foreach (var chunk in _liteLLMService.StreamChatCompletionAsync(mappedRequest))
+        // 4. Write SSE format: "data: {json}\n\n" for each chunk
+        // 5. Send "data: [DONE]\n\n" when complete
         return StatusCode(501, new { error = "Streaming not yet implemented" });
     }
 }

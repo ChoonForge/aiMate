@@ -113,7 +113,8 @@
 
     private void HandleDelete(Guid workspaceId)
     {
-        // TODO: Add confirmation dialog
+        // UX ENHANCEMENT: Add confirmation dialog before delete
+        // await DialogService.ShowMessageBox("Delete Workspace?", "This action cannot be undone.", yesText: "Delete", cancelText: "Cancel")
         Dispatcher.Dispatch(new DeleteWorkspaceAction(workspaceId));
     }
 }

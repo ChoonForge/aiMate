@@ -33,7 +33,7 @@ public class KnowledgeEffects
                 return;
             }
 
-            // TODO: Get actual user ID from auth context
+            // DEMO MODE: Using hardcoded user ID (inject IState<AuthState> when auth is enabled)
             var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
             var results = await _knowledgeGraphService.SearchAsync(action.Query, userId, limit: 20);
@@ -54,7 +54,7 @@ public class KnowledgeEffects
     {
         try
         {
-            // TODO: Get actual user ID from auth context
+            // DEMO MODE: Using hardcoded user ID (inject IState<AuthState> when auth is enabled)
             var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
             var items = await _context.KnowledgeItems
@@ -96,7 +96,7 @@ public class KnowledgeEffects
     {
         try
         {
-            // TODO: Get actual user ID from auth context
+            // DEMO MODE: Using hardcoded user ID (inject IState<AuthState> when auth is enabled)
             var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
             var item = new Core.Entities.KnowledgeItem
