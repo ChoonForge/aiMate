@@ -1,0 +1,119 @@
+@page "/workspaces"
+@using Fluxor
+@using AiMate.Web.Store.Workspace
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<WorkspaceState> WorkspaceState
+@inject IDispatcher Dispatcher
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Workspaces</MudText>
+
+    @if (WorkspaceState.Value.Error != null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">
+            @WorkspaceState.Value.Error
+        </MudAlert>
+    }
+
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="@(() => Dispatcher.Dispatch(new OpenWorkspaceEditorAction()))"
+               Class="mb-4">
+        New Workspace
+    </MudButton>
+
+    @if (WorkspaceState.Value.IsLoading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (!WorkspaceState.Value.Workspaces.Any())
+    {
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.body1" Align="Align.Center">
+                No workspaces found. Create your first workspace to get started!
+            </MudText>
+        </MudPaper>
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (var workspace in WorkspaceState.Value.Workspaces.Values.OrderByDescending(w => w.UpdatedAt))
+            {
+                var isActive = workspace.Id == WorkspaceState.Value.ActiveWorkspaceId;
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Outlined="!isActive" Elevation="@(isActive ? 4 : 0)">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">@workspace.Name</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Secondary">@workspace.Type</MudText>
+                            </CardHeaderContent>
+                            <CardHeaderActions>
+                                @if (isActive)
+                                {
+                                    <MudChip Size="Size.Small" Color="Color.Success">Active</MudChip>
+                                }
+                            </CardHeaderActions>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            @if (!string.IsNullOrEmpty(workspace.Context))
+                            {
+                                <MudText Typo="Typo.body2" Class="mb-2">
+                                    @(workspace.Context.Length > 100 ? workspace.Context.Substring(0, 100) + "..." : workspace.Context)
+                                </MudText>
+                            }
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                Personality: @(workspace.DefaultPersonality ?? "Default")
+                            </MudText>
+                        </MudCardContent>
+                        <MudCardActions>
+                            @if (!isActive)
+                            {
+                                <MudButton Size="Size.Small"
+                                          Variant="Variant.Text"
+                                          Color="Color.Primary"
+                                          OnClick="@(() => Dispatcher.Dispatch(new SwitchWorkspaceAction(workspace.Id)))">
+                                    Switch To
+                                </MudButton>
+                            }
+                            <MudButton Size="Size.Small"
+                                      Variant="Variant.Text"
+                                      Color="Color.Default"
+                                      OnClick="@(() => Dispatcher.Dispatch(new OpenWorkspaceEditorAction(workspace.Id)))">
+                                Edit
+                            </MudButton>
+                            <MudButton Size="Size.Small"
+                                      Variant="Variant.Text"
+                                      Color="Color.Error"
+                                      OnClick="@(() => HandleDelete(workspace.Id))">
+                                Delete
+                            </MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudContainer>
+
+<WorkspaceEditor />
+
+@code {
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // Load workspaces on component init
+        if (!WorkspaceState.Value.Workspaces.Any() && !WorkspaceState.Value.IsLoading)
+        {
+            Dispatcher.Dispatch(new LoadWorkspacesAction());
+        }
+    }
+
+    private void HandleDelete(Guid workspaceId)
+    {
+        // TODO: Add confirmation dialog
+        Dispatcher.Dispatch(new DeleteWorkspaceAction(workspaceId));
+    }
+}

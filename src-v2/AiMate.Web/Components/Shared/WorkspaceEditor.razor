@@ -1,0 +1,137 @@
+@using Fluxor
+@using AiMate.Web.Store.Workspace
+@using AiMate.Core.Enums
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<WorkspaceState> WorkspaceState
+@inject IDispatcher Dispatcher
+
+<MudDialog @bind-IsVisible="@WorkspaceState.Value.ShowWorkspaceEditor">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(IsEditMode ? "Edit Workspace" : "New Workspace")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm>
+            <MudTextField @bind-Value="@_name"
+                         Label="Name"
+                         Variant="Variant.Outlined"
+                         Required="true"
+                         Class="mb-4" />
+
+            <MudSelect @bind-Value="@_type"
+                      Label="Type"
+                      Variant="Variant.Outlined"
+                      Class="mb-4">
+                <MudSelectItem Value="@("Default")">Default</MudSelectItem>
+                <MudSelectItem Value="@("Development")">Development</MudSelectItem>
+                <MudSelectItem Value="@("Research")">Research</MudSelectItem>
+                <MudSelectItem Value="@("Writing")">Writing</MudSelectItem>
+                <MudSelectItem Value="@("Personal")">Personal</MudSelectItem>
+            </MudSelect>
+
+            <MudSelect @bind-Value="@_defaultPersonality"
+                      Label="Default Personality"
+                      Variant="Variant.Outlined"
+                      Class="mb-4">
+                <MudSelectItem Value="@(PersonalityMode.KiwiMate.ToString())">Kiwi Mate (Casual & Friendly)</MudSelectItem>
+                <MudSelectItem Value="@(PersonalityMode.KiwiProfessional.ToString())">Kiwi Professional</MudSelectItem>
+                <MudSelectItem Value="@(PersonalityMode.KiwiDev.ToString())">Kiwi Dev (Technical)</MudSelectItem>
+                <MudSelectItem Value="@(PersonalityMode.TeReoMaori.ToString())">Te Reo Māori</MudSelectItem>
+                <MudSelectItem Value="@(PersonalityMode.MentalHealthSupport.ToString())">Mental Health Support</MudSelectItem>
+                <MudSelectItem Value="@(PersonalityMode.Standard.ToString())">Standard AI</MudSelectItem>
+            </MudSelect>
+
+            <MudTextField @bind-Value="@_context"
+                         Label="Context"
+                         Variant="Variant.Outlined"
+                         Lines="3"
+                         Placeholder="Optional context about this workspace..."
+                         Class="mb-4" />
+
+            @if (WorkspaceState.Value.Error != null)
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-4">
+                    @WorkspaceState.Value.Error
+                </MudAlert>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@HandleCancel" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton OnClick="@HandleSave"
+                  Variant="Variant.Filled"
+                  Color="Color.Primary"
+                  Disabled="@(WorkspaceState.Value.IsSaving || string.IsNullOrWhiteSpace(_name))">
+            @(WorkspaceState.Value.IsSaving ? "Saving..." : "Save")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private string _name = string.Empty;
+    private string _type = "Default";
+    private string _defaultPersonality = PersonalityMode.KiwiMate.ToString();
+    private string _context = string.Empty;
+
+    private bool IsEditMode => WorkspaceState.Value.EditingWorkspaceId.HasValue;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        // Load existing workspace data if editing
+        if (WorkspaceState.Value.ShowWorkspaceEditor && WorkspaceState.Value.EditingWorkspaceId.HasValue)
+        {
+            var workspace = WorkspaceState.Value.Workspaces.GetValueOrDefault(WorkspaceState.Value.EditingWorkspaceId.Value);
+            if (workspace != null)
+            {
+                _name = workspace.Name;
+                _type = workspace.Type;
+                _defaultPersonality = workspace.DefaultPersonality ?? PersonalityMode.KiwiMate.ToString();
+                _context = workspace.Context ?? string.Empty;
+            }
+        }
+        else if (WorkspaceState.Value.ShowWorkspaceEditor)
+        {
+            // Reset for new workspace
+            _name = string.Empty;
+            _type = "Default";
+            _defaultPersonality = PersonalityMode.KiwiMate.ToString();
+            _context = string.Empty;
+        }
+    }
+
+    private void HandleCancel()
+    {
+        Dispatcher.Dispatch(new CloseWorkspaceEditorAction());
+    }
+
+    private void HandleSave()
+    {
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            return;
+        }
+
+        if (IsEditMode)
+        {
+            var workspaceId = WorkspaceState.Value.EditingWorkspaceId!.Value;
+            Dispatcher.Dispatch(new UpdateWorkspaceAction(
+                workspaceId,
+                _name,
+                _type,
+                _defaultPersonality,
+                _context,
+                null)); // Tools will be handled later
+        }
+        else
+        {
+            Dispatcher.Dispatch(new CreateWorkspaceAction(
+                _name,
+                _type,
+                _defaultPersonality,
+                _context));
+        }
+    }
+}

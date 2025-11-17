@@ -1,36 +1,36 @@
-@* Top bar with model selector and actions *@
+@* Top bar with workspace switcher, model selector and actions *@
 
-<div class="top-bar">
-    <div class="top-bar-left">
-        <div class="model-selector">
-            <svg class="model-selector-icon" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
-            </svg>
-            <span class="model-selector-text">GPT-4</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
-                <polyline points="6 9 12 15 18 9"/>
-            </svg>
-        </div>
-    </div>
+<MudAppBar Elevation="0" Dense="true" Style="background-color: #1A1A1A; border-bottom: 1px solid #2A2A2A;">
+    <WorkspaceSwitcher />
 
-    <div class="top-bar-right">
-        <button class="btn btn-primary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
-                <path d="M12 5v14M5 12h14"/>
-            </svg>
-            <span>New Chat</span>
-        </button>
+    <MudSpacer />
 
-        <button class="btn btn-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 18px; height: 18px;">
-                <circle cx="12" cy="12" r="1"/>
-                <circle cx="19" cy="12" r="1"/>
-                <circle cx="5" cy="12" r="1"/>
-            </svg>
-        </button>
-    </div>
-</div>
+    <MudMenu Icon="@Icons.Material.Filled.SmartToy"
+             Color="Color.Inherit"
+             AnchorOrigin="Origin.BottomCenter"
+             TransformOrigin="Origin.TopCenter">
+        <ActivatorContent>
+            <MudButton Color="Color.Inherit"
+                      StartIcon="@Icons.Material.Filled.SmartToy"
+                      EndIcon="@Icons.Material.Filled.KeyboardArrowDown">
+                @_selectedModel
+            </MudButton>
+        </ActivatorContent>
+        <ChildContent>
+            <MudMenuItem OnClick="@(() => _selectedModel = "GPT-4")">GPT-4</MudMenuItem>
+            <MudMenuItem OnClick="@(() => _selectedModel = "GPT-3.5 Turbo")">GPT-3.5 Turbo</MudMenuItem>
+            <MudMenuItem OnClick="@(() => _selectedModel = "Claude 3.5 Sonnet")">Claude 3.5 Sonnet</MudMenuItem>
+            <MudMenuItem OnClick="@(() => _selectedModel = "Claude 3 Opus")">Claude 3 Opus</MudMenuItem>
+            <MudMenuItem OnClick="@(() => _selectedModel = "Gemini Pro")">Gemini Pro</MudMenuItem>
+        </ChildContent>
+    </MudMenu>
+
+    <MudIconButton Icon="@Icons.Material.Filled.Settings"
+                   Color="Color.Inherit"
+                   Edge="Edge.End"
+                   Href="/settings" />
+</MudAppBar>
 
 @code {
-    private string selectedModel = "GPT-4";
+    private string _selectedModel = "GPT-4";
 }
