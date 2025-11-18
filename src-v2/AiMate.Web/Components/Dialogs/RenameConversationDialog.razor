@@ -1,0 +1,71 @@
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.body1">Enter a new name for this conversation:</MudText>
+
+            <MudTextField @bind-Value="@_newName"
+                         Label="Conversation Name"
+                         Variant="Variant.Outlined"
+                         Immediate="true"
+                         Required="true"
+                         AutoFocus="true"
+                         OnKeyUp="@HandleKeyPress"
+                         HelperText="Press Enter to save" />
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                  Variant="Variant.Filled"
+                  OnClick="Save"
+                  Disabled="@(string.IsNullOrWhiteSpace(_newName))">
+            Rename
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public string CurrentName { get; set; } = string.Empty;
+
+    private string _newName = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        _newName = CurrentName;
+    }
+
+    private void HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_newName))
+        {
+            Save();
+        }
+        else if (e.Key == "Escape")
+        {
+            Cancel();
+        }
+    }
+
+    private void Save()
+    {
+        if (string.IsNullOrWhiteSpace(_newName))
+        {
+            Snackbar.Add("Name cannot be empty", Severity.Warning);
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(_newName));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

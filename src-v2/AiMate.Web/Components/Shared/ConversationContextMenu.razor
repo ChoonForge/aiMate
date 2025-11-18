@@ -1,0 +1,152 @@
+@* Context menu for conversation actions *@
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudMenu Icon="@Icons.Material.Filled.MoreVert"
+         Size="Size.Small"
+         Dense="true"
+         AnchorOrigin="Origin.BottomRight"
+         TransformOrigin="Origin.TopRight">
+
+    @if (!IsPinned)
+    {
+        <MudMenuItem Icon="@Icons.Material.Filled.PushPin"
+                    OnClick="@HandlePin">
+            Pin Conversation
+        </MudMenuItem>
+    }
+    else
+    {
+        <MudMenuItem Icon="@Icons.Material.Outlined.PushPin"
+                    OnClick="@HandleUnpin">
+            Unpin Conversation
+        </MudMenuItem>
+    }
+
+    <MudMenuItem Icon="@Icons.Material.Filled.DriveFileRenameOutline"
+                OnClick="@HandleRename">
+        Rename
+    </MudMenuItem>
+
+    <MudMenuItem Icon="@Icons.Material.Filled.Share"
+                OnClick="@HandleShare">
+        Share
+    </MudMenuItem>
+
+    <MudMenuItem Icon="@Icons.Material.Filled.Download"
+                OnClick="@HandleDownload">
+        Download
+    </MudMenuItem>
+
+    <MudMenuItem Icon="@Icons.Material.Filled.Archive"
+                OnClick="@HandleArchive">
+        Archive
+    </MudMenuItem>
+
+    <MudDivider />
+
+    <MudMenuItem Icon="@Icons.Material.Filled.Delete"
+                IconColor="Color.Error"
+                OnClick="@HandleDelete">
+        Delete
+    </MudMenuItem>
+</MudMenu>
+
+@code {
+    [Parameter]
+    public Guid ConversationId { get; set; }
+
+    [Parameter]
+    public string ConversationTitle { get; set; } = "Conversation";
+
+    [Parameter]
+    public bool IsPinned { get; set; } = false;
+
+    [Parameter]
+    public EventCallback OnPinToggled { get; set; }
+
+    [Parameter]
+    public EventCallback OnRenamed { get; set; }
+
+    [Parameter]
+    public EventCallback OnShared { get; set; }
+
+    [Parameter]
+    public EventCallback OnDownloaded { get; set; }
+
+    [Parameter]
+    public EventCallback OnArchived { get; set; }
+
+    [Parameter]
+    public EventCallback OnDeleted { get; set; }
+
+    private async Task HandlePin()
+    {
+        await OnPinToggled.InvokeAsync();
+        Snackbar.Add($"Pinned '{ConversationTitle}'", Severity.Success);
+    }
+
+    private async Task HandleUnpin()
+    {
+        await OnPinToggled.InvokeAsync();
+        Snackbar.Add($"Unpinned '{ConversationTitle}'", Severity.Info);
+    }
+
+    private async Task HandleRename()
+    {
+        var parameters = new DialogParameters
+        {
+            ["CurrentName"] = ConversationTitle
+        };
+
+        var dialog = await DialogService.ShowAsync<RenameConversationDialog>("Rename Conversation", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await OnRenamed.InvokeAsync();
+            Snackbar.Add("Conversation renamed", Severity.Success);
+        }
+    }
+
+    private async Task HandleShare()
+    {
+        await OnShared.InvokeAsync();
+    }
+
+    private async Task HandleDownload()
+    {
+        await OnDownloaded.InvokeAsync();
+        Snackbar.Add($"Downloading '{ConversationTitle}'...", Severity.Info);
+    }
+
+    private async Task HandleArchive()
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Archive Conversation?",
+            $"Archive '{ConversationTitle}'? You can find it later in the Archived section.",
+            yesText: "Archive",
+            cancelText: "Cancel");
+
+        if (result == true)
+        {
+            await OnArchived.InvokeAsync();
+            Snackbar.Add("Conversation archived", Severity.Success);
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Delete Conversation?",
+            $"Are you sure you want to delete '{ConversationTitle}'? This action cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (result == true)
+        {
+            await OnDeleted.InvokeAsync();
+            Snackbar.Add("Conversation deleted", Severity.Info);
+        }
+    }
+}

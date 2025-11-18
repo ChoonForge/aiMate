@@ -4,6 +4,7 @@
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @inject IState<KnowledgeState> KnowledgeState
 @inject IDispatcher Dispatcher
+@inject IDialogService DialogService
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudText Typo="Typo.h4" Class="mb-4">Knowledge Base</MudText>
@@ -232,11 +233,22 @@
         Dispatcher.Dispatch(new LoadRelatedItemsAction(itemId));
     }
 
-    private void HandleDelete(MouseEventArgs e, Guid itemId)
+    private async Task HandleDelete(MouseEventArgs e, Guid itemId)
     {
         e.StopPropagation();
-        // UX ENHANCEMENT: Add confirmation dialog before delete
-        // await DialogService.ShowMessageBox("Delete Knowledge Item?", "This action cannot be undone.", yesText: "Delete", cancelText: "Cancel")
-        Dispatcher.Dispatch(new DeleteKnowledgeItemAction(itemId));
+
+        var item = KnowledgeState.Value.KnowledgeItems.GetValueOrDefault(itemId);
+        var itemTitle = item?.Title ?? "this item";
+
+        var result = await DialogService.ShowMessageBox(
+            "Delete Knowledge Item?",
+            $"Are you sure you want to delete '{itemTitle}'? This action cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (result == true)
+        {
+            Dispatcher.Dispatch(new DeleteKnowledgeItemAction(itemId));
+        }
     }
 }

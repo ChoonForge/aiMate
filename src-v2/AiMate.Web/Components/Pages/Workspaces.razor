@@ -4,6 +4,7 @@
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @inject IState<WorkspaceState> WorkspaceState
 @inject IDispatcher Dispatcher
+@inject IDialogService DialogService
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
     <MudText Typo="Typo.h4" Class="mb-4">Workspaces</MudText>
@@ -111,10 +112,20 @@
         }
     }
 
-    private void HandleDelete(Guid workspaceId)
+    private async Task HandleDelete(Guid workspaceId)
     {
-        // UX ENHANCEMENT: Add confirmation dialog before delete
-        // await DialogService.ShowMessageBox("Delete Workspace?", "This action cannot be undone.", yesText: "Delete", cancelText: "Cancel")
-        Dispatcher.Dispatch(new DeleteWorkspaceAction(workspaceId));
+        var workspace = WorkspaceState.Value.Workspaces.GetValueOrDefault(workspaceId);
+        var workspaceName = workspace?.Name ?? "this workspace";
+
+        var result = await DialogService.ShowMessageBox(
+            "Delete Workspace?",
+            $"Are you sure you want to delete '{workspaceName}'? This will also delete all conversations and data in this workspace. This action cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (result == true)
+        {
+            Dispatcher.Dispatch(new DeleteWorkspaceAction(workspaceId));
+        }
     }
 }

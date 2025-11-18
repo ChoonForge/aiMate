@@ -1,0 +1,293 @@
+@page "/about"
+@using System.Reflection
+
+<PageTitle>About - aiMate</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-8">
+    <MudStack Spacing="4">
+        @* Header *@
+        <MudPaper Class="pa-6 text-center" Elevation="0" Style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+            <MudStack Spacing="2" AlignItems="AlignItems.Center">
+                <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Large" Style="font-size: 4rem;" />
+                <MudText Typo="Typo.h3" Style="font-weight: 700;">aiMate</MudText>
+                <MudText Typo="Typo.h6" Style="opacity: 0.9;">Your AI Mate. Free for Kiwis. Fair for Everyone.</MudText>
+                <MudChip Size="Size.Small" Style="background: rgba(255,255,255,0.2); color: white;">
+                    Version @GetVersion()
+                </MudChip>
+            </MudStack>
+        </MudPaper>
+
+        @* Mission Statement *@
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.h5" Style="font-weight: 600;">
+                    <MudIcon Icon="🇳🇿" Size="Size.Small" /> Built with ❤️ from New Zealand
+                </MudText>
+                <MudText Typo="Typo.body1" Color="Color.Dark">
+                    aiMate is a free, open-source AI chat platform built for New Zealand that respects users,
+                    speaks authentically, and serves the community - not shareholders.
+                </MudText>
+                <MudText Typo="Typo.body1" Color="Color.Dark">
+                    We believe AI should be accessible, transparent, and culturally authentic.
+                    No credit card required. No data mining. No surprises.
+                </MudText>
+            </MudStack>
+        </MudPaper>
+
+        @* Key Features *@
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 600;">What Makes Us Different</MudText>
+            <MudGrid>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudStack Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Verified" Color="Color.Primary" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Authentically Kiwi</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Dark">
+                            Fine-tuned to talk like a real Kiwi mate, not a corporate robot
+                        </MudText>
+                    </MudStack>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudStack Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Lock" Color="Color.Success" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">NZ Data Sovereignty</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Dark">
+                            Your data stays in New Zealand, under NZ privacy laws
+                        </MudText>
+                    </MudStack>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudStack Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Code" Color="Color.Info" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">True Open Source</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Dark">
+                            MIT licensed, self-hostable, no vendor lock-in
+                        </MudText>
+                    </MudStack>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudStack Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.VolunteerActivism" Color="Color.Warning" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Mental Health Focus</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Dark">
+                            Guardian personality for wellbeing support (1737, 111)
+                        </MudText>
+                    </MudStack>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudStack Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Language" Color="Color.Secondary" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Te Reo Māori</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Dark">
+                            Partnership with iwi for authentic cultural integration
+                        </MudText>
+                    </MudStack>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudStack Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Api" Color="Color.Error" />
+                        <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Developer API</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Dark">
+                            OpenAI-compatible REST API for integrations
+                        </MudText>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        @* Technology Stack *@
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 600;">Technology Stack</MudText>
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2" Style="font-weight: 600;">Frontend</MudText>
+                    <MudList Dense="true">
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">Blazor WebAssembly (.NET 9)</MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">MudBlazor UI Components</MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">Fluxor (Redux) State Management</MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">SignalR Real-time Updates</MudListItem>
+                    </MudList>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2" Style="font-weight: 600;">Backend</MudText>
+                    <MudList Dense="true">
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">ASP.NET Core 9 Web API</MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">PostgreSQL + pgvector</MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">LiteLLM Gateway</MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">Docker + Nginx</MudListItem>
+                    </MudList>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2" Style="font-weight: 600;">AI Models</MudText>
+                    <MudList Dense="true">
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">Qwen 2.5 (Kiwi fine-tuned)</MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">Guardian (Mental health)</MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">OpenAI GPT-4 (BYOK tier)</MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">Anthropic Claude (BYOK tier)</MudListItem>
+                    </MudList>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2" Style="font-weight: 600;">Security</MudText>
+                    <MudList Dense="true">
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">JWT Authentication</MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">BCrypt Password Hashing</MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">API Key Management</MudListItem>
+                        <MudListItem Icon="@Icons.Material.Filled.CheckCircle">Rate Limiting</MudListItem>
+                    </MudList>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        @* Open Source *@
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Open Source & Community</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Dark">
+                    aiMate is <strong>100% open source</strong> under the MIT License.
+                    You can view the code, contribute, or self-host your own instance.
+                </MudText>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Filled"
+                              Color="Color.Primary"
+                              StartIcon="@Icons.Custom.Brands.GitHub"
+                              Href="https://github.com/ChoonForge/aiMate"
+                              Target="_blank">
+                        View on GitHub
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Primary"
+                              StartIcon="@Icons.Material.Filled.BugReport"
+                              Href="https://github.com/ChoonForge/aiMate/issues"
+                              Target="_blank">
+                        Report Issue
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Primary"
+                              StartIcon="@Icons.Material.Filled.Description"
+                              Href="https://docs.aimate.nz"
+                              Target="_blank">
+                        Documentation
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+
+        @* Tiers *@
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-4" Style="font-weight: 600;">Usage Tiers</MudText>
+            <MudGrid>
+                <MudItem xs="12" sm="4">
+                    <MudPaper Class="pa-4" Outlined="true">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.h6" Color="Color.Success">Free Tier</MudText>
+                            <MudText Typo="Typo.h4" Style="font-weight: 700;">$0<MudText Typo="Typo.body2" Inline="true">/month</MudText></MudText>
+                            <MudDivider />
+                            <MudList Dense="true">
+                                <MudListItem Icon="@Icons.Material.Filled.Check">Full chat interface</MudListItem>
+                                <MudListItem Icon="@Icons.Material.Filled.Check">Kiwi personality</MudListItem>
+                                <MudListItem Icon="@Icons.Material.Filled.Check">Knowledge base</MudListItem>
+                                <MudListItem Icon="@Icons.Material.Filled.Check">Workspaces</MudListItem>
+                                <MudListItem Icon="@Icons.Material.Filled.Check">Local models</MudListItem>
+                            </MudList>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudPaper Class="pa-4" Outlined="true">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.h6" Color="Color.Info">BYOK Tier</MudText>
+                            <MudText Typo="Typo.h4" Style="font-weight: 700;">$10<MudText Typo="Typo.body2" Inline="true">/month</MudText></MudText>
+                            <MudDivider />
+                            <MudList Dense="true">
+                                <MudListItem Icon="@Icons.Material.Filled.Check">Everything in Free +</MudListItem>
+                                <MudListItem Icon="@Icons.Material.Filled.Check">Bring your own API keys</MudListItem>
+                                <MudListItem Icon="@Icons.Material.Filled.Check">200+ models (OpenRouter)</MudListItem>
+                                <MudListItem Icon="@Icons.Material.Filled.Check">Priority queue</MudListItem>
+                                <MudListItem Icon="@Icons.Material.Filled.Check">Email support</MudListItem>
+                            </MudList>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" sm="4">
+                    <MudPaper Class="pa-4" Outlined="true">
+                        <MudStack Spacing="2">
+                            <MudText Typo="Typo.h6" Color="Color.Primary">Developer Tier</MudText>
+                            <MudText Typo="Typo.h4" Style="font-weight: 700;">$30<MudText Typo="Typo.body2" Inline="true">/month</MudText></MudText>
+                            <MudDivider />
+                            <MudList Dense="true">
+                                <MudListItem Icon="@Icons.Material.Filled.Check">Everything in BYOK +</MudListItem>
+                                <MudListItem Icon="@Icons.Material.Filled.Check">Full API access</MudListItem>
+                                <MudListItem Icon="@Icons.Material.Filled.Check">OpenAI-compatible</MudListItem>
+                                <MudListItem Icon="@Icons.Material.Filled.Check">Webhooks</MudListItem>
+                                <MudListItem Icon="@Icons.Material.Filled.Check">Priority support</MudListItem>
+                            </MudList>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        @* Credits *@
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Credits & Thanks</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Dark">
+                    Built by developers in New Zealand who believe AI should be accessible and honest.
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Dark">
+                    Special thanks to:
+                </MudText>
+                <MudList Dense="true">
+                    <MudListItem Icon="@Icons.Material.Filled.Favorite">Mental Health Foundation of NZ</MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Favorite">Te Taura Whiri i te Reo Māori</MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Favorite">Lifeline Aotearoa (1737)</MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Favorite">The open source community</MudListItem>
+                </MudList>
+            </MudStack>
+        </MudPaper>
+
+        @* Contact *@
+        <MudPaper Class="pa-6" Elevation="2">
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.h6" Style="font-weight: 600;">Get in Touch</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Dark">
+                    Have questions, feedback, or want to contribute? We'd love to hear from you!
+                </MudText>
+                <MudStack Row="true" Spacing="2" FlexWrap="FlexWrap.Wrap">
+                    <MudChip Icon="@Icons.Material.Filled.Email" Color="Color.Primary">
+                        hello@aimate.nz
+                    </MudChip>
+                    <MudChip Icon="@Icons.Custom.Brands.GitHub" Color="Color.Default">
+                        github.com/ChoonForge/aiMate
+                    </MudChip>
+                    <MudChip Icon="@Icons.Material.Filled.LocationOn" Color="Color.Success">
+                        Auckland, New Zealand 🇳🇿
+                    </MudChip>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+
+        @* Footer *@
+        <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Dark" Style="opacity: 0.7;">
+            &copy; @DateTime.Now.Year aiMate.nz - MIT License - Made with ❤️ in Aotearoa New Zealand
+        </MudText>
+    </MudStack>
+</MudContainer>
+
+@code {
+    private string GetVersion()
+    {
+        var version = Assembly.GetExecutingAssembly().GetName().Version;
+        return $"{version?.Major}.{version?.Minor}.{version?.Build}";
+    }
+}
