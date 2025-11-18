@@ -1,0 +1,456 @@
+@using AiMate.Shared.Models
+@using AiMate.Web.Store.Knowledge
+@using Fluxor
+@inject IState<KnowledgeState> KnowledgeState
+@inject IDispatcher Dispatcher
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="mb-4">
+                <!-- Basic Info Tab -->
+                <MudTabPanel Text="Basic Info" Icon="@Icons.Material.Filled.Info">
+                    <MudGrid Class="mt-4">
+                        <MudItem xs="12">
+                            <MudTextField T="string"
+                                         @bind-Value="_article.Title"
+                                         Label="Title"
+                                         Required="true"
+                                         RequiredError="Title is required"
+                                         Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField T="string"
+                                         @bind-Value="_article.Summary"
+                                         Label="Summary"
+                                         Lines="2"
+                                         HelperText="Brief description of the article"
+                                         Variant="Variant.Outlined" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="string"
+                                      @bind-Value="_article.Type"
+                                      Label="Type"
+                                      Required="true"
+                                      Variant="Variant.Outlined">
+                                <MudSelectItem T="string" Value="@("Article")">Article</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("Guide")">Guide</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("Reference")">Reference</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("Tutorial")">Tutorial</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("FAQ")">FAQ</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="string"
+                                      @bind-Value="_article.ContentType"
+                                      Label="Content Type"
+                                      Variant="Variant.Outlined">
+                                <MudSelectItem T="string" Value="@("Markdown")">Markdown</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("HTML")">HTML</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("Text")">Plain Text</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField T="string"
+                                         @bind-Value="_article.Content"
+                                         Label="Content"
+                                         Lines="12"
+                                         Required="true"
+                                         RequiredError="Content is required"
+                                         Variant="Variant.Outlined"
+                                         HelperText="@(_article.ContentType == "Markdown" ? "Supports Markdown formatting" : "")" />
+                        </MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+
+                <!-- Organization Tab -->
+                <MudTabPanel Text="Organization" Icon="@Icons.Material.Filled.FolderOpen">
+                    <MudGrid Class="mt-4">
+                        <MudItem xs="12" sm="6">
+                            <MudAutocomplete T="string"
+                                           @bind-Value="_article.Collection"
+                                           Label="Collection"
+                                           SearchFunc="SearchCollections"
+                                           Variant="Variant.Outlined"
+                                           CoerceText="true"
+                                           CoerceValue="false"
+                                           Clearable="true"
+                                           HelperText="Group articles into collections" />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudAutocomplete T="string"
+                                           @bind-Value="_article.Category"
+                                           Label="Category"
+                                           SearchFunc="SearchCategories"
+                                           Variant="Variant.Outlined"
+                                           CoerceText="true"
+                                           CoerceValue="false"
+                                           Clearable="true" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.body2" Class="mb-2">Tags</MudText>
+                            <div class="d-flex flex-wrap gap-2 mb-2">
+                                @foreach (var tag in _article.Tags)
+                                {
+                                    <MudChip T="string"
+                                            Size="Size.Small"
+                                            OnClose="@(() => RemoveTag(tag))"
+                                            Color="Color.Primary">
+                                        @tag
+                                    </MudChip>
+                                }
+                            </div>
+                            <MudAutocomplete T="string"
+                                           @bind-Value="_currentTag"
+                                           Label="Add Tags"
+                                           SearchFunc="SearchTags"
+                                           Variant="Variant.Outlined"
+                                           CoerceText="false"
+                                           CoerceValue="false"
+                                           Clearable="true"
+                                           ValueChanged="@((string value) => AddTag(value))"
+                                           HelperText="Type and press Enter to add tags" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudTextField T="string"
+                                         @bind-Value="_article.Source"
+                                         Label="Source"
+                                         HelperText="Original source or reference URL"
+                                         Variant="Variant.Outlined" />
+                        </MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+
+                <!-- Settings Tab -->
+                <MudTabPanel Text="Settings" Icon="@Icons.Material.Filled.Settings">
+                    <MudGrid Class="mt-4">
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="string"
+                                      @bind-Value="_article.Visibility"
+                                      Label="Visibility"
+                                      Variant="Variant.Outlined">
+                                <MudSelectItem T="string" Value="@("Private")">
+                                    <div class="d-flex align-center gap-2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />
+                                        Private - Only me
+                                    </div>
+                                </MudSelectItem>
+                                <MudSelectItem T="string" Value="@("Group")">
+                                    <div class="d-flex align-center gap-2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" />
+                                        Group - My team
+                                    </div>
+                                </MudSelectItem>
+                                <MudSelectItem T="string" Value="@("Organization")">
+                                    <div class="d-flex align-center gap-2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" />
+                                        Organization - All org users
+                                    </div>
+                                </MudSelectItem>
+                                <MudSelectItem T="string" Value="@("Public")">
+                                    <div class="d-flex align-center gap-2">
+                                        <MudIcon Icon="@Icons.Material.Filled.Public" Size="Size.Small" />
+                                        Public - Everyone
+                                    </div>
+                                </MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <div class="d-flex flex-column gap-2">
+                                <MudSwitch T="bool"
+                                          @bind-Checked="_article.IsPublished"
+                                          Color="Color.Success"
+                                          Label="Published"
+                                          HelperText="Make article visible to others" />
+                            </div>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudDivider />
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudSwitch T="bool"
+                                      @bind-Checked="_article.IsFeatured"
+                                      Color="Color.Warning"
+                                      Label="Featured"
+                                      HelperText="Highlight this article">
+                                <MudIcon Icon="@Icons.Material.Filled.Star" />
+                            </MudSwitch>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudSwitch T="bool"
+                                      @bind-Checked="_article.IsVerified"
+                                      Color="Color.Success"
+                                      Label="Verified"
+                                      HelperText="Mark as verified/trusted content">
+                                <MudIcon Icon="@Icons.Material.Filled.Verified" />
+                            </MudSwitch>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudDivider />
+                        </MudItem>
+
+                        <!-- Stats (Read-only for edit mode) -->
+                        @if (_isEditMode)
+                        {
+                            <MudItem xs="12">
+                                <MudText Typo="Typo.h6" Class="mb-3">Statistics</MudText>
+                                <MudGrid>
+                                    <MudItem xs="12" sm="4">
+                                        <MudPaper Elevation="0" Class="pa-3">
+                                            <div class="d-flex align-center gap-2">
+                                                <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" />
+                                                <div>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Views</MudText>
+                                                    <MudText Typo="Typo.h6">@_article.ViewCount.ToString("N0")</MudText>
+                                                </div>
+                                            </div>
+                                        </MudPaper>
+                                    </MudItem>
+                                    <MudItem xs="12" sm="4">
+                                        <MudPaper Elevation="0" Class="pa-3">
+                                            <div class="d-flex align-center gap-2">
+                                                <MudIcon Icon="@Icons.Material.Filled.Link" Color="Color.Success" />
+                                                <div>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">References</MudText>
+                                                    <MudText Typo="Typo.h6">@_article.ReferenceCount.ToString("N0")</MudText>
+                                                </div>
+                                            </div>
+                                        </MudPaper>
+                                    </MudItem>
+                                    <MudItem xs="12" sm="4">
+                                        <MudPaper Elevation="0" Class="pa-3">
+                                            <div class="d-flex align-center gap-2">
+                                                <MudIcon Icon="@Icons.Material.Filled.ThumbUp" Color="Color.Primary" />
+                                                <div>
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Upvotes</MudText>
+                                                    <MudText Typo="Typo.h6">@_article.UpvoteCount.ToString("N0")</MudText>
+                                                </div>
+                                            </div>
+                                        </MudPaper>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudTabPanel>
+            </MudTabs>
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mt-4">
+                    @_errorMessage
+                </MudAlert>
+            }
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton OnClick="Save"
+                  Color="Color.Primary"
+                  Variant="Variant.Filled"
+                  Disabled="@KnowledgeState.Value.IsSaving"
+                  StartIcon="@Icons.Material.Filled.Save">
+            @if (KnowledgeState.Value.IsSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                <span class="ml-2">Saving...</span>
+            }
+            else
+            {
+                <span>@(_isEditMode ? "Update" : "Create") Article</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public KnowledgeArticleDto? Article { get; set; }
+
+    private MudForm _form = null!;
+    private KnowledgeArticleDto _article = new();
+    private bool _isEditMode;
+    private string? _errorMessage;
+    private string _currentTag = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        if (Article != null)
+        {
+            _article = new KnowledgeArticleDto
+            {
+                Id = Article.Id,
+                Title = Article.Title,
+                Content = Article.Content,
+                ContentType = Article.ContentType,
+                Summary = Article.Summary,
+                Type = Article.Type,
+                Tags = new List<string>(Article.Tags),
+                Collection = Article.Collection,
+                Category = Article.Category,
+                Source = Article.Source,
+                Visibility = Article.Visibility,
+                IsPublished = Article.IsPublished,
+                IsFeatured = Article.IsFeatured,
+                IsVerified = Article.IsVerified,
+                ViewCount = Article.ViewCount,
+                ReferenceCount = Article.ReferenceCount,
+                UpvoteCount = Article.UpvoteCount,
+                OwnerId = Article.OwnerId,
+                CreatedAt = Article.CreatedAt,
+                UpdatedAt = Article.UpdatedAt,
+                PublishedAt = Article.PublishedAt,
+                LastViewedAt = Article.LastViewedAt
+            };
+            _isEditMode = true;
+        }
+        else
+        {
+            _article = new KnowledgeArticleDto
+            {
+                Type = "Article",
+                ContentType = "Markdown",
+                Visibility = "Private",
+                IsPublished = true
+            };
+            _isEditMode = false;
+        }
+    }
+
+    private Task<IEnumerable<string>> SearchCollections(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return Task.FromResult(KnowledgeState.Value.Collections.AsEnumerable());
+        }
+
+        var results = KnowledgeState.Value.Collections
+            .Where(c => c.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        // Add the typed value as an option if it doesn't exist
+        if (!results.Contains(value))
+        {
+            results.Insert(0, value);
+        }
+
+        return Task.FromResult(results.AsEnumerable());
+    }
+
+    private Task<IEnumerable<string>> SearchCategories(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return Task.FromResult(KnowledgeState.Value.Categories.AsEnumerable());
+        }
+
+        var results = KnowledgeState.Value.Categories
+            .Where(c => c.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (!results.Contains(value))
+        {
+            results.Insert(0, value);
+        }
+
+        return Task.FromResult(results.AsEnumerable());
+    }
+
+    private Task<IEnumerable<string>> SearchTags(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return Task.FromResult(KnowledgeState.Value.AllTags.AsEnumerable());
+        }
+
+        var results = KnowledgeState.Value.AllTags
+            .Where(t => t.Contains(value, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (!results.Contains(value))
+        {
+            results.Insert(0, value);
+        }
+
+        return Task.FromResult(results.AsEnumerable());
+    }
+
+    private void AddTag(string value)
+    {
+        if (!string.IsNullOrWhiteSpace(value) && !_article.Tags.Contains(value))
+        {
+            _article.Tags.Add(value);
+            _currentTag = string.Empty;
+        }
+    }
+
+    private void RemoveTag(string tag)
+    {
+        _article.Tags.Remove(tag);
+    }
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        _errorMessage = null;
+
+        try
+        {
+            if (_isEditMode)
+            {
+                Dispatcher.Dispatch(new UpdateArticleAction(_article.Id, _article));
+            }
+            else
+            {
+                Dispatcher.Dispatch(new CreateArticleAction(_article));
+            }
+
+            // Wait a moment for the state to update
+            await Task.Delay(100);
+
+            if (string.IsNullOrEmpty(KnowledgeState.Value.Error))
+            {
+                Snackbar.Add(
+                    _isEditMode ? "Article updated successfully" : "Article created successfully",
+                    Severity.Success
+                );
+                MudDialog.Close(DialogResult.Ok(_article));
+            }
+            else
+            {
+                _errorMessage = KnowledgeState.Value.Error;
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error: {ex.Message}";
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

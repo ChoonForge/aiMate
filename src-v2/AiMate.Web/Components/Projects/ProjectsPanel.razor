@@ -1,0 +1,515 @@
+@using AiMate.Shared.Models
+@inject HttpClient Http
+
+<MudPaper Elevation="0" Class="pa-6">
+    <!-- Header with Title and Actions -->
+    <div class="d-flex justify-space-between align-center mb-6">
+        <div>
+            <MudText Typo="Typo.h5" Class="mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.Work" Class="mr-2" />
+                Projects
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Manage and track your projects
+            </MudText>
+        </div>
+        <div class="d-flex gap-2">
+            <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
+                <MudIconButton Icon="@Icons.Material.Filled.GridView"
+                              Color="@(_viewMode == "Grid" ? Color.Primary : Color.Default)"
+                              OnClick="@(() => _viewMode = "Grid")"
+                              Title="Grid View" />
+                <MudIconButton Icon="@Icons.Material.Filled.ViewList"
+                              Color="@(_viewMode == "List" ? Color.Primary : Color.Default)"
+                              OnClick="@(() => _viewMode = "List")"
+                              Title="List View" />
+                <MudIconButton Icon="@Icons.Material.Filled.TableChart"
+                              Color="@(_viewMode == "Table" ? Color.Primary : Color.Default)"
+                              OnClick="@(() => _viewMode = "Table")"
+                              Title="Table View" />
+            </MudButtonGroup>
+            <MudButton Variant="Variant.Filled"
+                      Color="Color.Primary"
+                      StartIcon="@Icons.Material.Filled.Add"
+                      OnClick="OpenCreateDialog">
+                New Project
+            </MudButton>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <MudPaper Elevation="1" Class="pa-4 mb-4">
+        <MudTextField T="string"
+                     @bind-Value="_searchQuery"
+                     Placeholder="Search projects by name, key, or description..."
+                     Adornment="Adornment.Start"
+                     AdornmentIcon="@Icons.Material.Filled.Search"
+                     Immediate="true"
+                     DebounceInterval="300"
+                     Class="mb-3" />
+
+        <!-- Filter Chips -->
+        <div class="d-flex flex-wrap gap-2 align-center">
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-2">Filters:</MudText>
+
+            <!-- Status Filter -->
+            <MudMenu Dense="true">
+                <ActivatorContent>
+                    <MudChip T="string"
+                            Size="Size.Small"
+                            Color="@(string.IsNullOrEmpty(_selectedStatus) ? Color.Default : Color.Primary)"
+                            OnClose="@(() => _selectedStatus = null)">
+                        Status: @(_selectedStatus ?? "All")
+                    </MudChip>
+                </ActivatorContent>
+                <ChildContent>
+                    <MudMenuItem OnClick="@(() => _selectedStatus = null)">All Statuses</MudMenuItem>
+                    <MudMenuItem OnClick="@(() => _selectedStatus = "Planning")">Planning</MudMenuItem>
+                    <MudMenuItem OnClick="@(() => _selectedStatus = "Active")">Active</MudMenuItem>
+                    <MudMenuItem OnClick="@(() => _selectedStatus = "OnHold")">On Hold</MudMenuItem>
+                    <MudMenuItem OnClick="@(() => _selectedStatus = "Completed")">Completed</MudMenuItem>
+                    <MudMenuItem OnClick="@(() => _selectedStatus = "Cancelled")">Cancelled</MudMenuItem>
+                </ChildContent>
+            </MudMenu>
+
+            <!-- Priority Filter -->
+            <MudMenu Dense="true">
+                <ActivatorContent>
+                    <MudChip T="string"
+                            Size="Size.Small"
+                            Color="@(string.IsNullOrEmpty(_selectedPriority) ? Color.Default : GetPriorityColor(_selectedPriority))"
+                            OnClose="@(() => _selectedPriority = null)">
+                        Priority: @(_selectedPriority ?? "All")
+                    </MudChip>
+                </ActivatorContent>
+                <ChildContent>
+                    <MudMenuItem OnClick="@(() => _selectedPriority = null)">All Priorities</MudMenuItem>
+                    <MudMenuItem OnClick="@(() => _selectedPriority = "Critical")">Critical</MudMenuItem>
+                    <MudMenuItem OnClick="@(() => _selectedPriority = "High")">High</MudMenuItem>
+                    <MudMenuItem OnClick="@(() => _selectedPriority = "Medium")">Medium</MudMenuItem>
+                    <MudMenuItem OnClick="@(() => _selectedPriority = "Low")">Low</MudMenuItem>
+                </ChildContent>
+            </MudMenu>
+
+            <!-- Clear Filters -->
+            @if (!string.IsNullOrEmpty(_searchQuery) ||
+                 !string.IsNullOrEmpty(_selectedStatus) ||
+                 !string.IsNullOrEmpty(_selectedPriority))
+            {
+                <MudChip T="string"
+                        Size="Size.Small"
+                        Icon="@Icons.Material.Filled.Clear"
+                        Color="Color.Error"
+                        OnClick="ClearFilters">
+                    Clear All
+                </MudChip>
+            }
+        </div>
+    </MudPaper>
+
+    <!-- Content based on view mode -->
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-center pa-8">
+            <MudProgressCircular Indeterminate="true" />
+        </div>
+    }
+    else if (_viewMode == "Grid")
+    {
+        @if (FilteredProjects.Any())
+        {
+            <MudGrid>
+                @foreach (var project in FilteredProjects)
+                {
+                    <MudItem xs="12" sm="6" md="4" lg="3">
+                        <MudCard Class="cursor-pointer" @onclick="@(() => OpenProject(project))">
+                            <MudCardContent>
+                                <!-- Header with Key and Status -->
+                                <div class="d-flex justify-space-between align-center mb-2">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                                        @project.Key
+                                    </MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(project.Status)">
+                                        @project.Status
+                                    </MudChip>
+                                </div>
+
+                                <!-- Title -->
+                                <MudText Typo="Typo.h6" Class="mb-2">@project.Name</MudText>
+
+                                <!-- Description -->
+                                @if (!string.IsNullOrEmpty(project.Description))
+                                {
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                                        @(project.Description.Length > 80 ? project.Description.Substring(0, 80) + "..." : project.Description)
+                                    </MudText>
+                                }
+
+                                <!-- Priority Badge -->
+                                <div class="mb-3">
+                                    <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(project.Priority)" Icon="@Icons.Material.Filled.Flag">
+                                        @project.Priority Priority
+                                    </MudChip>
+                                </div>
+
+                                <!-- Progress -->
+                                <div class="mb-2">
+                                    <div class="d-flex justify-space-between align-center mb-1">
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">Progress</MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Primary">@project.ProgressPercent%</MudText>
+                                    </div>
+                                    <MudProgressLinear Value="@project.ProgressPercent"
+                                                      Color="@GetProgressColor(project.ProgressPercent)"
+                                                      Size="Size.Medium" />
+                                </div>
+
+                                <!-- Meta Info -->
+                                <div class="d-flex justify-space-between align-center mt-3">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @if (project.StartDate.HasValue)
+                                        {
+                                            @project.StartDate.Value.ToString("MMM dd, yyyy")
+                                        }
+                                        else
+                                        {
+                                            <text>No start date</text>
+                                        }
+                                    </MudText>
+                                    @if (project.Budget.HasValue)
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Success">
+                                            @project.Budget.Value.ToString("C0")
+                                        </MudText>
+                                    }
+                                </div>
+                            </MudCardContent>
+
+                            <MudCardActions>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                             Size="Size.Small"
+                                             OnClick="@(() => EditProject(project))"
+                                             OnClick:stopPropagation="true" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                             Size="Size.Small"
+                                             Color="Color.Error"
+                                             OnClick="@(() => DeleteProject(project))"
+                                             OnClick:stopPropagation="true" />
+                            </MudCardActions>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+        else
+        {
+            @RenderEmptyState()
+        }
+    }
+    else if (_viewMode == "List")
+    {
+        @if (FilteredProjects.Any())
+        {
+            <MudPaper Elevation="1">
+                <MudList Clickable="true" Dense="true">
+                    @foreach (var project in FilteredProjects)
+                    {
+                        <MudListItem OnClick="@(() => OpenProject(project))">
+                            <div class="d-flex justify-space-between align-center py-2">
+                                <!-- Left side -->
+                                <div class="d-flex align-center gap-3" style="flex: 1;">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                                        @project.Key
+                                    </MudChip>
+                                    <div style="flex: 1;">
+                                        <MudText Typo="Typo.body1">@project.Name</MudText>
+                                        @if (!string.IsNullOrEmpty(project.Description))
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                @(project.Description.Length > 100 ? project.Description.Substring(0, 100) + "..." : project.Description)
+                                            </MudText>
+                                        }
+                                    </div>
+                                </div>
+
+                                <!-- Right side -->
+                                <div class="d-flex align-center gap-2">
+                                    <div style="width: 150px;">
+                                        <div class="d-flex justify-space-between align-center mb-1">
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">Progress</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Primary">@project.ProgressPercent%</MudText>
+                                        </div>
+                                        <MudProgressLinear Value="@project.ProgressPercent"
+                                                          Color="@GetProgressColor(project.ProgressPercent)"
+                                                          Size="Size.Small" />
+                                    </div>
+                                    <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(project.Priority)">
+                                        @project.Priority
+                                    </MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(project.Status)">
+                                        @project.Status
+                                    </MudChip>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                                 Size="Size.Small"
+                                                 OnClick="@(() => EditProject(project))"
+                                                 OnClick:stopPropagation="true" />
+                                </div>
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+            </MudPaper>
+        }
+        else
+        {
+            @RenderEmptyState()
+        }
+    }
+    else // Table view
+    {
+        @if (FilteredProjects.Any())
+        {
+            <MudTable T="ProjectDto"
+                     Items="@FilteredProjects"
+                     Hover="true"
+                     Striped="true"
+                     Dense="true"
+                     OnRowClick="@((TableRowClickEventArgs<ProjectDto> args) => OpenProject(args.Item))">
+                <HeaderContent>
+                    <MudTh>Key</MudTh>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Priority</MudTh>
+                    <MudTh>Progress</MudTh>
+                    <MudTh>Start Date</MudTh>
+                    <MudTh>Budget</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Key">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                            @context.Key
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Name">
+                        <MudText Typo="Typo.body2">@context.Name</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Status">
+                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                            @context.Status
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Priority">
+                        <MudChip T="string" Size="Size.Small" Color="@GetPriorityColor(context.Priority)">
+                            @context.Priority
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Progress">
+                        <div style="width: 120px;">
+                            <div class="d-flex justify-space-between align-center mb-1">
+                                <MudText Typo="Typo.caption">@context.ProgressPercent%</MudText>
+                            </div>
+                            <MudProgressLinear Value="@context.ProgressPercent"
+                                              Color="@GetProgressColor(context.ProgressPercent)"
+                                              Size="Size.Small" />
+                        </div>
+                    </MudTd>
+                    <MudTd DataLabel="Start Date">
+                        @if (context.StartDate.HasValue)
+                        {
+                            <MudText Typo="Typo.body2">@context.StartDate.Value.ToString("MMM dd, yyyy")</MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">-</MudText>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Budget">
+                        @if (context.Budget.HasValue)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Success">@context.Budget.Value.ToString("C0")</MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">-</MudText>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                     Size="Size.Small"
+                                     OnClick="@(() => EditProject(context))"
+                                     OnClick:stopPropagation="true" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                     Size="Size.Small"
+                                     Color="Color.Error"
+                                     OnClick="@(() => DeleteProject(context))"
+                                     OnClick:stopPropagation="true" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            @RenderEmptyState()
+        }
+    }
+</MudPaper>
+
+@code {
+    private List<ProjectDto> _projects = new();
+    private bool _isLoading = true;
+    private string _viewMode = "Grid";
+    private string _searchQuery = string.Empty;
+    private string? _selectedStatus;
+    private string? _selectedPriority;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProjects();
+    }
+
+    private async Task LoadProjects()
+    {
+        _isLoading = true;
+        try
+        {
+            var userId = "user-1"; // TODO: Get from auth
+            _projects = await Http.GetFromJsonAsync<List<ProjectDto>>($"/api/v1/Projects?userId={userId}") ?? new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading projects: {ex.Message}");
+            _projects = new();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private List<ProjectDto> FilteredProjects
+    {
+        get
+        {
+            var projects = _projects.AsEnumerable();
+
+            // Search query
+            if (!string.IsNullOrEmpty(_searchQuery))
+            {
+                var query = _searchQuery.ToLower();
+                projects = projects.Where(p =>
+                    p.Name.ToLower().Contains(query) ||
+                    p.Key.ToLower().Contains(query) ||
+                    (p.Description?.ToLower().Contains(query) ?? false));
+            }
+
+            // Status filter
+            if (!string.IsNullOrEmpty(_selectedStatus))
+            {
+                projects = projects.Where(p => p.Status == _selectedStatus);
+            }
+
+            // Priority filter
+            if (!string.IsNullOrEmpty(_selectedPriority))
+            {
+                projects = projects.Where(p => p.Priority == _selectedPriority);
+            }
+
+            return projects.ToList();
+        }
+    }
+
+    private RenderFragment RenderEmptyState() => builder =>
+    {
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "class", "d-flex flex-column align-center justify-center pa-8");
+
+        builder.OpenComponent<MudIcon>(2);
+        builder.AddAttribute(3, "Icon", Icons.Material.Filled.SearchOff);
+        builder.AddAttribute(4, "Size", Size.Large);
+        builder.AddAttribute(5, "Color", Color.Secondary);
+        builder.AddAttribute(6, "Class", "mb-4");
+        builder.CloseComponent();
+
+        builder.OpenComponent<MudText>(7);
+        builder.AddAttribute(8, "Typo", Typo.h6);
+        builder.AddAttribute(9, "Color", Color.Secondary);
+        builder.AddAttribute(10, "ChildContent", (RenderFragment)(b => b.AddContent(0, "No projects found")));
+        builder.CloseComponent();
+
+        builder.OpenComponent<MudText>(11);
+        builder.AddAttribute(12, "Typo", Typo.body2);
+        builder.AddAttribute(13, "Color", Color.Secondary);
+        builder.AddAttribute(14, "Class", "mb-4");
+        builder.AddAttribute(15, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Try adjusting your filters or create a new project")));
+        builder.CloseComponent();
+
+        builder.OpenComponent<MudButton>(16);
+        builder.AddAttribute(17, "Variant", Variant.Filled);
+        builder.AddAttribute(18, "Color", Color.Primary);
+        builder.AddAttribute(19, "StartIcon", Icons.Material.Filled.Add);
+        builder.AddAttribute(20, "OnClick", EventCallback.Factory.Create(this, OpenCreateDialog));
+        builder.AddAttribute(21, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Create Project")));
+        builder.CloseComponent();
+
+        builder.CloseElement();
+    };
+
+    private void ClearFilters()
+    {
+        _searchQuery = string.Empty;
+        _selectedStatus = null;
+        _selectedPriority = null;
+    }
+
+    private Color GetStatusColor(string status) => status switch
+    {
+        "Planning" => Color.Info,
+        "Active" => Color.Success,
+        "OnHold" => Color.Warning,
+        "Completed" => Color.Primary,
+        "Cancelled" => Color.Error,
+        _ => Color.Default
+    };
+
+    private Color GetPriorityColor(string? priority) => priority switch
+    {
+        "Critical" => Color.Error,
+        "High" => Color.Warning,
+        "Medium" => Color.Info,
+        "Low" => Color.Success,
+        _ => Color.Default
+    };
+
+    private Color GetProgressColor(int progress) => progress switch
+    {
+        >= 75 => Color.Success,
+        >= 50 => Color.Info,
+        >= 25 => Color.Warning,
+        _ => Color.Error
+    };
+
+    private void OpenProject(ProjectDto project)
+    {
+        // TODO: Navigate to project details or open dialog
+        Console.WriteLine($"Opening project: {project.Name}");
+    }
+
+    private void EditProject(ProjectDto project)
+    {
+        // TODO: Open edit dialog
+        Console.WriteLine($"Editing project: {project.Name}");
+    }
+
+    private async Task DeleteProject(ProjectDto project)
+    {
+        // TODO: Show confirmation dialog then delete
+        Console.WriteLine($"Deleting project: {project.Name}");
+        await LoadProjects();
+    }
+
+    private void OpenCreateDialog()
+    {
+        // TODO: Open create dialog
+        Console.WriteLine("Opening create project dialog");
+    }
+}
