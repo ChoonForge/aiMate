@@ -1,3 +1,4 @@
+@using MudBlazor
 @using AiMate.Shared.Models
 @using AiMate.Core.Enums
 @using AiMate.Core.Services
@@ -204,7 +205,7 @@
 
 @code {
     [CascadingParameter]
-    MudDialogInstance MudDialog { get; set; } = default!;
+    IMudDialogInstance MudDialog { get; set; } = default!;
 
     [Parameter]
     public AIModelDto Model { get; set; } = new();
