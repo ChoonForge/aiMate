@@ -1,0 +1,240 @@
+@using AiMate.Shared.Models
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            @* Title *@
+            <MudTextField T="string" @bind-Value="@Note.Title"
+                         Label="Title"
+                         Variant="Variant.Outlined"
+                         Required="true"
+                         Immediate="true"
+                         HelperText="Give your note a descriptive title" />
+
+            @* Content Type Selector *@
+            <MudSelect T="string" @bind-Value="@Note.ContentType"
+                      Label="Content Type"
+                      Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@("markdown")">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Small" />
+                        <span>Markdown</span>
+                    </MudStack>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value="@("plain")">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.TextFields" Size="Size.Small" />
+                        <span>Plain Text</span>
+                    </MudStack>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value="@("html")">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Html" Size="Size.Small" />
+                        <span>HTML</span>
+                    </MudStack>
+                </MudSelectItem>
+            </MudSelect>
+
+            @* Content *@
+            <MudTextField T="string" @bind-Value="@Note.Content"
+                         Label="Content"
+                         Variant="Variant.Outlined"
+                         Lines="10"
+                         AutoGrow="true"
+                         HelperText="@GetContentHelperText()" />
+
+            @* Collection *@
+            <MudAutocomplete T="string" @bind-Value="@Note.Collection"
+                            Label="Collection (optional)"
+                            Variant="Variant.Outlined"
+                            SearchFunc="@SearchCollections"
+                            ResetValueOnEmptyText="true"
+                            CoerceText="true"
+                            CoerceValue="false"
+                            HelperText="Organize notes into collections"
+                            Clearable="true">
+                <ItemTemplate Context="item">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" Color="Color.Primary" />
+                        <span>@item</span>
+                    </MudStack>
+                </ItemTemplate>
+            </MudAutocomplete>
+
+            @* Category *@
+            <MudSelect T="string" @bind-Value="@Note.Category"
+                      Label="Category (optional)"
+                      Variant="Variant.Outlined"
+                      Clearable="true">
+                <MudSelectItem T="string" Value="@("Personal")">Personal</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Work")">Work</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Research")">Research</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Ideas")">Ideas</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Todo")">Todo</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Reference")">Reference</MudSelectItem>
+            </MudSelect>
+
+            @* Color *@
+            <MudSelect T="string" @bind-Value="@Note.Color"
+                      Label="Color (optional)"
+                      Variant="Variant.Outlined"
+                      Clearable="true">
+                <MudSelectItem T="string" Value="@("default")">
+                    <MudChip T="string" Color="Color.Default" Size="Size.Small">Default</MudChip>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value="@("primary")">
+                    <MudChip T="string" Color="Color.Primary" Size="Size.Small">Blue</MudChip>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value="@("secondary")">
+                    <MudChip T="string" Color="Color.Secondary" Size="Size.Small">Purple</MudChip>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value="@("success")">
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Green</MudChip>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value="@("warning")">
+                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">Orange</MudChip>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value="@("error")">
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Red</MudChip>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value="@("info")">
+                    <MudChip T="string" Color="Color.Info" Size="Size.Small">Cyan</MudChip>
+                </MudSelectItem>
+            </MudSelect>
+
+            @* Tags *@
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.caption">Tags</MudText>
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                    @foreach (var tag in Note.Tags)
+                    {
+                        <MudChip T="string" Text="@tag"
+                                Size="Size.Small"
+                                OnClose="@(() => RemoveTag(tag))">
+                            @tag
+                        </MudChip>
+                    }
+                </MudStack>
+                <MudStack Row="true" Spacing="1">
+                    <MudTextField T="string" @bind-Value="@_newTag"
+                                 Label="Add tag"
+                                 Variant="Variant.Outlined"
+                                 OnKeyDown="@HandleTagKeyDown"
+                                 Margin="Margin.Dense" />
+                    <MudButton Variant="Variant.Filled"
+                              Color="Color.Primary"
+                              OnClick="@AddTag"
+                              Disabled="@string.IsNullOrWhiteSpace(_newTag)">
+                        Add
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+
+            @* Toggles *@
+            <MudStack Row="true" Spacing="3">
+                <MudSwitch T="bool" @bind-Checked="@Note.IsPinned"
+                          Label="Pin Note"
+                          Color="Color.Primary" />
+                <MudSwitch T="bool" @bind-Checked="@Note.IsFavorite"
+                          Label="Favorite"
+                          Color="Color.Warning" />
+                @if (!IsNew)
+                {
+                    <MudSwitch T="bool" @bind-Checked="@Note.IsArchived"
+                              Label="Archived"
+                              Color="Color.Secondary" />
+                }
+            </MudStack>
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                  Color="Color.Primary"
+                  OnClick="Save"
+                  Disabled="@string.IsNullOrWhiteSpace(Note.Title)">
+            @(IsNew ? "Create" : "Update")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public NoteDto Note { get; set; } = new();
+    [Parameter] public bool IsNew { get; set; } = true;
+    [Parameter] public List<string> ExistingCollections { get; set; } = new();
+    [Parameter] public List<string> ExistingTags { get; set; } = new();
+
+    private string _newTag = string.Empty;
+
+    private string GetContentHelperText()
+    {
+        return Note.ContentType switch
+        {
+            "markdown" => "Supports Markdown formatting: **bold**, *italic*, `code`, etc.",
+            "html" => "HTML content - use with caution",
+            _ => "Plain text content"
+        };
+    }
+
+    private Task<IEnumerable<string>> SearchCollections(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return Task.FromResult(ExistingCollections.AsEnumerable());
+
+        return Task.FromResult(
+            ExistingCollections
+                .Where(c => c.Contains(value, StringComparison.OrdinalIgnoreCase))
+                .AsEnumerable()
+        );
+    }
+
+    private void AddTag()
+    {
+        if (!string.IsNullOrWhiteSpace(_newTag))
+        {
+            var trimmedTag = _newTag.Trim();
+            if (!Note.Tags.Contains(trimmedTag))
+            {
+                Note.Tags.Add(trimmedTag);
+                _newTag = string.Empty;
+            }
+            else
+            {
+                Snackbar.Add("Tag already exists", Severity.Warning);
+            }
+        }
+    }
+
+    private void RemoveTag(string tag)
+    {
+        Note.Tags.Remove(tag);
+    }
+
+    private void HandleTagKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AddTag();
+        }
+    }
+
+    private void Save()
+    {
+        if (string.IsNullOrWhiteSpace(Note.Title))
+        {
+            Snackbar.Add("Title is required", Severity.Error);
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(Note));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}
