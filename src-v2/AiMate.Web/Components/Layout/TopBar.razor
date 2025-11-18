@@ -1,36 +1,64 @@
-@* Top bar with workspace switcher, model selector and actions *@
+@* Top bar with model selector and new chat button *@
 
 <MudAppBar Elevation="0" Dense="true" Style="background-color: #1A1A1A; border-bottom: 1px solid #2A2A2A;">
-    <WorkspaceSwitcher />
+    <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                   Color="Color.Inherit"
+                   Edge="Edge.Start"
+                   Class="d-lg-none" />
+
+    <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
+        <MudMenu Icon="@Icons.Material.Filled.SmartToy"
+                 Color="Color.Inherit"
+                 AnchorOrigin="Origin.BottomLeft"
+                 TransformOrigin="Origin.TopLeft">
+            <ActivatorContent>
+                <MudButton Color="Color.Inherit"
+                          StartIcon="@Icons.Material.Filled.SmartToy"
+                          EndIcon="@Icons.Material.Filled.KeyboardArrowDown"
+                          Style="text-transform: none;">
+                    @_selectedModel
+                </MudButton>
+            </ActivatorContent>
+            <ChildContent>
+                <MudMenuItem OnClick="@(() => SelectModel("GPT-4"))">GPT-4</MudMenuItem>
+                <MudMenuItem OnClick="@(() => SelectModel("GPT-3.5 Turbo"))">GPT-3.5 Turbo</MudMenuItem>
+                <MudDivider />
+                <MudMenuItem OnClick="@(() => SelectModel("Claude 3.5 Sonnet"))">Claude 3.5 Sonnet</MudMenuItem>
+                <MudMenuItem OnClick="@(() => SelectModel("Claude 3 Opus"))">Claude 3 Opus</MudMenuItem>
+                <MudDivider />
+                <MudMenuItem OnClick="@(() => SelectModel("Gemini Pro"))">Gemini Pro</MudMenuItem>
+            </ChildContent>
+        </MudMenu>
+    </div>
 
     <MudSpacer />
 
-    <MudMenu Icon="@Icons.Material.Filled.SmartToy"
-             Color="Color.Inherit"
-             AnchorOrigin="Origin.BottomCenter"
-             TransformOrigin="Origin.TopCenter">
-        <ActivatorContent>
-            <MudButton Color="Color.Inherit"
-                      StartIcon="@Icons.Material.Filled.SmartToy"
-                      EndIcon="@Icons.Material.Filled.KeyboardArrowDown">
-                @_selectedModel
-            </MudButton>
-        </ActivatorContent>
-        <ChildContent>
-            <MudMenuItem OnClick="@(() => _selectedModel = "GPT-4")">GPT-4</MudMenuItem>
-            <MudMenuItem OnClick="@(() => _selectedModel = "GPT-3.5 Turbo")">GPT-3.5 Turbo</MudMenuItem>
-            <MudMenuItem OnClick="@(() => _selectedModel = "Claude 3.5 Sonnet")">Claude 3.5 Sonnet</MudMenuItem>
-            <MudMenuItem OnClick="@(() => _selectedModel = "Claude 3 Opus")">Claude 3 Opus</MudMenuItem>
-            <MudMenuItem OnClick="@(() => _selectedModel = "Gemini Pro")">Gemini Pro</MudMenuItem>
-        </ChildContent>
-    </MudMenu>
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <MudButton Variant="Variant.Outlined"
+                  Color="Color.Primary"
+                  StartIcon="@Icons.Material.Filled.Add"
+                  OnClick="@OnNewChat"
+                  Style="text-transform: none;">
+            New Chat
+        </MudButton>
 
-    <MudIconButton Icon="@Icons.Material.Filled.Settings"
-                   Color="Color.Inherit"
-                   Edge="Edge.End"
-                   Href="/settings" />
+        <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
+                       Color="Color.Inherit"
+                       Edge="Edge.End" />
+    </div>
 </MudAppBar>
 
 @code {
     private string _selectedModel = "GPT-4";
+
+    private void SelectModel(string model)
+    {
+        _selectedModel = model;
+        // TODO: Dispatch action to update selected model in state
+    }
+
+    private void OnNewChat()
+    {
+        // TODO: Dispatch action to create new conversation
+    }
 }
