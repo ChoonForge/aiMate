@@ -319,3 +319,106 @@ public class UpdateNoteRequest
     public bool? IsFavorite { get; set; }
     public bool? IsArchived { get; set; }
 }
+
+// ============================================================================
+// KNOWLEDGE BASE DTOs
+// ============================================================================
+
+/// <summary>
+/// Knowledge article DTO - for reference materials and documentation
+/// </summary>
+public class KnowledgeArticleDto
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Title { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "markdown"; // markdown, plain, html
+    public string Summary { get; set; } = string.Empty;
+
+    // Organization
+    public string Type { get; set; } = "Article"; // Article, Guide, Reference, Tutorial, FAQ
+    public List<string> Tags { get; set; } = new();
+    public string? Collection { get; set; }
+    public string? Category { get; set; }
+    public string? Language { get; set; } = "en";
+
+    // Analytics
+    public int ViewCount { get; set; }
+    public int ReferenceCount { get; set; } // How many times referenced in chats/notes
+    public int UpvoteCount { get; set; }
+    public int DownvoteCount { get; set; }
+    public double AverageRating { get; set; }
+    public DateTime? LastViewedAt { get; set; }
+
+    // Metadata
+    public string? Author { get; set; }
+    public string? Source { get; set; } // URL or reference to original source
+    public bool IsFeatured { get; set; }
+    public bool IsPublished { get; set; } = true;
+    public bool IsVerified { get; set; } // Verified by admin/expert
+
+    // Ownership & Access
+    public string? OwnerId { get; set; }
+    public string Visibility { get; set; } = "Public"; // Private, Team, Public
+    public List<string> SharedWith { get; set; } = new();
+
+    // Relations
+    public List<string> RelatedArticles { get; set; } = new(); // Related article IDs
+    public List<string> Attachments { get; set; } = new();
+
+    // Timestamps
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? PublishedAt { get; set; }
+}
+
+/// <summary>
+/// Create knowledge article request
+/// </summary>
+public class CreateKnowledgeArticleRequest
+{
+    public required string Title { get; set; }
+    public string Content { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "markdown";
+    public string Summary { get; set; } = string.Empty;
+    public string Type { get; set; } = "Article";
+    public List<string>? Tags { get; set; }
+    public string? Collection { get; set; }
+    public string? Category { get; set; }
+    public string? Source { get; set; }
+}
+
+/// <summary>
+/// Update knowledge article request
+/// </summary>
+public class UpdateKnowledgeArticleRequest
+{
+    public string? Title { get; set; }
+    public string? Content { get; set; }
+    public string? ContentType { get; set; }
+    public string? Summary { get; set; }
+    public string? Type { get; set; }
+    public List<string>? Tags { get; set; }
+    public string? Collection { get; set; }
+    public string? Category { get; set; }
+    public string? Source { get; set; }
+    public bool? IsFeatured { get; set; }
+    public bool? IsPublished { get; set; }
+    public bool? IsVerified { get; set; }
+}
+
+/// <summary>
+/// Knowledge base analytics DTO
+/// </summary>
+public class KnowledgeAnalyticsDto
+{
+    public int TotalArticles { get; set; }
+    public int TotalViews { get; set; }
+    public int TotalReferences { get; set; }
+    public List<KnowledgeArticleDto> MostViewed { get; set; } = new();
+    public List<KnowledgeArticleDto> MostReferenced { get; set; } = new();
+    public List<KnowledgeArticleDto> RecentlyAdded { get; set; } = new();
+    public Dictionary<string, int> TagCounts { get; set; } = new();
+    public Dictionary<string, int> TypeCounts { get; set; } = new();
+    public Dictionary<string, int> CategoryCounts { get; set; } = new();
+}
