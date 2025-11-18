@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Web;
 using AiMate.Core.Entities;
+using AiMate.Core.Interfaces;
 using AiMate.Core.Services;
 using Microsoft.Extensions.Logging;
 
@@ -17,6 +18,7 @@ public class MCPToolService : IMCPToolService
     private readonly IFileUploadService? _fileUploadService;
     private readonly IKnowledgeGraphService? _knowledgeService;
     private readonly IDatasetGeneratorService? _datasetGenerator;
+    private readonly ICodeExecutionService? _codeExecutionService;
     private readonly Dictionary<string, MCPTool> _registeredTools = new();
     private readonly Dictionary<string, Func<Dictionary<string, object>, Task<MCPToolResult>>> _toolExecutors = new();
 
@@ -25,13 +27,15 @@ public class MCPToolService : IMCPToolService
         IHttpClientFactory httpClientFactory,
         IFileUploadService? fileUploadService = null,
         IKnowledgeGraphService? knowledgeService = null,
-        IDatasetGeneratorService? datasetGenerator = null)
+        IDatasetGeneratorService? datasetGenerator = null,
+        ICodeExecutionService? codeExecutionService = null)
     {
         _logger = logger;
         _httpClientFactory = httpClientFactory;
         _fileUploadService = fileUploadService;
         _knowledgeService = knowledgeService;
         _datasetGenerator = datasetGenerator;
+        _codeExecutionService = codeExecutionService;
         RegisterBuiltInTools();
     }
 
@@ -236,6 +240,36 @@ public class MCPToolService : IMCPToolService
 
             _registeredTools[datasetGenTool.Name] = datasetGenTool;
             _toolExecutors[datasetGenTool.Name] = ExecuteDatasetGeneratorAsync;
+        }
+
+        // C# Code Execution Tool (CodeMate)
+        if (_codeExecutionService != null)
+        {
+            var csharpExecuteTool = new MCPTool
+            {
+                Name = "execute_csharp",
+                Description = "Execute C# code using Roslyn scripting. Perfect for testing code snippets, algorithms, and building aiMate plugins in real-time.",
+                Parameters = new Dictionary<string, MCPToolParameter>
+                {
+                    ["code"] = new MCPToolParameter
+                    {
+                        Type = "string",
+                        Description = "The C# code to execute. Can include Console.WriteLine, return values, use System.Linq, etc.",
+                        Required = true
+                    },
+                    ["timeout"] = new MCPToolParameter
+                    {
+                        Type = "integer",
+                        Description = "Execution timeout in seconds (default: 30, max: 120)",
+                        Required = false,
+                        DefaultValue = 30
+                    }
+                },
+                RequiresAuth = false // Available to all users
+            };
+
+            _registeredTools[csharpExecuteTool.Name] = csharpExecuteTool;
+            _toolExecutors[csharpExecuteTool.Name] = ExecuteCSharpCodeAsync;
         }
 
         _logger.LogInformation("Built-in tools registered: {Count}", _registeredTools.Count);
@@ -560,6 +594,82 @@ public class MCPToolService : IMCPToolService
             {
                 Success = false,
                 Error = $"Dataset generation failed: {ex.Message}"
+            };
+        }
+    }
+
+    private async Task<MCPToolResult> ExecuteCSharpCodeAsync(Dictionary<string, object> parameters)
+    {
+        if (_codeExecutionService == null)
+        {
+            return new MCPToolResult
+            {
+                Success = false,
+                Error = "Code execution service not available"
+            };
+        }
+
+        try
+        {
+            var code = parameters.GetValueOrDefault("code")?.ToString() ?? string.Empty;
+            var timeoutSeconds = parameters.GetValueOrDefault("timeout") != null
+                ? Convert.ToInt32(parameters["timeout"])
+                : 30;
+
+            // Enforce max timeout of 120 seconds
+            timeoutSeconds = Math.Min(timeoutSeconds, 120);
+
+            _logger.LogInformation("Executing C# code (timeout: {Timeout}s, code length: {Length} chars)",
+                timeoutSeconds, code.Length);
+
+            var result = await _codeExecutionService.ExecuteCSharpAsync(
+                code,
+                TimeSpan.FromSeconds(timeoutSeconds)
+            );
+
+            var output = new
+            {
+                success = result.Success,
+                output = result.Output,
+                return_value = result.ReturnValue?.ToString(),
+                errors = result.Errors,
+                execution_time_ms = result.ExecutionTime.TotalMilliseconds,
+                diagnostics = result.Diagnostics.Select(d => new
+                {
+                    id = d.Id,
+                    message = d.Message,
+                    severity = d.Severity.ToString(),
+                    line = d.Line,
+                    column = d.Column
+                }).ToList()
+            };
+
+            var successMessage = result.Success
+                ? $"Code executed successfully in {result.ExecutionTime.TotalMilliseconds:F2}ms"
+                : $"Compilation/execution failed";
+
+            return new MCPToolResult
+            {
+                Success = result.Success,
+                Data = output,
+                Message = successMessage,
+                Metadata = new Dictionary<string, object>
+                {
+                    ["execution_time_ms"] = result.ExecutionTime.TotalMilliseconds,
+                    ["has_output"] = !string.IsNullOrEmpty(result.Output),
+                    ["has_return_value"] = result.ReturnValue != null,
+                    ["has_errors"] = !string.IsNullOrEmpty(result.Errors),
+                    ["diagnostic_count"] = result.Diagnostics.Count
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "C# code execution failed");
+            return new MCPToolResult
+            {
+                Success = false,
+                Error = $"Code execution failed: {ex.Message}"
             };
         }
     }

@@ -1,0 +1,260 @@
+@page "/codemate"
+@using AiMate.Core.Interfaces
+@inject ICodeExecutionService CodeExecution
+@inject ISnackbar Snackbar
+
+<PageTitle>CodeMate - Live C# Development</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.Code" Class="mr-2" />
+        CodeMate - Live C# Development
+    </MudText>
+
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+        Write and execute C# code in real-time. Perfect for testing snippets, algorithms, and building aiMate plugins.
+    </MudText>
+
+    <MudGrid>
+        <MudItem xs="12" lg="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <div class="d-flex justify-space-between align-center mb-3">
+                    <MudText Typo="Typo.h6">Code Editor</MudText>
+                    <MudChip Size="Size.Small" Color="Color.Primary">C# 12 + .NET 9</MudChip>
+                </div>
+
+                <MudTextField @bind-Value="@_code"
+                             Label="C# Code"
+                             Variant="Variant.Outlined"
+                             Lines="20"
+                             Immediate="false"
+                             Class="code-editor mb-3" />
+
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+                    Available namespaces: System, System.Linq, System.Collections.Generic, System.Text, System.Text.Json, System.Net.Http
+                </MudText>
+
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Filled"
+                              Color="Color.Primary"
+                              StartIcon="@Icons.Material.Filled.PlayArrow"
+                              OnClick="@RunCode"
+                              Disabled="@_isExecuting">
+                        @(_isExecuting ? "Running..." : "Run Code")
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                              StartIcon="@Icons.Material.Filled.Clear"
+                              OnClick="@ClearCode"
+                              Disabled="@_isExecuting">
+                        Clear
+                    </MudButton>
+
+                    <MudButton Variant="Variant.Outlined"
+                              StartIcon="@Icons.Material.Filled.ContentCopy"
+                              OnClick="@LoadExample">
+                        Load Example
+                    </MudButton>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" lg="6">
+            <MudPaper Class="pa-4" Elevation="2" Style="min-height: 600px;">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    Output
+                    @if (_result != null)
+                    {
+                        <MudChip Size="Size.Small"
+                                Color="@(_result.Success ? Color.Success : Color.Error)"
+                                Class="ml-2">
+                            @(_result.Success ? "Success" : "Failed")
+                        </MudChip>
+                    }
+                </MudText>
+
+                @if (_result != null)
+                {
+                    @if (_result.Success)
+                    {
+                        <MudAlert Severity="Severity.Success" Class="mb-3" Dense="true">
+                            ✓ Executed in @_result.ExecutionTime.TotalMilliseconds ms
+                        </MudAlert>
+
+                        @if (!string.IsNullOrEmpty(_result.Output))
+                        {
+                            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Terminal" Size="Size.Small" Class="mr-1" />
+                                Console Output:
+                            </MudText>
+                            <MudPaper Class="pa-3 mb-3" Elevation="0" Style="background: #1e1e1e; color: #d4d4d4; font-family: 'Consolas', 'Courier New', monospace; overflow-x: auto;">
+                                <pre style="margin: 0; white-space: pre-wrap;">@_result.Output</pre>
+                            </MudPaper>
+                        }
+
+                        @if (_result.ReturnValue != null)
+                        {
+                            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                                <MudIcon Icon="@Icons.Material.Filled.KeyboardReturn" Size="Size.Small" Class="mr-1" />
+                                Return Value:
+                            </MudText>
+                            <MudPaper Class="pa-3" Elevation="0" Style="background: #1e1e1e; color: #4ec9b0; font-family: 'Consolas', 'Courier New', monospace;">
+                                <pre style="margin: 0;">@_result.ReturnValue</pre>
+                            </MudPaper>
+                        }
+
+                        @if (string.IsNullOrEmpty(_result.Output) && _result.ReturnValue == null)
+                        {
+                            <MudText Color="Color.Secondary">
+                                Code executed successfully with no output or return value.
+                            </MudText>
+                        }
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Error" Class="mb-3">
+                            ✗ Compilation/Execution Failed
+                        </MudAlert>
+
+                        <MudPaper Class="pa-3 mb-3" Elevation="0" Style="background: #3c1414; color: #f48771; font-family: 'Consolas', 'Courier New', monospace; overflow-x: auto;">
+                            <pre style="margin: 0; white-space: pre-wrap;">@_result.Errors</pre>
+                        </MudPaper>
+
+                        @if (_result.Diagnostics.Any())
+                        {
+                            <MudText Typo="Typo.subtitle2" Class="mb-2">Diagnostics:</MudText>
+                            @foreach (var diag in _result.Diagnostics.Take(5))
+                            {
+                                <MudChip Size="Size.Small"
+                                        Color="@(diag.Severity == DiagnosticSeverity.Error ? Color.Error : Color.Warning)"
+                                        Class="mb-1 mr-1">
+                                    Line @diag.Line: @diag.Message
+                                </MudChip>
+                            }
+                            @if (_result.Diagnostics.Count > 5)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    ... and @(_result.Diagnostics.Count - 5) more
+                                </MudText>
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    <div class="d-flex flex-column align-center justify-center" style="height: 500px;">
+                        <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
+                        <MudText Typo="Typo.body1" Color="Color.Secondary" Align="Align.Center">
+                            Write C# code and click "Run Code" to see output here
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                            Try the example to get started!
+                        </MudText>
+                    </div>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudPaper Class="pa-4 mt-4" Elevation="1">
+        <MudText Typo="Typo.h6" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.Lightbulb" Class="mr-1" />
+            Tips
+        </MudText>
+        <MudList Dense="true">
+            <MudListItem Icon="@Icons.Material.Filled.Check">
+                Use <code>Console.WriteLine()</code> for output
+            </MudListItem>
+            <MudListItem Icon="@Icons.Material.Filled.Check">
+                Add <code>return</code> statement to see return values
+            </MudListItem>
+            <MudListItem Icon="@Icons.Material.Filled.Check">
+                Use System.Linq for LINQ queries (e.g., <code>Enumerable.Range(1, 10).Sum()</code>)
+            </MudListItem>
+            <MudListItem Icon="@Icons.Material.Filled.Check">
+                Perfect for testing algorithms before using them in plugins
+            </MudListItem>
+            <MudListItem Icon="@Icons.Material.Filled.Security">
+                Code runs in a sandboxed environment (no file system access, 30s timeout)
+            </MudListItem>
+        </MudList>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string _code = @"// Welcome to CodeMate! 🚀
+// Write C# code here and click ""Run Code""
+
+// Example: Calculate factorial
+int Factorial(int n)
+{
+    if (n <= 1) return 1;
+    return n * Factorial(n - 1);
+}
+
+var result = Factorial(10);
+Console.WriteLine($""Factorial of 10 is: {result}"");
+return result;";
+
+    private CodeExecutionResult? _result;
+    private bool _isExecuting = false;
+
+    private async Task RunCode()
+    {
+        _isExecuting = true;
+        _result = null;
+        StateHasChanged();
+
+        try
+        {
+            _result = await CodeExecution.ExecuteCSharpAsync(_code, TimeSpan.FromSeconds(30));
+
+            if (_result.Success)
+            {
+                Snackbar.Add($"✓ Executed in {_result.ExecutionTime.TotalMilliseconds:F2}ms", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("✗ Compilation failed. Check output for details.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            _result = new CodeExecutionResult
+            {
+                Success = false,
+                Errors = $"Unexpected error: {ex.Message}"
+            };
+        }
+        finally
+        {
+            _isExecuting = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearCode()
+    {
+        _code = "// Your C# code here\n";
+        _result = null;
+        Snackbar.Add("Code cleared", Severity.Info);
+    }
+
+    private void LoadExample()
+    {
+        _code = @"// Example: LINQ Query
+var numbers = Enumerable.Range(1, 100);
+
+var evenNumbers = numbers.Where(n => n % 2 == 0);
+var sum = evenNumbers.Sum();
+
+Console.WriteLine(""Even numbers from 1-100:"");
+Console.WriteLine(string.Join("", "", evenNumbers.Take(10)) + ""..."");
+Console.WriteLine($""\nSum of all even numbers: {sum}"");
+
+return sum;";
+        _result = null;
+        Snackbar.Add("Example loaded!", Severity.Info);
+    }
+}
