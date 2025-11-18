@@ -422,3 +422,49 @@ public class KnowledgeAnalyticsDto
     public Dictionary<string, int> TypeCounts { get; set; } = new();
     public Dictionary<string, int> CategoryCounts { get; set; } = new();
 }
+
+// ============================================================================
+// PROJECTS DTOs
+// ============================================================================
+
+public class ProjectDto
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Key { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string? OwnerId { get; set; }
+    public string? OwnerName { get; set; }
+    public string? OwnerEmail { get; set; }
+    public string Status { get; set; } = "Planning";
+    public string Priority { get; set; } = "Medium";
+    public decimal? Budget { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? DueDate { get; set; }
+    public int ProgressPercent { get; set; } = 0;
+    public List<string> Tags { get; set; } = new();
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class CreateProjectRequest
+{
+    public required string Key { get; set; }
+    public required string Name { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string? OwnerName { get; set; }
+    public string? OwnerEmail { get; set; }
+    public string Status { get; set; } = "Planning";
+    public string Priority { get; set; } = "Medium";
+    public decimal? Budget { get; set; }
+}
+
+public class UpdateProjectRequest
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public string? Status { get; set; }
+    public string? Priority { get; set; }
+    public decimal? Budget { get; set; }
+    public int? ProgressPercent { get; set; }
+}

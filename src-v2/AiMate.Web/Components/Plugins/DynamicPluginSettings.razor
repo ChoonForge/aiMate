@@ -1,0 +1,100 @@
+@* Dynamic Plugin Settings Renderer - supports 12+ input types *@
+
+<MudPaper Class="pa-4" Elevation="2">
+    <MudStack Spacing="3">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@GetPluginIcon()" Color="Color.Primary" Size="Size.Large" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h6">@PluginName</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@PluginDescription</MudText>
+                </MudStack>
+            </MudStack>
+            <MudSwitch T="bool" @bind-Checked="@_isEnabled" Label="Enabled" Color="Color.Success" />
+        </MudStack>
+
+        <MudDivider />
+
+        @if (_isEnabled && Settings != null && Settings.Any())
+        {
+            <MudText Typo="Typo.subtitle1">Plugin Settings</MudText>
+
+            @foreach (var setting in Settings)
+            {
+                <div>
+                    @switch (setting.Type.ToLower())
+                    {
+                        case "string": case "text":
+                            <MudTextField T="string" Label="@setting.Label" Variant="Variant.Outlined" HelperText="@setting.Description" Required="@setting.Required" />
+                            break;
+                        case "number": case "int":
+                            <MudNumericField T="int" Label="@setting.Label" Variant="Variant.Outlined" HelperText="@setting.Description" Required="@setting.Required" />
+                            break;
+                        case "boolean": case "bool":
+                            <MudSwitch T="bool" Label="@setting.Label" Color="Color.Primary" />
+                            break;
+                        case "select":
+                            <MudSelect T="string" Label="@setting.Label" Variant="Variant.Outlined" HelperText="@setting.Description">
+                                @foreach (var opt in setting.Options ?? new List<string>())
+                                {
+                                    <MudSelectItem T="string" Value="@opt">@opt</MudSelectItem>
+                                }
+                            </MudSelect>
+                            break;
+                        case "textarea":
+                            <MudTextField T="string" Label="@setting.Label" Variant="Variant.Outlined" Lines="5" />
+                            break;
+                        case "password":
+                            <MudTextField T="string" Label="@setting.Label" Variant="Variant.Outlined" InputType="InputType.Password" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Lock" />
+                            break;
+                        case "url":
+                            <MudTextField T="string" Label="@setting.Label" Variant="Variant.Outlined" InputType="InputType.Url" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Link" />
+                            break;
+                        case "json":
+                            <MudTextField T="string" Label="@setting.Label" Variant="Variant.Outlined" Lines="8" HelperText="JSON format" />
+                            break;
+                    }
+                </div>
+            }
+
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save">Save</MudButton>
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Refresh">Reset</MudButton>
+            </MudStack>
+        }
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter] public string PluginName { get; set; } = "Plugin";
+    [Parameter] public string PluginDescription { get; set; } = "";
+    [Parameter] public string PluginType { get; set; } = "Generic";
+    [Parameter] public bool Enabled { get; set; } = true;
+    [Parameter] public List<PluginSetting> Settings { get; set; } = new();
+
+    private bool _isEnabled;
+
+    protected override void OnParametersSet()
+    {
+        _isEnabled = Enabled;
+    }
+
+    private string GetPluginIcon() => PluginType.ToLower() switch
+    {
+        "llm" or "ai" => Icons.Material.Filled.Psychology,
+        "storage" => Icons.Material.Filled.Storage,
+        "analytics" => Icons.Material.Filled.Analytics,
+        _ => Icons.Material.Filled.Extension
+    };
+
+    public class PluginSetting
+    {
+        public string Key { get; set; } = "";
+        public string Label { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string Type { get; set; } = "string";
+        public object? DefaultValue { get; set; }
+        public bool Required { get; set; } = false;
+        public List<string>? Options { get; set; }
+    }
+}
