@@ -1,0 +1,257 @@
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.h6">Share Conversation</MudText>
+
+            @* Share Link *@
+            <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-surface);">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.body2"><strong>Share Link</strong></MudText>
+                    <MudTextField T="string" @bind-Value="@_shareUrl"
+                                 Variant="Variant.Outlined"
+                                 ReadOnly="true"
+                                 Adornment="Adornment.End"
+                                 AdornmentIcon="@Icons.Material.Filled.ContentCopy"
+                                 OnAdornmentClick="@CopyLinkToClipboard"
+                                 HelperText="Anyone with this link can view the conversation" />
+                </MudStack>
+            </MudPaper>
+
+            @* Social Sharing *@
+            <MudText Typo="Typo.body2"><strong>Share on Social Media</strong></MudText>
+            <MudGrid>
+                @* Twitter/X *@
+                <MudItem xs="6" sm="4">
+                    <MudButton Variant="Variant.Filled"
+                              FullWidth="true"
+                              StartIcon="@Icons.Custom.Brands.Twitter"
+                              Color="Color.Info"
+                              OnClick="@(() => ShareOnPlatform("twitter"))">
+                        Twitter
+                    </MudButton>
+                </MudItem>
+
+                @* Facebook *@
+                <MudItem xs="6" sm="4">
+                    <MudButton Variant="Variant.Filled"
+                              FullWidth="true"
+                              StartIcon="@Icons.Custom.Brands.Facebook"
+                              Style="background-color: #1877F2; color: white;"
+                              OnClick="@(() => ShareOnPlatform("facebook"))">
+                        Facebook
+                    </MudButton>
+                </MudItem>
+
+                @* LinkedIn *@
+                <MudItem xs="6" sm="4">
+                    <MudButton Variant="Variant.Filled"
+                              FullWidth="true"
+                              StartIcon="@Icons.Custom.Brands.LinkedIn"
+                              Style="background-color: #0A66C2; color: white;"
+                              OnClick="@(() => ShareOnPlatform("linkedin"))">
+                        LinkedIn
+                    </MudButton>
+                </MudItem>
+
+                @* WhatsApp *@
+                <MudItem xs="6" sm="4">
+                    <MudButton Variant="Variant.Filled"
+                              FullWidth="true"
+                              StartIcon="@Icons.Custom.Brands.WhatsApp"
+                              Color="Color.Success"
+                              OnClick="@(() => ShareOnPlatform("whatsapp"))">
+                        WhatsApp
+                    </MudButton>
+                </MudItem>
+
+                @* Email *@
+                <MudItem xs="6" sm="4">
+                    <MudButton Variant="Variant.Filled"
+                              FullWidth="true"
+                              StartIcon="@Icons.Material.Filled.Email"
+                              Color="Color.Secondary"
+                              OnClick="@(() => ShareOnPlatform("email"))">
+                        Email
+                    </MudButton>
+                </MudItem>
+
+                @* Reddit *@
+                <MudItem xs="6" sm="4">
+                    <MudButton Variant="Variant.Filled"
+                              FullWidth="true"
+                              StartIcon="@Icons.Custom.Brands.Reddit"
+                              Style="background-color: #FF4500; color: white;"
+                              OnClick="@(() => ShareOnPlatform("reddit"))">
+                        Reddit
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+
+            @* QR Code *@
+            <MudDivider Class="my-2" />
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudText Typo="Typo.body2"><strong>QR Code</strong></MudText>
+                <MudButton Variant="Variant.Text"
+                          Size="Size.Small"
+                          StartIcon="@Icons.Material.Filled.QrCode"
+                          OnClick="@ToggleQRCode">
+                    @(_showQRCode ? "Hide" : "Show") QR Code
+                </MudButton>
+            </MudStack>
+
+            @if (_showQRCode)
+            {
+                <MudPaper Class="pa-4" Elevation="0" Style="text-align: center;">
+                    <MudImage Src="@GetQRCodeUrl()" Alt="QR Code" Style="max-width: 200px;" />
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                        Scan to open conversation
+                    </MudText>
+                </MudPaper>
+            }
+
+            @* Privacy Settings *@
+            <MudDivider Class="my-2" />
+            <MudText Typo="Typo.body2"><strong>Privacy Settings</strong></MudText>
+            <MudStack Spacing="2">
+                <MudSwitch T="bool" @bind-Checked="@_allowPublicAccess"
+                          Label="Allow public access"
+                          Color="Color.Primary"
+                          CheckedChanged="@OnPrivacyChanged" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    When enabled, anyone with the link can view this conversation without logging in
+                </MudText>
+
+                @if (_allowPublicAccess)
+                {
+                    <MudSwitch T="bool" @bind-Checked="@_requirePassword"
+                              Label="Require password"
+                              Color="Color.Warning" />
+
+                    @if (_requirePassword)
+                    {
+                        <MudTextField T="string" @bind-Value="@_password"
+                                     Label="Password"
+                                     Variant="Variant.Outlined"
+                                     InputType="InputType.Password"
+                                     HelperText="Viewers will need this password to access the conversation" />
+                    }
+
+                    <MudSelect T="string" @bind-Value="@_expirationPeriod"
+                              Label="Link expires"
+                              Variant="Variant.Outlined">
+                        <MudSelectItem T="string" Value="@("never")">Never</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("1hour")">1 hour</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("24hours")">24 hours</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("7days")">7 days</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("30days")">30 days</MudSelectItem>
+                    </MudSelect>
+                }
+            </MudStack>
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Close">Close</MudButton>
+        <MudButton Variant="Variant.Filled"
+                  Color="Color.Primary"
+                  StartIcon="@Icons.Material.Filled.Share"
+                  OnClick="@GenerateShareLink">
+            Generate New Link
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public string ConversationId { get; set; } = string.Empty;
+    [Parameter] public string ConversationTitle { get; set; } = "Untitled Conversation";
+
+    private string _shareUrl = string.Empty;
+    private bool _showQRCode = false;
+    private bool _allowPublicAccess = true;
+    private bool _requirePassword = false;
+    private string _password = string.Empty;
+    private string _expirationPeriod = "never";
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        GenerateShareLink();
+    }
+
+    private void GenerateShareLink()
+    {
+        // Generate a shareable URL
+        var baseUrl = "https://aimate.app/share"; // TODO: Get from config
+        var shareToken = Guid.NewGuid().ToString("N")[..12]; // Short token
+        _shareUrl = $"{baseUrl}/{shareToken}";
+
+        Snackbar.Add("Share link generated", Severity.Success);
+    }
+
+    private async Task CopyLinkToClipboard()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", _shareUrl);
+            Snackbar.Add("Link copied to clipboard!", Severity.Success);
+        }
+        catch
+        {
+            Snackbar.Add("Failed to copy link", Severity.Error);
+        }
+    }
+
+    private void ShareOnPlatform(string platform)
+    {
+        var encodedUrl = Uri.EscapeDataString(_shareUrl);
+        var encodedTitle = Uri.EscapeDataString($"Check out this conversation: {ConversationTitle}");
+        var encodedText = Uri.EscapeDataString($"I thought you might find this interesting: {ConversationTitle}");
+
+        var shareUrl = platform switch
+        {
+            "twitter" => $"https://twitter.com/intent/tweet?url={encodedUrl}&text={encodedTitle}",
+            "facebook" => $"https://www.facebook.com/sharer/sharer.php?u={encodedUrl}",
+            "linkedin" => $"https://www.linkedin.com/sharing/share-offsite/?url={encodedUrl}",
+            "whatsapp" => $"https://wa.me/?text={encodedTitle}%20{encodedUrl}",
+            "email" => $"mailto:?subject={encodedTitle}&body={encodedText}%0A%0A{encodedUrl}",
+            "reddit" => $"https://reddit.com/submit?url={encodedUrl}&title={encodedTitle}",
+            _ => _shareUrl
+        };
+
+        // Open in new window
+        JS.InvokeVoidAsync("open", shareUrl, "_blank");
+
+        Snackbar.Add($"Opening {platform} share dialog...", Severity.Info);
+    }
+
+    private void ToggleQRCode()
+    {
+        _showQRCode = !_showQRCode;
+    }
+
+    private string GetQRCodeUrl()
+    {
+        // Use a QR code generation service
+        var encodedUrl = Uri.EscapeDataString(_shareUrl);
+        return $"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={encodedUrl}";
+    }
+
+    private void OnPrivacyChanged(bool value)
+    {
+        if (!value)
+        {
+            _requirePassword = false;
+            _password = string.Empty;
+        }
+    }
+
+    private void Close()
+    {
+        MudDialog.Close();
+    }
+}

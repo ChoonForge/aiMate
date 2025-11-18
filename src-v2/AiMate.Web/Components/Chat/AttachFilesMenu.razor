@@ -1,0 +1,239 @@
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudMenu Icon="@Icons.Material.Filled.AttachFile"
+         Variant="Variant.Filled"
+         Color="Color.Primary"
+         AnchorOrigin="Origin.TopCenter"
+         TransformOrigin="Origin.BottomCenter"
+         Dense="@Dense"
+         Size="@Size">
+    @* Files *@
+    <MudMenuItem Icon="@Icons.Material.Filled.InsertDriveFile"
+                 IconColor="Color.Primary"
+                 OnClick="@HandleAttachFiles">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="min-width: 200px;">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.body2">Files</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Upload documents, images, etc.</MudText>
+            </MudStack>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">⌘F</MudText>
+        </MudStack>
+    </MudMenuItem>
+
+    <MudDivider Class="my-1" />
+
+    @* Capture Screenshot *@
+    <MudMenuItem Icon="@Icons.Material.Filled.Screenshot"
+                 IconColor="Color.Info"
+                 OnClick="@HandleCaptureScreenshot">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="min-width: 200px;">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.body2">Capture</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Take a screenshot</MudText>
+            </MudStack>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">⌘S</MudText>
+        </MudStack>
+    </MudMenuItem>
+
+    @* Webcam *@
+    <MudMenuItem Icon="@Icons.Material.Filled.PhotoCamera"
+                 IconColor="Color.Warning"
+                 OnClick="@HandleCapturePhoto">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="min-width: 200px;">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.body2">Camera</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Capture from webcam</MudText>
+            </MudStack>
+        </MudStack>
+    </MudMenuItem>
+
+    <MudDivider Class="my-1" />
+
+    @* Webpage *@
+    <MudMenuItem Icon="@Icons.Material.Filled.Language"
+                 IconColor="Color.Secondary"
+                 OnClick="@HandleAttachWebpage">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="min-width: 200px;">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.body2">Webpage</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Fetch and analyze a URL</MudText>
+            </MudStack>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">⌘W</MudText>
+        </MudStack>
+    </MudMenuItem>
+
+    @* Notes *@
+    <MudMenuItem Icon="@Icons.Material.Filled.Note"
+                 IconColor="Color.Success"
+                 OnClick="@HandleAttachNote">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="min-width: 200px;">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.body2">Notes</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Attach a saved note</MudText>
+            </MudStack>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">⌘N</MudText>
+        </MudStack>
+    </MudMenuItem>
+
+    @* Knowledge Base *@
+    <MudMenuItem Icon="@Icons.Material.Filled.LibraryBooks"
+                 IconColor="Color.Tertiary"
+                 OnClick="@HandleAttachKnowledge">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="min-width: 200px;">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.body2">Knowledge</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Attach from knowledge base</MudText>
+            </MudStack>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">⌘K</MudText>
+        </MudStack>
+    </MudMenuItem>
+
+    <MudDivider Class="my-1" />
+
+    @* Reference Chat *@
+    <MudMenuItem Icon="@Icons.Material.Filled.Chat"
+                 IconColor="Color.Info"
+                 OnClick="@HandleReferenceChat">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="min-width: 200px;">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.body2">Reference Chat</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Link to another conversation</MudText>
+            </MudStack>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">⌘R</MudText>
+        </MudStack>
+    </MudMenuItem>
+
+    @* Clipboard *@
+    <MudMenuItem Icon="@Icons.Material.Filled.ContentPaste"
+                 IconColor="Color.Default"
+                 OnClick="@HandlePasteFromClipboard">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="min-width: 200px;">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.body2">Clipboard</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Paste from clipboard</MudText>
+            </MudStack>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">⌘V</MudText>
+        </MudStack>
+    </MudMenuItem>
+
+    @if (ShowAdvancedOptions)
+    {
+        <MudDivider Class="my-1" />
+
+        @* Code Snippet *@
+        <MudMenuItem Icon="@Icons.Material.Filled.Code"
+                     IconColor="Color.Dark"
+                     OnClick="@HandleAttachCodeSnippet">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="min-width: 200px;">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.body2">Code Snippet</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Attach formatted code</MudText>
+                </MudStack>
+            </MudStack>
+        </MudMenuItem>
+
+        @* Audio Recording *@
+        <MudMenuItem Icon="@Icons.Material.Filled.Mic"
+                     IconColor="Color.Error"
+                     OnClick="@HandleRecordAudio">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="min-width: 200px;">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.body2">Audio Recording</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Record voice message</MudText>
+                </MudStack>
+            </MudStack>
+        </MudMenuItem>
+    }
+</MudMenu>
+
+@code {
+    [Parameter] public EventCallback<List<AttachedFile>> OnFilesAttached { get; set; }
+    [Parameter] public bool ShowAdvancedOptions { get; set; } = false;
+    [Parameter] public bool Dense { get; set; } = false;
+    [Parameter] public Size Size { get; set; } = Size.Medium;
+
+    private async Task HandleAttachFiles()
+    {
+        // TODO: Open file picker
+        Snackbar.Add("File upload dialog would open here", Severity.Info);
+        // Trigger file upload dialog via JS interop
+    }
+
+    private async Task HandleCaptureScreenshot()
+    {
+        // TODO: Implement screenshot capture
+        Snackbar.Add("Screenshot capture would start here", Severity.Info);
+    }
+
+    private async Task HandleCapturePhoto()
+    {
+        // TODO: Implement webcam capture
+        Snackbar.Add("Webcam capture would open here", Severity.Info);
+    }
+
+    private async Task HandleAttachWebpage()
+    {
+        // TODO: Show URL input dialog
+        var parameters = new DialogParameters
+        {
+            ["Title"] = "Attach Webpage",
+            ["Label"] = "Enter URL",
+            ["Placeholder"] = "https://example.com"
+        };
+
+        var dialog = await DialogService.ShowAsync<TextInputDialog>("Attach Webpage", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is string url)
+        {
+            Snackbar.Add($"Fetching webpage: {url}", Severity.Info);
+            // TODO: Fetch and process webpage
+        }
+    }
+
+    private async Task HandleAttachNote()
+    {
+        // TODO: Show notes picker dialog
+        Snackbar.Add("Notes picker would open here", Severity.Info);
+    }
+
+    private async Task HandleAttachKnowledge()
+    {
+        // TODO: Show knowledge base picker
+        Snackbar.Add("Knowledge base picker would open here", Severity.Info);
+    }
+
+    private async Task HandleReferenceChat()
+    {
+        // TODO: Show conversation picker
+        Snackbar.Add("Conversation picker would open here", Severity.Info);
+    }
+
+    private async Task HandlePasteFromClipboard()
+    {
+        // TODO: Read from clipboard via JS interop
+        Snackbar.Add("Reading from clipboard...", Severity.Info);
+    }
+
+    private async Task HandleAttachCodeSnippet()
+    {
+        // TODO: Show code input dialog with language selector
+        Snackbar.Add("Code snippet editor would open here", Severity.Info);
+    }
+
+    private async Task HandleRecordAudio()
+    {
+        // TODO: Start audio recording
+        Snackbar.Add("Audio recording would start here", Severity.Info);
+    }
+
+    public class AttachedFile
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public long Size { get; set; }
+        public string Url { get; set; } = string.Empty;
+        public byte[]? Data { get; set; }
+    }
+}
