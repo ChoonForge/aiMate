@@ -86,15 +86,31 @@ builder.Services.AddFluxor(options =>
     options.UseReduxDevTools();
 });
 
-// Database
+// Database - Support both PostgreSQL and InMemory
+var useInMemoryDb = builder.Configuration.GetValue<bool>("UseInMemoryDatabase");
 var connectionString = builder.Configuration.GetConnectionString("PostgreSQL");
-if (!string.IsNullOrEmpty(connectionString))
+
+if (useInMemoryDb)
 {
+    Log.Information("Using InMemory database (data will be lost on shutdown)");
+    builder.Services.AddDbContext<AiMateDbContext>(options =>
+        options.UseInMemoryDatabase("AiMateInMemory"));
+}
+else if (!string.IsNullOrEmpty(connectionString))
+{
+    Log.Information("Using PostgreSQL database: {Host}",
+        connectionString.Split(";")[0].Replace("Host=", ""));
     builder.Services.AddDbContext<AiMateDbContext>(options =>
         options.UseNpgsql(connectionString, npgsqlOptions =>
         {
             npgsqlOptions.UseVector();
         }));
+}
+else
+{
+    Log.Warning("No database configured! Using InMemory database by default");
+    builder.Services.AddDbContext<AiMateDbContext>(options =>
+        options.UseInMemoryDatabase("AiMateInMemory"));
 }
 
 // Add HTTP client
