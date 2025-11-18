@@ -1,0 +1,223 @@
+@* Conversation list with context menu integration *@
+@using Fluxor
+@using AiMate.Web.Store.Chat
+@using System.Text
+@using System.Text.Json
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<ChatState> ChatState
+@inject IDispatcher Dispatcher
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudPaper Elevation="0" Class="conversation-list-container">
+    <MudList Clickable="true" Dense="true" Class="conversation-list">
+        @if (!ChatState.Value.Conversations.Any())
+        {
+            <MudListItem>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                    No conversations yet
+                </MudText>
+            </MudListItem>
+        }
+        else
+        {
+            @* Pinned conversations first *@
+            @foreach (var conversation in PinnedConversations)
+            {
+                <MudListItem Class="@GetConversationItemClass(conversation.Id)"
+                            OnClick="@(() => HandleSelectConversation(conversation.Id))">
+                    <div class="conversation-item">
+                        <div class="conversation-item-content">
+                            <MudIcon Icon="@Icons.Material.Filled.PushPin"
+                                    Size="Size.Small"
+                                    Class="pin-icon" />
+                            <div class="conversation-item-text">
+                                <MudText Typo="Typo.body2" Class="conversation-title">
+                                    @conversation.Title
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @GetRelativeTime(conversation.UpdatedAt)
+                                </MudText>
+                            </div>
+                        </div>
+                        <div class="conversation-item-actions" @onclick:stopPropagation="true">
+                            <ConversationContextMenu
+                                ConversationId="@conversation.Id"
+                                ConversationTitle="@conversation.Title"
+                                IsPinned="@conversation.IsPinned"
+                                OnPinToggled="@(() => HandlePinToggle(conversation.Id))"
+                                OnRenamed="@(() => HandleRename(conversation.Id))"
+                                OnShared="@(() => HandleShare(conversation.Id))"
+                                OnDownloaded="@(() => HandleDownload(conversation.Id))"
+                                OnArchived="@(() => HandleArchive(conversation.Id))"
+                                OnDeleted="@(() => HandleDelete(conversation.Id))" />
+                        </div>
+                    </div>
+                </MudListItem>
+            }
+
+            @* Regular conversations *@
+            @foreach (var conversation in RegularConversations)
+            {
+                <MudListItem Class="@GetConversationItemClass(conversation.Id)"
+                            OnClick="@(() => HandleSelectConversation(conversation.Id))">
+                    <div class="conversation-item">
+                        <div class="conversation-item-content">
+                            <MudIcon Icon="@Icons.Material.Filled.Chat"
+                                    Size="Size.Small"
+                                    Class="chat-icon" />
+                            <div class="conversation-item-text">
+                                <MudText Typo="Typo.body2" Class="conversation-title">
+                                    @conversation.Title
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @GetRelativeTime(conversation.UpdatedAt)
+                                </MudText>
+                            </div>
+                        </div>
+                        <div class="conversation-item-actions" @onclick:stopPropagation="true">
+                            <ConversationContextMenu
+                                ConversationId="@conversation.Id"
+                                ConversationTitle="@conversation.Title"
+                                IsPinned="@conversation.IsPinned"
+                                OnPinToggled="@(() => HandlePinToggle(conversation.Id))"
+                                OnRenamed="@(() => HandleRename(conversation.Id))"
+                                OnShared="@(() => HandleShare(conversation.Id))"
+                                OnDownloaded="@(() => HandleDownload(conversation.Id))"
+                                OnArchived="@(() => HandleArchive(conversation.Id))"
+                                OnDeleted="@(() => HandleDelete(conversation.Id))" />
+                        </div>
+                    </div>
+                </MudListItem>
+            }
+        }
+    </MudList>
+</MudPaper>
+
+@code {
+    private IEnumerable<Core.Entities.Conversation> PinnedConversations =>
+        ChatState.Value.Conversations.Values
+            .Where(c => !c.IsArchived && c.IsPinned)
+            .OrderByDescending(c => c.UpdatedAt);
+
+    private IEnumerable<Core.Entities.Conversation> RegularConversations =>
+        ChatState.Value.Conversations.Values
+            .Where(c => !c.IsArchived && !c.IsPinned)
+            .OrderByDescending(c => c.UpdatedAt);
+
+    private string GetConversationItemClass(Guid conversationId)
+    {
+        var isActive = ChatState.Value.ActiveConversationId == conversationId;
+        return isActive ? "conversation-item-wrapper active" : "conversation-item-wrapper";
+    }
+
+    private void HandleSelectConversation(Guid conversationId)
+    {
+        Dispatcher.Dispatch(new SetActiveConversationAction(conversationId));
+    }
+
+    private void HandlePinToggle(Guid conversationId)
+    {
+        Dispatcher.Dispatch(new TogglePinConversationAction(conversationId));
+    }
+
+    private void HandleRename(Guid conversationId)
+    {
+        // The RenameConversationDialog is handled by ConversationContextMenu
+        // This callback is invoked after the dialog completes
+        // The actual rename action is dispatched from the dialog
+        StateHasChanged();
+    }
+
+    private void HandleShare(Guid conversationId)
+    {
+        Dispatcher.Dispatch(new ShareConversationAction(conversationId));
+    }
+
+    private async Task HandleDownload(Guid conversationId)
+    {
+        try
+        {
+            var conversation = ChatState.Value.Conversations.GetValueOrDefault(conversationId);
+            if (conversation == null)
+            {
+                Snackbar.Add("Conversation not found", Severity.Error);
+                return;
+            }
+
+            // Create export data structure
+            var exportData = new
+            {
+                id = conversation.Id,
+                title = conversation.Title,
+                created_at = conversation.CreatedAt,
+                updated_at = conversation.UpdatedAt,
+                personality = conversation.Personality,
+                workspace_id = conversation.WorkspaceId,
+                is_pinned = conversation.IsPinned,
+                messages = conversation.Messages.Select(m => new
+                {
+                    id = m.Id,
+                    role = m.Role.ToString(),
+                    content = m.Content,
+                    created_at = m.CreatedAt,
+                    model = m.Model
+                }).ToList()
+            };
+
+            // Serialize to JSON
+            var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+            });
+
+            // Convert to base64
+            var bytes = Encoding.UTF8.GetBytes(json);
+            var base64 = Convert.ToBase64String(bytes);
+
+            // Generate filename with timestamp
+            var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+            var safeTitle = string.Join("_", conversation.Title.Split(Path.GetInvalidFileNameChars()));
+            var filename = $"{safeTitle}_{timestamp}.json";
+
+            // Trigger download via JavaScript
+            await JS.InvokeVoidAsync("downloadFile", filename, "application/json", base64);
+
+            Snackbar.Add($"Downloaded: {filename}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Download failed: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void HandleArchive(Guid conversationId)
+    {
+        Dispatcher.Dispatch(new ArchiveConversationAction(conversationId));
+    }
+
+    private void HandleDelete(Guid conversationId)
+    {
+        Dispatcher.Dispatch(new DeleteConversationAction(conversationId));
+    }
+
+    private string GetRelativeTime(DateTime dateTime)
+    {
+        var timeSpan = DateTime.UtcNow - dateTime;
+
+        if (timeSpan.TotalMinutes < 1)
+            return "Just now";
+        if (timeSpan.TotalMinutes < 60)
+            return $"{(int)timeSpan.TotalMinutes}m ago";
+        if (timeSpan.TotalHours < 24)
+            return $"{(int)timeSpan.TotalHours}h ago";
+        if (timeSpan.TotalDays < 7)
+            return $"{(int)timeSpan.TotalDays}d ago";
+        if (timeSpan.TotalDays < 30)
+            return $"{(int)(timeSpan.TotalDays / 7)}w ago";
+
+        return dateTime.ToString("MMM dd, yyyy");
+    }
+}

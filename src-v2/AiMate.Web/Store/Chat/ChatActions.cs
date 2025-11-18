@@ -24,6 +24,13 @@ public record LoadConversationsSuccessAction(List<Conversation> Conversations);
 public record DeleteConversationAction(Guid ConversationId);
 public record SetActiveConversationAction(Guid ConversationId);
 
+// Context menu actions
+public record TogglePinConversationAction(Guid ConversationId);
+public record ArchiveConversationAction(Guid ConversationId);
+public record RenameConversationAction(Guid ConversationId, string NewTitle);
+public record ShareConversationAction(Guid ConversationId);
+public record DownloadConversationAction(Guid ConversationId);
+
 // Message actions
 public record RegenerateMessageAction(Guid MessageId);
 public record EditMessageAction(Guid MessageId, string NewContent);

@@ -1,6 +1,9 @@
 @* Context menu for conversation actions *@
+@using Fluxor
+@using AiMate.Web.Store.Chat
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IDispatcher Dispatcher
 
 <MudMenu Icon="@Icons.Material.Filled.MoreVert"
          Size="Size.Small"
@@ -102,8 +105,9 @@
         var dialog = await DialogService.ShowAsync<RenameConversationDialog>("Rename Conversation", parameters);
         var result = await dialog.Result;
 
-        if (!result.Canceled)
+        if (!result.Canceled && result.Data is string newName && !string.IsNullOrWhiteSpace(newName))
         {
+            Dispatcher.Dispatch(new RenameConversationAction(ConversationId, newName));
             await OnRenamed.InvokeAsync();
             Snackbar.Add("Conversation renamed", Severity.Success);
         }

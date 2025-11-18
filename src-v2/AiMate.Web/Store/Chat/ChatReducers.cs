@@ -162,4 +162,49 @@ public static class ChatReducers
             ActiveConversationId = newActiveId
         };
     }
+
+    [ReducerMethod]
+    public static ChatState OnTogglePinConversation(ChatState state, TogglePinConversationAction action)
+    {
+        var conversation = state.Conversations.GetValueOrDefault(action.ConversationId);
+        if (conversation == null) return state;
+
+        var updatedConversation = conversation with { IsPinned = !conversation.IsPinned };
+        var newConversations = new Dictionary<Guid, Core.Entities.Conversation>(state.Conversations)
+        {
+            [action.ConversationId] = updatedConversation
+        };
+
+        return state with { Conversations = newConversations };
+    }
+
+    [ReducerMethod]
+    public static ChatState OnArchiveConversation(ChatState state, ArchiveConversationAction action)
+    {
+        var conversation = state.Conversations.GetValueOrDefault(action.ConversationId);
+        if (conversation == null) return state;
+
+        var updatedConversation = conversation with { IsArchived = true };
+        var newConversations = new Dictionary<Guid, Core.Entities.Conversation>(state.Conversations)
+        {
+            [action.ConversationId] = updatedConversation
+        };
+
+        return state with { Conversations = newConversations };
+    }
+
+    [ReducerMethod]
+    public static ChatState OnRenameConversation(ChatState state, RenameConversationAction action)
+    {
+        var conversation = state.Conversations.GetValueOrDefault(action.ConversationId);
+        if (conversation == null) return state;
+
+        var updatedConversation = conversation with { Title = action.NewTitle, UpdatedAt = DateTime.UtcNow };
+        var newConversations = new Dictionary<Guid, Core.Entities.Conversation>(state.Conversations)
+        {
+            [action.ConversationId] = updatedConversation
+        };
+
+        return state with { Conversations = newConversations };
+    }
 }
