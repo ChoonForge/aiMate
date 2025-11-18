@@ -1,0 +1,399 @@
+@using AiMate.Shared.Models
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid>
+                <!-- Project Key and Name -->
+                <MudItem xs="12" sm="4">
+                    <MudTextField T="string"
+                                 @bind-Value="_project.Key"
+                                 Label="Project Key"
+                                 Placeholder="e.g., PROJ-001"
+                                 Required="true"
+                                 RequiredError="Project key is required"
+                                 HelperText="Unique identifier for the project"
+                                 Variant="Variant.Outlined" />
+                </MudItem>
+
+                <MudItem xs="12" sm="8">
+                    <MudTextField T="string"
+                                 @bind-Value="_project.Name"
+                                 Label="Project Name"
+                                 Required="true"
+                                 RequiredError="Project name is required"
+                                 Variant="Variant.Outlined" />
+                </MudItem>
+
+                <!-- Description -->
+                <MudItem xs="12">
+                    <MudTextField T="string"
+                                 @bind-Value="_project.Description"
+                                 Label="Description"
+                                 Lines="3"
+                                 Variant="Variant.Outlined" />
+                </MudItem>
+
+                <!-- Status and Priority -->
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string"
+                              @bind-Value="_project.Status"
+                              Label="Status"
+                              Required="true"
+                              Variant="Variant.Outlined">
+                        <MudSelectItem T="string" Value="@("Planning")">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.LightbulbOutline" Size="Size.Small" Color="Color.Info" />
+                                Planning
+                            </div>
+                        </MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Active")">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Small" Color="Color.Success" />
+                                Active
+                            </div>
+                        </MudSelectItem>
+                        <MudSelectItem T="string" Value="@("OnHold")">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Pause" Size="Size.Small" Color="Color.Warning" />
+                                On Hold
+                            </div>
+                        </MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Completed")">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Primary" />
+                                Completed
+                            </div>
+                        </MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Cancelled")">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" Color="Color.Error" />
+                                Cancelled
+                            </div>
+                        </MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string"
+                              @bind-Value="_project.Priority"
+                              Label="Priority"
+                              Required="true"
+                              Variant="Variant.Outlined">
+                        <MudSelectItem T="string" Value="@("Critical")">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Flag" Size="Size.Small" Color="Color.Error" />
+                                Critical
+                            </div>
+                        </MudSelectItem>
+                        <MudSelectItem T="string" Value="@("High")">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Flag" Size="Size.Small" Color="Color.Warning" />
+                                High
+                            </div>
+                        </MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Medium")">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Flag" Size="Size.Small" Color="Color.Info" />
+                                Medium
+                            </div>
+                        </MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Low")">
+                            <div class="d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Filled.Flag" Size="Size.Small" Color="Color.Success" />
+                                Low
+                            </div>
+                        </MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+
+                <!-- Progress -->
+                <MudItem xs="12">
+                    <MudText Typo="Typo.body2" Class="mb-2">
+                        Progress: @_project.ProgressPercent%
+                    </MudText>
+                    <MudSlider T="int"
+                              @bind-Value="_project.ProgressPercent"
+                              Min="0"
+                              Max="100"
+                              Step="5"
+                              Color="Color.Primary"
+                              Variant="Variant.Filled">
+                        @_project.ProgressPercent%
+                    </MudSlider>
+                </MudItem>
+
+                <!-- Dates -->
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker T="DateTime?"
+                                  @bind-Date="_project.StartDate"
+                                  Label="Start Date"
+                                  Variant="Variant.Outlined"
+                                  Editable="true" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker T="DateTime?"
+                                  @bind-Date="_project.DueDate"
+                                  Label="Due Date"
+                                  Variant="Variant.Outlined"
+                                  Editable="true"
+                                  MinDate="_project.StartDate" />
+                </MudItem>
+
+                <!-- Budget -->
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?"
+                                    @bind-Value="_project.Budget"
+                                    Label="Budget"
+                                    Format="C2"
+                                    Variant="Variant.Outlined"
+                                    Adornment="Adornment.Start"
+                                    AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string"
+                                 @bind-Value="_project.Owner"
+                                 Label="Owner"
+                                 Variant="Variant.Outlined"
+                                 Adornment="Adornment.Start"
+                                 AdornmentIcon="@Icons.Material.Filled.Person" />
+                </MudItem>
+
+                <!-- Team Members (Comma-separated) -->
+                <MudItem xs="12">
+                    <MudTextField T="string"
+                                 Value="@string.Join(", ", _project.TeamMembers)"
+                                 ValueChanged="@((string value) => UpdateTeamMembers(value))"
+                                 Label="Team Members"
+                                 HelperText="Enter team members separated by commas"
+                                 Variant="Variant.Outlined"
+                                 Adornment="Adornment.Start"
+                                 AdornmentIcon="@Icons.Material.Filled.Group" />
+                </MudItem>
+
+                <!-- Tags (Comma-separated) -->
+                <MudItem xs="12">
+                    <MudTextField T="string"
+                                 Value="@string.Join(", ", _project.Tags)"
+                                 ValueChanged="@((string value) => UpdateTags(value))"
+                                 Label="Tags"
+                                 HelperText="Enter tags separated by commas"
+                                 Variant="Variant.Outlined"
+                                 Adornment="Adornment.Start"
+                                 AdornmentIcon="@Icons.Material.Filled.LocalOffer" />
+                </MudItem>
+
+                <!-- Notes -->
+                <MudItem xs="12">
+                    <MudTextField T="string"
+                                 @bind-Value="_project.Notes"
+                                 Label="Notes"
+                                 Lines="4"
+                                 Variant="Variant.Outlined" />
+                </MudItem>
+
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
+                            @_errorMessage
+                        </MudAlert>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Cancel</MudButton>
+        <MudButton OnClick="Save"
+                  Color="Color.Primary"
+                  Variant="Variant.Filled"
+                  Disabled="_isSaving"
+                  StartIcon="@Icons.Material.Filled.Save">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                <span class="ml-2">Saving...</span>
+            }
+            else
+            {
+                <span>@(_isEditMode ? "Update" : "Create") Project</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public ProjectDto? Project { get; set; }
+
+    [Parameter]
+    public EventCallback<ProjectDto> OnSaved { get; set; }
+
+    private MudForm _form = null!;
+    private ProjectDto _project = new();
+    private bool _isEditMode;
+    private bool _isSaving;
+    private string? _errorMessage;
+
+    protected override void OnInitialized()
+    {
+        if (Project != null)
+        {
+            _project = new ProjectDto
+            {
+                Id = Project.Id,
+                Key = Project.Key,
+                Name = Project.Name,
+                Description = Project.Description,
+                Status = Project.Status,
+                Priority = Project.Priority,
+                ProgressPercent = Project.ProgressPercent,
+                StartDate = Project.StartDate,
+                DueDate = Project.DueDate,
+                Budget = Project.Budget,
+                Owner = Project.Owner,
+                TeamMembers = new List<string>(Project.TeamMembers),
+                Tags = new List<string>(Project.Tags),
+                Notes = Project.Notes,
+                OwnerId = Project.OwnerId,
+                CreatedAt = Project.CreatedAt,
+                UpdatedAt = Project.UpdatedAt
+            };
+            _isEditMode = true;
+        }
+        else
+        {
+            _project = new ProjectDto
+            {
+                Status = "Planning",
+                Priority = "Medium",
+                ProgressPercent = 0
+            };
+            _isEditMode = false;
+        }
+    }
+
+    private void UpdateTeamMembers(string value)
+    {
+        _project.TeamMembers = value
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+    }
+
+    private void UpdateTags(string value)
+    {
+        _project.Tags = value
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+    }
+
+    private async Task Save()
+    {
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        _isSaving = true;
+        _errorMessage = null;
+
+        try
+        {
+            var userId = "user-1"; // TODO: Get from auth
+            _project.OwnerId = userId;
+            _project.UpdatedAt = DateTime.UtcNow;
+
+            ProjectDto? result;
+
+            if (_isEditMode)
+            {
+                var response = await Http.PutAsJsonAsync($"/api/v1/Projects/{_project.Id}?userId={userId}", new UpdateProjectRequest
+                {
+                    Name = _project.Name,
+                    Description = _project.Description,
+                    Status = _project.Status,
+                    Priority = _project.Priority,
+                    ProgressPercent = _project.ProgressPercent,
+                    StartDate = _project.StartDate,
+                    DueDate = _project.DueDate,
+                    Budget = _project.Budget,
+                    Owner = _project.Owner,
+                    TeamMembers = _project.TeamMembers,
+                    Tags = _project.Tags,
+                    Notes = _project.Notes
+                });
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _errorMessage = "Failed to update project. Please try again.";
+                    _isSaving = false;
+                    return;
+                }
+
+                result = await response.Content.ReadFromJsonAsync<ProjectDto>();
+            }
+            else
+            {
+                _project.CreatedAt = DateTime.UtcNow;
+                var response = await Http.PostAsJsonAsync($"/api/v1/Projects?userId={userId}", new CreateProjectRequest
+                {
+                    Key = _project.Key,
+                    Name = _project.Name,
+                    Description = _project.Description,
+                    Status = _project.Status,
+                    Priority = _project.Priority,
+                    ProgressPercent = _project.ProgressPercent,
+                    StartDate = _project.StartDate,
+                    DueDate = _project.DueDate,
+                    Budget = _project.Budget,
+                    Owner = _project.Owner,
+                    TeamMembers = _project.TeamMembers,
+                    Tags = _project.Tags,
+                    Notes = _project.Notes
+                });
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _errorMessage = "Failed to create project. Please try again.";
+                    _isSaving = false;
+                    return;
+                }
+
+                result = await response.Content.ReadFromJsonAsync<ProjectDto>();
+            }
+
+            if (result != null)
+            {
+                Snackbar.Add(
+                    _isEditMode ? "Project updated successfully" : "Project created successfully",
+                    Severity.Success
+                );
+                await OnSaved.InvokeAsync(result);
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

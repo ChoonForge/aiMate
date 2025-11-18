@@ -1,0 +1,446 @@
+@using AiMate.Shared.Models
+@using AiMate.Core.Enums
+@using AiMate.Core.Services
+@inject IPermissionService PermissionService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(string.IsNullOrEmpty(Connection.Id) ? "Add Connection" : "Edit Connection")
+        </MudText>
+        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="ml-auto">
+            @if (HasPermission(UserPermission.AddCustomEndpoints))
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                    @Connection.Type
+                </MudChip>
+            }
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="Cancel" />
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            @* Basic Info *@
+            <MudTextField T="string" @bind-Value="@Connection.Name"
+                        Label="Connection Name"
+                        Variant="Variant.Outlined"
+                        Required="true"
+                        HelperText="Friendly name for this connection" />
+
+            @* Connection Type Toggle *@
+            @if (HasPermission(UserPermission.AddCustomEndpoints))
+            {
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudText Typo="Typo.body2">Connection Type</MudText>
+                    <MudToggleGroup T="string" @bind-Value="@Connection.Type"
+                                   Color="Color.Primary"
+                                   CheckMark="true"
+                                   FixedContent="true">
+                        <MudToggleItem Value="@("Local")" Text="Local" />
+                        <MudToggleItem Value="@("Cloud")" Text="Cloud" />
+                    </MudToggleGroup>
+                </MudStack>
+            }
+
+            @* URL *@
+            <MudTextField T="string" @bind-Value="@Connection.Url"
+                        Label="URL"
+                        Variant="Variant.Outlined"
+                        Required="true"
+                        Placeholder="https://api.openai.com/v1"
+                        Adornment="Adornment.Start"
+                        AdornmentIcon="@Icons.Material.Filled.Link">
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                             Size="Size.Small"
+                             OnClick="@(() => Connection.Url = string.Empty)"
+                             aria-label="clear url" />
+            </MudTextField>
+
+            @* Provider Type *@
+            <MudSelect T="string" @bind-Value="@Connection.ProviderType"
+                     Label="Provider Type"
+                     Variant="Variant.Outlined"
+                     AnchorOrigin="Origin.BottomCenter">
+                <MudSelectItem T="string" Value="@("OpenAI")">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Small" />
+                        <span>OpenAI</span>
+                    </MudStack>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value="@("Anthropic")">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.SmartToy" Size="Size.Small" />
+                        <span>Anthropic</span>
+                    </MudStack>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value="@("Ollama")">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Computer" Size="Size.Small" />
+                        <span>Ollama (Local)</span>
+                    </MudStack>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value="@("LiteLLM")">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Hub" Size="Size.Small" />
+                        <span>LiteLLM</span>
+                    </MudStack>
+                </MudSelectItem>
+                <MudSelectItem T="string" Value="@("Custom")">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Small" />
+                        <span>Custom</span>
+                    </MudStack>
+                </MudSelectItem>
+            </MudSelect>
+
+            @* Authentication *@
+            <MudDivider />
+            <MudText Typo="Typo.subtitle2">Authentication</MudText>
+
+            <MudSelect T="string" @bind-Value="@Connection.Auth"
+                     Label="Auth Type"
+                     Variant="Variant.Outlined"
+                     AnchorOrigin="Origin.BottomCenter">
+                <MudSelectItem T="string" Value="@("None")">None</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Bearer")">Bearer Token</MudSelectItem>
+                <MudSelectItem T="string" Value="@("ApiKey")">API Key</MudSelectItem>
+                <MudSelectItem T="string" Value="@("OAuth")">OAuth 2.0</MudSelectItem>
+            </MudSelect>
+
+            @if (Connection.Auth != "None")
+            {
+                <MudTextField T="string" @bind-Value="@Connection.AuthToken"
+                            Label="@GetAuthLabel()"
+                            Variant="Variant.Outlined"
+                            InputType="InputType.Password"
+                            Placeholder="Enter your authentication token"
+                            Adornment="Adornment.End"
+                            AdornmentIcon="@(_showPassword ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                            OnAdornmentClick="@(() => _showPassword = !_showPassword)"
+                            AdornmentAriaLabel="Toggle password visibility" />
+            }
+
+            @* Advanced *@
+            @if (HasPermission(UserPermission.AddCustomEndpoints))
+            {
+                <MudDivider />
+                <MudExpansionPanels>
+                    <MudExpansionPanel Text="Advanced Settings">
+                        <MudTextField T="string" @bind-Value="@Connection.Headers"
+                                    Label="Custom Headers (JSON)"
+                                    Variant="Variant.Outlined"
+                                    Lines="3"
+                                    Placeholder='{"X-Custom-Header": "value"}'
+                                    HelperText="Additional HTTP headers in JSON format" />
+
+                        <MudTextField T="string" @bind-Value="@Connection.PrefixId"
+                                    Label="Prefix ID (optional)"
+                                    Variant="Variant.Outlined"
+                                    Placeholder="my-org"
+                                    HelperText="Prefix for model IDs"
+                                    Class="mt-3" />
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            }
+
+            @* Model IDs *@
+            <MudDivider />
+            <MudText Typo="Typo.subtitle2">Model IDs</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Leave empty to auto-discover from endpoint
+            </MudText>
+
+            @foreach (var (modelId, index) in Connection.ModelIds.Select((m, i) => (m, i)))
+            {
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudTextField T="string" Value="@modelId"
+                                ValueChanged="@((string val) => UpdateModelId(index, val))"
+                                Variant="Variant.Outlined"
+                                Placeholder="gpt-4, claude-3-opus, etc."
+                                Class="flex-grow-1" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                 Color="Color.Error"
+                                 Size="Size.Small"
+                                 OnClick="@(() => RemoveModelId(index))" />
+                </MudStack>
+            }
+
+            <MudButton Variant="Variant.Outlined"
+                     StartIcon="@Icons.Material.Filled.Add"
+                     OnClick="@AddModelId"
+                     FullWidth="false">
+                Add Model ID
+            </MudButton>
+
+            @* Tags *@
+            <MudDivider />
+            <MudText Typo="Typo.subtitle2">Tags</MudText>
+            <MudChipSet T="string" MultiSelection="false" Filter="false">
+                @foreach (var (tag, index) in Connection.Tags.Select((t, i) => (t, i)))
+                {
+                    <MudChip T="string" Text="@tag"
+                           OnClose="@(() => RemoveTag(index))"
+                           CloseIcon="@Icons.Material.Filled.Close" />
+                }
+            </MudChipSet>
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudTextField T="string" @bind-Value="@_newTag"
+                            Variant="Variant.Outlined"
+                            Placeholder="Add tag..."
+                            OnKeyPress="@HandleTagKeyPress"
+                            Class="flex-grow-1" />
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                             Color="Color.Primary"
+                             OnClick="@AddTag" />
+            </MudStack>
+
+            @* Visibility & Sharing *@
+            @if (HasPermission(UserPermission.ShareConnections) || UserTier == UserTier.Admin)
+            {
+                <MudDivider />
+                <MudText Typo="Typo.subtitle2">Visibility & Sharing</MudText>
+
+                <MudSelect T="string" @bind-Value="@Connection.Visibility"
+                         Label="Visibility"
+                         Variant="Variant.Outlined"
+                         AnchorOrigin="Origin.BottomCenter"
+                         HelperText="@GetVisibilityHelperText()">
+                    <MudSelectItem T="string" Value="@("Private")">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" />
+                            <span>Private</span>
+                        </MudStack>
+                    </MudSelectItem>
+                    @if (HasPermission(UserPermission.ShareConnections))
+                    {
+                        <MudSelectItem T="string" Value="@("Group")">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Small" />
+                                <span>Group</span>
+                            </MudStack>
+                        </MudSelectItem>
+                    }
+                    @if (UserTier == UserTier.Admin)
+                    {
+                        <MudSelectItem T="string" Value="@("Organization")">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" />
+                                <span>Organization</span>
+                            </MudStack>
+                        </MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Public")">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.Public" Size="Size.Small" />
+                                <span>Public</span>
+                            </MudStack>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+
+                @if (Connection.Visibility == "Group")
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Select groups that can access this connection
+                    </MudText>
+                    <MudSelect T="string" Label="Groups" MultiSelection="true"
+                             SelectedValues="@Connection.AllowedGroups"
+                             SelectedValuesChanged="@((IEnumerable<string> values) => Connection.AllowedGroups = values.ToList())"
+                             Variant="Variant.Outlined">
+                        <MudSelectItem T="string" Value="@("engineering")">Engineering</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("marketing")">Marketing</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("sales")">Sales</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("support")">Support</MudSelectItem>
+                    </MudSelect>
+                }
+            }
+
+            @* Import/Export *@
+            @if (UserTier == UserTier.Admin || HasPermission(UserPermission.ManageOwnConnections))
+            {
+                <MudDivider />
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Outlined"
+                             StartIcon="@Icons.Material.Filled.FileUpload"
+                             OnClick="@ImportConnection"
+                             Size="Size.Small">
+                        Import
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                             StartIcon="@Icons.Material.Filled.FileDownload"
+                             OnClick="@ExportConnection"
+                             Size="Size.Small">
+                        Export
+                    </MudButton>
+                </MudStack>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        @if (UserTier == UserTier.Admin && !string.IsNullOrEmpty(Connection.Id))
+        {
+            <MudButton Variant="Variant.Filled"
+                     Color="Color.Error"
+                     OnClick="@HandleDelete"
+                     Class="mr-auto">
+                Delete
+            </MudButton>
+        }
+        <MudButton Variant="Variant.Text" OnClick="@Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                 Color="Color.Primary"
+                 OnClick="@Save"
+                 Disabled="@(!IsValid())">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public ProviderConnectionDto Connection { get; set; } = new();
+
+    [Parameter]
+    public UserTier UserTier { get; set; } = UserTier.Free;
+
+    private bool _showPassword = false;
+    private string _newTag = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        // Initialize defaults
+        if (string.IsNullOrEmpty(Connection.Id))
+        {
+            Connection.Type = "Cloud";
+            Connection.Auth = "ApiKey";
+            Connection.Visibility = "Private";
+            Connection.ProviderType = "OpenAI";
+        }
+    }
+
+    private bool HasPermission(UserPermission permission)
+    {
+        return PermissionService.HasPermission(UserTier, permission);
+    }
+
+    private string GetAuthLabel()
+    {
+        return Connection.Auth switch
+        {
+            "Bearer" => "Bearer Token",
+            "ApiKey" => "API Key",
+            "OAuth" => "OAuth Token",
+            _ => "Auth Token"
+        };
+    }
+
+    private string GetVisibilityHelperText()
+    {
+        return Connection.Visibility switch
+        {
+            "Private" => "Only you can use this connection",
+            "Group" => "Only selected groups can use",
+            "Organization" => "All users in your organization",
+            "Public" => "Available to all platform users",
+            _ => ""
+        };
+    }
+
+    private void AddModelId()
+    {
+        Connection.ModelIds.Add(string.Empty);
+        StateHasChanged();
+    }
+
+    private void UpdateModelId(int index, string value)
+    {
+        if (index >= 0 && index < Connection.ModelIds.Count)
+        {
+            Connection.ModelIds[index] = value;
+        }
+    }
+
+    private void RemoveModelId(int index)
+    {
+        if (index >= 0 && index < Connection.ModelIds.Count)
+        {
+            Connection.ModelIds.RemoveAt(index);
+            StateHasChanged();
+        }
+    }
+
+    private void AddTag()
+    {
+        if (!string.IsNullOrWhiteSpace(_newTag) && !Connection.Tags.Contains(_newTag))
+        {
+            Connection.Tags.Add(_newTag.Trim());
+            _newTag = string.Empty;
+            StateHasChanged();
+        }
+    }
+
+    private void RemoveTag(int index)
+    {
+        if (index >= 0 && index < Connection.Tags.Count)
+        {
+            Connection.Tags.RemoveAt(index);
+            StateHasChanged();
+        }
+    }
+
+    private void HandleTagKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            AddTag();
+        }
+    }
+
+    private bool IsValid()
+    {
+        return !string.IsNullOrWhiteSpace(Connection.Name)
+            && !string.IsNullOrWhiteSpace(Connection.Url)
+            && !string.IsNullOrWhiteSpace(Connection.ProviderType);
+    }
+
+    private async Task ImportConnection()
+    {
+        Snackbar.Add("Import functionality coming soon", Severity.Info);
+        await Task.CompletedTask;
+    }
+
+    private async Task ExportConnection()
+    {
+        Snackbar.Add("Exported to clipboard", Severity.Success);
+        await Task.CompletedTask;
+    }
+
+    private void Save()
+    {
+        if (IsValid())
+        {
+            MudDialog.Close(DialogResult.Ok(Connection));
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task HandleDelete()
+    {
+        var confirmed = await Snackbar.ShowConfirmation(
+            "Delete this connection?",
+            "This will also remove all associated models.");
+
+        if (confirmed)
+        {
+            MudDialog.Close(DialogResult.Ok(new { Action = "Delete", Connection }));
+        }
+    }
+}

@@ -1,180 +1,198 @@
-using AiMate.Core.Services;
-using AiMate.Infrastructure.Data;
+using AiMate.Shared.Models;
 using Fluxor;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
+using System.Net.Http.Json;
 
 namespace AiMate.Web.Store.Knowledge;
 
 public class KnowledgeEffects
 {
-    private readonly IKnowledgeGraphService _knowledgeGraphService;
-    private readonly AiMateDbContext _context;
-    private readonly ILogger<KnowledgeEffects> _logger;
+    private readonly HttpClient _httpClient;
 
-    public KnowledgeEffects(
-        IKnowledgeGraphService knowledgeGraphService,
-        AiMateDbContext context,
-        ILogger<KnowledgeEffects> logger)
+    public KnowledgeEffects(HttpClient httpClient)
     {
-        _knowledgeGraphService = knowledgeGraphService;
-        _context = context;
-        _logger = logger;
+        _httpClient = httpClient;
     }
 
+    // ========================================================================
+    // LOAD ARTICLES
+    // ========================================================================
+
     [EffectMethod]
-    public async Task HandleSearchKnowledge(SearchKnowledgeAction action, IDispatcher dispatcher)
+    public async Task HandleLoadArticles(LoadArticlesAction action, IDispatcher dispatcher)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(action.Query))
+            var userId = "user-1"; // TODO: Get from auth
+            var articles = await _httpClient.GetFromJsonAsync<List<KnowledgeArticleDto>>(
+                $"/api/v1/knowledge?userId={userId}");
+
+            if (articles != null)
             {
-                dispatcher.Dispatch(new SearchKnowledgeSuccessAction(new List<Core.Entities.KnowledgeItem>()));
-                return;
+                dispatcher.Dispatch(new LoadArticlesSuccessAction(articles));
             }
-
-            // DEMO MODE: Using hardcoded user ID (inject IState<AuthState> when auth is enabled)
-            var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-
-            var results = await _knowledgeGraphService.SearchAsync(action.Query, userId, limit: 20);
-
-            dispatcher.Dispatch(new SearchKnowledgeSuccessAction(results));
-
-            _logger.LogInformation("Found {Count} knowledge items for query: {Query}", results.Count, action.Query);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to search knowledge for query: {Query}", action.Query);
-            dispatcher.Dispatch(new SearchKnowledgeFailureAction(ex.Message));
-        }
-    }
-
-    [EffectMethod]
-    public async Task HandleLoadKnowledgeItems(LoadKnowledgeItemsAction action, IDispatcher dispatcher)
-    {
-        try
-        {
-            // DEMO MODE: Using hardcoded user ID (inject IState<AuthState> when auth is enabled)
-            var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-
-            var items = await _context.KnowledgeItems
-                .Where(k => k.UserId == userId)
-                .OrderByDescending(k => k.UpdatedAt)
-                .ToListAsync();
-
-            dispatcher.Dispatch(new LoadKnowledgeItemsSuccessAction(items));
-
-            _logger.LogInformation("Loaded {Count} knowledge items", items.Count);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to load knowledge items");
-            dispatcher.Dispatch(new LoadKnowledgeItemsFailureAction(ex.Message));
-        }
-    }
-
-    [EffectMethod]
-    public async Task HandleLoadRelatedItems(LoadRelatedItemsAction action, IDispatcher dispatcher)
-    {
-        try
-        {
-            var relatedItems = await _knowledgeGraphService.GetRelatedAsync(action.ItemId, limit: 10);
-
-            dispatcher.Dispatch(new LoadRelatedItemsSuccessAction(relatedItems));
-
-            _logger.LogInformation("Found {Count} related items for {ItemId}", relatedItems.Count, action.ItemId);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to load related items for {ItemId}", action.ItemId);
-            dispatcher.Dispatch(new SetKnowledgeErrorAction(ex.Message));
-        }
-    }
-
-    [EffectMethod]
-    public async Task HandleCreateKnowledgeItem(CreateKnowledgeItemAction action, IDispatcher dispatcher)
-    {
-        try
-        {
-            // DEMO MODE: Using hardcoded user ID (inject IState<AuthState> when auth is enabled)
-            var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-
-            var item = new Core.Entities.KnowledgeItem
+            else
             {
-                UserId = userId,
-                Title = action.Title,
-                Content = action.Content,
-                Tags = action.Tags ?? new List<string>(),
-                Type = action.Type ?? "Manual",
-                SourceUrl = action.SourceUrl
+                dispatcher.Dispatch(new LoadArticlesFailureAction("No articles found"));
+            }
+        }
+        catch (Exception ex)
+        {
+            dispatcher.Dispatch(new LoadArticlesFailureAction(ex.Message));
+        }
+    }
+
+    // ========================================================================
+    // LOAD ANALYTICS
+    // ========================================================================
+
+    [EffectMethod]
+    public async Task HandleLoadAnalytics(LoadAnalyticsAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var userId = "user-1"; // TODO: Get from auth
+            var analytics = await _httpClient.GetFromJsonAsync<KnowledgeAnalyticsDto>(
+                $"/api/v1/knowledge/analytics?userId={userId}");
+
+            if (analytics != null)
+            {
+                dispatcher.Dispatch(new LoadAnalyticsSuccessAction(analytics));
+            }
+            else
+            {
+                dispatcher.Dispatch(new LoadAnalyticsFailureAction("Failed to load analytics"));
+            }
+        }
+        catch (Exception ex)
+        {
+            dispatcher.Dispatch(new LoadAnalyticsFailureAction(ex.Message));
+        }
+    }
+
+    // ========================================================================
+    // CREATE ARTICLE
+    // ========================================================================
+
+    [EffectMethod]
+    public async Task HandleCreateArticle(CreateArticleAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var request = new CreateKnowledgeArticleRequest
+            {
+                Title = action.Article.Title,
+                Content = action.Article.Content,
+                ContentType = action.Article.ContentType,
+                Summary = action.Article.Summary,
+                Type = action.Article.Type,
+                Tags = action.Article.Tags.Count > 0 ? action.Article.Tags : null,
+                Collection = action.Article.Collection,
+                Category = action.Article.Category,
+                Source = action.Article.Source
             };
 
-            var created = await _knowledgeGraphService.UpsertKnowledgeItemAsync(item);
+            var response = await _httpClient.PostAsJsonAsync("/api/v1/knowledge", request);
 
-            dispatcher.Dispatch(new CreateKnowledgeItemSuccessAction(created));
-
-            _logger.LogInformation("Created knowledge item {ItemId}: {Title}", created.Id, created.Title);
+            if (response.IsSuccessStatusCode)
+            {
+                var created = await response.Content.ReadFromJsonAsync<KnowledgeArticleDto>();
+                if (created != null)
+                {
+                    dispatcher.Dispatch(new CreateArticleSuccessAction(created));
+                }
+                else
+                {
+                    dispatcher.Dispatch(new CreateArticleFailureAction("Failed to create article"));
+                }
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                dispatcher.Dispatch(new CreateArticleFailureAction(error));
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create knowledge item");
-            dispatcher.Dispatch(new SetKnowledgeErrorAction($"Failed to create item: {ex.Message}"));
+            dispatcher.Dispatch(new CreateArticleFailureAction(ex.Message));
         }
     }
 
+    // ========================================================================
+    // UPDATE ARTICLE
+    // ========================================================================
+
     [EffectMethod]
-    public async Task HandleUpdateKnowledgeItem(UpdateKnowledgeItemAction action, IDispatcher dispatcher)
+    public async Task HandleUpdateArticle(UpdateArticleAction action, IDispatcher dispatcher)
     {
         try
         {
-            var item = await _context.KnowledgeItems.FindAsync(action.ItemId);
-
-            if (item == null)
+            var request = new UpdateKnowledgeArticleRequest
             {
-                dispatcher.Dispatch(new SetKnowledgeErrorAction("Knowledge item not found"));
-                return;
+                Title = action.UpdatedArticle.Title,
+                Content = action.UpdatedArticle.Content,
+                ContentType = action.UpdatedArticle.ContentType,
+                Summary = action.UpdatedArticle.Summary,
+                Type = action.UpdatedArticle.Type,
+                Tags = action.UpdatedArticle.Tags.Count > 0 ? action.UpdatedArticle.Tags : null,
+                Collection = action.UpdatedArticle.Collection,
+                Category = action.UpdatedArticle.Category,
+                Source = action.UpdatedArticle.Source,
+                IsFeatured = action.UpdatedArticle.IsFeatured,
+                IsPublished = action.UpdatedArticle.IsPublished,
+                IsVerified = action.UpdatedArticle.IsVerified
+            };
+
+            var response = await _httpClient.PutAsJsonAsync(
+                $"/api/v1/knowledge/{action.ArticleId}", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var updated = await response.Content.ReadFromJsonAsync<KnowledgeArticleDto>();
+                if (updated != null)
+                {
+                    dispatcher.Dispatch(new UpdateArticleSuccessAction(updated));
+                }
+                else
+                {
+                    dispatcher.Dispatch(new UpdateArticleFailureAction("Failed to update article"));
+                }
             }
-
-            item.Title = action.Title;
-            item.Content = action.Content;
-            item.Tags = action.Tags ?? new List<string>();
-            item.Type = action.Type ?? item.Type;
-            item.SourceUrl = action.SourceUrl;
-
-            var updated = await _knowledgeGraphService.UpsertKnowledgeItemAsync(item);
-
-            dispatcher.Dispatch(new UpdateKnowledgeItemSuccessAction(updated));
-
-            _logger.LogInformation("Updated knowledge item {ItemId}: {Title}", updated.Id, updated.Title);
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                dispatcher.Dispatch(new UpdateArticleFailureAction(error));
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to update knowledge item {ItemId}", action.ItemId);
-            dispatcher.Dispatch(new SetKnowledgeErrorAction($"Failed to update item: {ex.Message}"));
+            dispatcher.Dispatch(new UpdateArticleFailureAction(ex.Message));
         }
     }
 
+    // ========================================================================
+    // DELETE ARTICLE
+    // ========================================================================
+
     [EffectMethod]
-    public async Task HandleDeleteKnowledgeItem(DeleteKnowledgeItemAction action, IDispatcher dispatcher)
+    public async Task HandleDeleteArticle(DeleteArticleAction action, IDispatcher dispatcher)
     {
         try
         {
-            var item = await _context.KnowledgeItems.FindAsync(action.ItemId);
+            var response = await _httpClient.DeleteAsync($"/api/v1/knowledge/{action.ArticleId}");
 
-            if (item != null)
+            if (response.IsSuccessStatusCode)
             {
-                _context.KnowledgeItems.Remove(item);
-                await _context.SaveChangesAsync();
+                dispatcher.Dispatch(new DeleteArticleSuccessAction(action.ArticleId));
             }
-
-            dispatcher.Dispatch(new DeleteKnowledgeItemSuccessAction(action.ItemId));
-
-            _logger.LogInformation("Deleted knowledge item {ItemId}", action.ItemId);
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                dispatcher.Dispatch(new DeleteArticleFailureAction(error));
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete knowledge item {ItemId}", action.ItemId);
-            dispatcher.Dispatch(new SetKnowledgeErrorAction($"Failed to delete item: {ex.Message}"));
+            dispatcher.Dispatch(new DeleteArticleFailureAction(ex.Message));
         }
     }
 }

@@ -83,12 +83,59 @@ public class AdminOverviewDto
 /// </summary>
 public class AIModelDto
 {
+    // General
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public string ModelId { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Connection { get; set; } = string.Empty;
     public string Provider { get; set; } = string.Empty;
+    public string? ApiKey { get; set; }
+    public string? CustomEndpoint { get; set; }
     public bool IsEnabled { get; set; } = true;
+
+    // Model Parameters
+    public int ContextWindow { get; set; } = 8192;
     public int MaxTokens { get; set; } = 4096;
-    public string? Description { get; set; }
+    public double Temperature { get; set; } = 0.7;
+    public double TopP { get; set; } = 1.0;
+    public double FrequencyPenalty { get; set; } = 0.0;
+    public double PresencePenalty { get; set; } = 0.0;
+
+    // Capabilities
+    public bool SupportsVision { get; set; } = false;
+    public bool SupportsWebSearch { get; set; } = false;
+    public bool SupportsFileUpload { get; set; } = false;
+    public bool SupportsImageGeneration { get; set; } = false;
+
+    // Ownership & Access
+    public string? OwnerId { get; set; }
+    public string? Visibility { get; set; } = "Private";
+    public List<string> AllowedGroups { get; set; } = new();
+}
+
+/// <summary>
+/// LLM Provider Connection (OpenAI, Anthropic, etc.)
+/// </summary>
+public class ProviderConnectionDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = "Cloud"; // Cloud or Local
+    public string Url { get; set; } = string.Empty;
+    public string Auth { get; set; } = "None"; // None, Bearer, ApiKey, OAuth
+    public string? AuthToken { get; set; }
+    public string? Headers { get; set; } // JSON format
+    public string? PrefixId { get; set; }
+    public string ProviderType { get; set; } = "OpenAI"; // OpenAI, Anthropic, Local, etc.
+    public List<string> ModelIds { get; set; } = new();
+    public List<string> Tags { get; set; } = new();
+    public bool IsEnabled { get; set; } = true;
+
+    // Ownership & Visibility
+    public string? OwnerId { get; set; }
+    public string Visibility { get; set; } = "Private";
+    public List<string> AllowedGroups { get; set; } = new();
 }
 
 /// <summary>
@@ -104,6 +151,11 @@ public class MCPServerDto
     public string? Command { get; set; }
     public string? Arguments { get; set; }
     public string? Url { get; set; }
+
+    // Ownership & Visibility
+    public string? OwnerId { get; set; }
+    public string Visibility { get; set; } = "Private";
+    public List<string> AllowedGroups { get; set; } = new();
 }
 
 /// <summary>
@@ -194,4 +246,225 @@ public class CreateConversationRequest
 {
     public required int WorkspaceId { get; set; }
     public string Title { get; set; } = "New Conversation";
+}
+
+// ============================================================================
+// NOTES DTOs
+// ============================================================================
+
+/// <summary>
+/// Note DTO - for personal notes and knowledge capture
+/// </summary>
+public class NoteDto
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Title { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "markdown"; // markdown, plain, html
+
+    // Organization
+    public List<string> Tags { get; set; } = new();
+    public string? Collection { get; set; }
+    public string? Category { get; set; }
+    public string? Color { get; set; } // For visual organization
+
+    // Metadata
+    public bool IsPinned { get; set; }
+    public bool IsFavorite { get; set; }
+    public bool IsArchived { get; set; }
+
+    // Ownership & Access
+    public string? OwnerId { get; set; }
+    public string Visibility { get; set; } = "Private"; // Private, Shared, Public
+    public List<string> SharedWith { get; set; } = new(); // User IDs or group IDs
+
+    // Relations
+    public string? LinkedConversationId { get; set; }
+    public string? LinkedWorkspaceId { get; set; }
+    public List<string> Attachments { get; set; } = new(); // File IDs
+
+    // Timestamps
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? LastViewedAt { get; set; }
+}
+
+/// <summary>
+/// Create note request
+/// </summary>
+public class CreateNoteRequest
+{
+    public required string Title { get; set; }
+    public string Content { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "markdown";
+    public List<string>? Tags { get; set; }
+    public string? Collection { get; set; }
+    public string? Category { get; set; }
+    public string? Color { get; set; }
+}
+
+/// <summary>
+/// Update note request
+/// </summary>
+public class UpdateNoteRequest
+{
+    public string? Title { get; set; }
+    public string? Content { get; set; }
+    public string? ContentType { get; set; }
+    public List<string>? Tags { get; set; }
+    public string? Collection { get; set; }
+    public string? Category { get; set; }
+    public string? Color { get; set; }
+    public bool? IsPinned { get; set; }
+    public bool? IsFavorite { get; set; }
+    public bool? IsArchived { get; set; }
+}
+
+// ============================================================================
+// KNOWLEDGE BASE DTOs
+// ============================================================================
+
+/// <summary>
+/// Knowledge article DTO - for reference materials and documentation
+/// </summary>
+public class KnowledgeArticleDto
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Title { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "markdown"; // markdown, plain, html
+    public string Summary { get; set; } = string.Empty;
+
+    // Organization
+    public string Type { get; set; } = "Article"; // Article, Guide, Reference, Tutorial, FAQ
+    public List<string> Tags { get; set; } = new();
+    public string? Collection { get; set; }
+    public string? Category { get; set; }
+    public string? Language { get; set; } = "en";
+
+    // Analytics
+    public int ViewCount { get; set; }
+    public int ReferenceCount { get; set; } // How many times referenced in chats/notes
+    public int UpvoteCount { get; set; }
+    public int DownvoteCount { get; set; }
+    public double AverageRating { get; set; }
+    public DateTime? LastViewedAt { get; set; }
+
+    // Metadata
+    public string? Author { get; set; }
+    public string? Source { get; set; } // URL or reference to original source
+    public bool IsFeatured { get; set; }
+    public bool IsPublished { get; set; } = true;
+    public bool IsVerified { get; set; } // Verified by admin/expert
+
+    // Ownership & Access
+    public string? OwnerId { get; set; }
+    public string Visibility { get; set; } = "Public"; // Private, Team, Public
+    public List<string> SharedWith { get; set; } = new();
+
+    // Relations
+    public List<string> RelatedArticles { get; set; } = new(); // Related article IDs
+    public List<string> Attachments { get; set; } = new();
+
+    // Timestamps
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? PublishedAt { get; set; }
+}
+
+/// <summary>
+/// Create knowledge article request
+/// </summary>
+public class CreateKnowledgeArticleRequest
+{
+    public required string Title { get; set; }
+    public string Content { get; set; } = string.Empty;
+    public string ContentType { get; set; } = "markdown";
+    public string Summary { get; set; } = string.Empty;
+    public string Type { get; set; } = "Article";
+    public List<string>? Tags { get; set; }
+    public string? Collection { get; set; }
+    public string? Category { get; set; }
+    public string? Source { get; set; }
+}
+
+/// <summary>
+/// Update knowledge article request
+/// </summary>
+public class UpdateKnowledgeArticleRequest
+{
+    public string? Title { get; set; }
+    public string? Content { get; set; }
+    public string? ContentType { get; set; }
+    public string? Summary { get; set; }
+    public string? Type { get; set; }
+    public List<string>? Tags { get; set; }
+    public string? Collection { get; set; }
+    public string? Category { get; set; }
+    public string? Source { get; set; }
+    public bool? IsFeatured { get; set; }
+    public bool? IsPublished { get; set; }
+    public bool? IsVerified { get; set; }
+}
+
+/// <summary>
+/// Knowledge base analytics DTO
+/// </summary>
+public class KnowledgeAnalyticsDto
+{
+    public int TotalArticles { get; set; }
+    public int TotalViews { get; set; }
+    public int TotalReferences { get; set; }
+    public List<KnowledgeArticleDto> MostViewed { get; set; } = new();
+    public List<KnowledgeArticleDto> MostReferenced { get; set; } = new();
+    public List<KnowledgeArticleDto> RecentlyAdded { get; set; } = new();
+    public Dictionary<string, int> TagCounts { get; set; } = new();
+    public Dictionary<string, int> TypeCounts { get; set; } = new();
+    public Dictionary<string, int> CategoryCounts { get; set; } = new();
+}
+
+// ============================================================================
+// PROJECTS DTOs
+// ============================================================================
+
+public class ProjectDto
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Key { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string? OwnerId { get; set; }
+    public string? OwnerName { get; set; }
+    public string? OwnerEmail { get; set; }
+    public string Status { get; set; } = "Planning";
+    public string Priority { get; set; } = "Medium";
+    public decimal? Budget { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? DueDate { get; set; }
+    public int ProgressPercent { get; set; } = 0;
+    public List<string> Tags { get; set; } = new();
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class CreateProjectRequest
+{
+    public required string Key { get; set; }
+    public required string Name { get; set; }
+    public string Description { get; set; } = string.Empty;
+    public string? OwnerName { get; set; }
+    public string? OwnerEmail { get; set; }
+    public string Status { get; set; } = "Planning";
+    public string Priority { get; set; } = "Medium";
+    public decimal? Budget { get; set; }
+}
+
+public class UpdateProjectRequest
+{
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public string? Status { get; set; }
+    public string? Priority { get; set; }
+    public decimal? Budget { get; set; }
+    public int? ProgressPercent { get; set; }
 }

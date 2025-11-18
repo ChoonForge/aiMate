@@ -115,6 +115,12 @@ builder.Services.AddScoped<AiMate.Core.Services.IDatasetGeneratorService, AiMate
 builder.Services.AddScoped<AiMate.Core.Services.IMCPToolService, AiMate.Infrastructure.Services.MCPToolService>();
 builder.Services.AddScoped<AiMate.Core.Services.IApiKeyService, AiMate.Infrastructure.Services.ApiKeyService>();
 
+// Register Plugin System (Singleton for plugin lifecycle management)
+builder.Services.AddSingleton<AiMate.Core.Services.IPluginManager, AiMate.Infrastructure.Services.PluginManager>();
+
+// Register Permission Service (Singleton for access control)
+builder.Services.AddSingleton<AiMate.Core.Services.IPermissionService, AiMate.Infrastructure.Services.PermissionService>();
+
 // Register HttpClient for services that need it
 builder.Services.AddHttpClient<AiMate.Infrastructure.Services.LiteLLMService>();
 builder.Services.AddHttpClient<AiMate.Infrastructure.Services.OpenAIEmbeddingService>();
@@ -123,6 +129,14 @@ builder.Services.AddHttpClient<AiMate.Infrastructure.Services.MCPToolService>();
 Log.Information("All services registered successfully (Phase 6 complete)");
 
 var app = builder.Build();
+
+// Initialize plugins on startup
+using (var scope = app.Services.CreateScope())
+{
+    var pluginManager = scope.ServiceProvider.GetRequiredService<AiMate.Core.Services.IPluginManager>();
+    await pluginManager.LoadPluginsAsync();
+    Log.Information("Plugins initialized successfully");
+}
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())

@@ -1,0 +1,422 @@
+@using Fluxor
+@using AiMate.Web.Store.Notes
+@using AiMate.Shared.Models
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<NotesState> NotesState
+@inject IDispatcher Dispatcher
+@inject IDialogService DialogService
+
+<MudStack Spacing="3">
+    @* Header with Actions *@
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.h5">
+            <MudIcon Icon="@Icons.Material.Filled.Note" Class="mr-2" />
+            Notes
+        </MudText>
+        <MudButton Variant="Variant.Filled"
+                  Color="Color.Primary"
+                  StartIcon="@Icons.Material.Filled.Add"
+                  OnClick="@HandleCreateNote">
+            New Note
+        </MudButton>
+    </MudStack>
+
+    @* Search and Filters *@
+    <MudPaper Class="pa-3" Elevation="0">
+        <MudStack Spacing="2">
+            @* Search Bar *@
+            <MudTextField T="string" @bind-Value="@_searchQuery"
+                         Label="Search notes..."
+                         Variant="Variant.Outlined"
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="@Icons.Material.Filled.Search"
+                         Immediate="true"
+                         ValueChanged="@((string val) => Dispatcher.Dispatch(new SetSearchQueryAction(val)))" />
+
+            @* Filter Row *@
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                @* Collection Filter *@
+                <MudSelect T="string" Value="@NotesState.Value.SelectedCollection"
+                          Label="Collection"
+                          Variant="Variant.Outlined"
+                          Clearable="true"
+                          ValueChanged="@((string val) => Dispatcher.Dispatch(new SetCollectionFilterAction(val)))"
+                          Style="min-width: 150px;">
+                    @foreach (var collection in NotesState.Value.Collections)
+                    {
+                        <MudSelectItem T="string" Value="@collection">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" />
+                                <span>@collection</span>
+                            </MudStack>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+
+                @* Quick Filters *@
+                <MudChip T="string"
+                        Color="@(NotesState.Value.ShowPinnedOnly ? Color.Primary : Color.Default)"
+                        Variant="@(NotesState.Value.ShowPinnedOnly ? Variant.Filled : Variant.Outlined)"
+                        OnClick="@(() => Dispatcher.Dispatch(new ToggleShowPinnedAction()))">
+                    <MudIcon Icon="@Icons.Material.Filled.PushPin" Size="Size.Small" Class="mr-1" />
+                    Pinned
+                </MudChip>
+
+                <MudChip T="string"
+                        Color="@(NotesState.Value.ShowFavoritesOnly ? Color.Warning : Color.Default)"
+                        Variant="@(NotesState.Value.ShowFavoritesOnly ? Variant.Filled : Variant.Outlined)"
+                        OnClick="@(() => Dispatcher.Dispatch(new ToggleShowFavoritesAction()))">
+                    <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Class="mr-1" />
+                    Favorites
+                </MudChip>
+
+                <MudChip T="string"
+                        Color="@(NotesState.Value.ShowArchivedOnly ? Color.Secondary : Color.Default)"
+                        Variant="@(NotesState.Value.ShowArchivedOnly ? Variant.Filled : Variant.Outlined)"
+                        OnClick="@(() => Dispatcher.Dispatch(new ToggleShowArchivedAction()))">
+                    <MudIcon Icon="@Icons.Material.Filled.Archive" Size="Size.Small" Class="mr-1" />
+                    Archived
+                </MudChip>
+
+                @if (HasActiveFilters())
+                {
+                    <MudButton Variant="Variant.Text"
+                              StartIcon="@Icons.Material.Filled.Clear"
+                              Size="Size.Small"
+                              OnClick="@(() => Dispatcher.Dispatch(new ClearFiltersAction()))">
+                        Clear Filters
+                    </MudButton>
+                }
+            </MudStack>
+
+            @* Tag Filters *@
+            @if (NotesState.Value.AllTags.Any())
+            {
+                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                    <MudText Typo="Typo.caption" Class="align-self-center">Tags:</MudText>
+                    @foreach (var tag in NotesState.Value.AllTags.Take(10))
+                    {
+                        var isSelected = NotesState.Value.SelectedTags.Contains(tag);
+                        <MudChip T="string"
+                                Size="Size.Small"
+                                Color="@(isSelected ? Color.Primary : Color.Default)"
+                                Variant="@(isSelected ? Variant.Filled : Variant.Outlined)"
+                                OnClick="@(() => ToggleTag(tag))">
+                            @tag
+                        </MudChip>
+                    }
+                </MudStack>
+            }
+        </MudStack>
+    </MudPaper>
+
+    @* Notes Grid *@
+    @if (NotesState.Value.IsLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (GetFilteredNotes().Count == 0)
+    {
+        <MudPaper Class="pa-8" Elevation="0" Style="text-align: center;">
+            <MudIcon Icon="@Icons.Material.Filled.NoteAdd" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">
+                @(NotesState.Value.Notes.Any() ? "No notes match your filters" : "No notes yet")
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                @(NotesState.Value.Notes.Any() ? "Try adjusting your search or filters" : "Create your first note to get started")
+            </MudText>
+            @if (!NotesState.Value.Notes.Any())
+            {
+                <MudButton Variant="Variant.Filled"
+                         Color="Color.Primary"
+                         StartIcon="@Icons.Material.Filled.Add"
+                         OnClick="@HandleCreateNote"
+                         Class="mt-4">
+                    Create Note
+                </MudButton>
+            }
+        </MudPaper>
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (var note in GetFilteredNotes())
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudCard Class="@GetNoteCardClass(note)" Style="height: 100%;">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudText Typo="Typo.body1"><strong>@note.Title</strong></MudText>
+                                    <MudStack Row="true" Spacing="0">
+                                        @if (note.IsPinned)
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.PushPin" Size="Size.Small" Color="Color.Primary" />
+                                        }
+                                        @if (note.IsFavorite)
+                                        {
+                                            <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small" Color="Color.Warning" />
+                                        }
+                                    </MudStack>
+                                </MudStack>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudText Typo="Typo.body2" Class="note-preview">
+                                @GetContentPreview(note.Content)
+                            </MudText>
+
+                            @if (note.Tags.Any())
+                            {
+                                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mt-2">
+                                    @foreach (var tag in note.Tags.Take(3))
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@tag</MudChip>
+                                    }
+                                    @if (note.Tags.Count > 3)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">+@(note.Tags.Count - 3)</MudChip>
+                                    }
+                                </MudStack>
+                            }
+
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                                Updated @note.UpdatedAt.ToString("MMM dd, yyyy")
+                            </MudText>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                         Size="Size.Small"
+                                         OnClick="@(() => HandleEditNote(note))"
+                                         Title="Edit" />
+                            <MudIconButton Icon="@(note.IsPinned ? Icons.Material.Filled.PushPin : Icons.Material.Outlined.PushPin)"
+                                         Size="Size.Small"
+                                         Color="@(note.IsPinned ? Color.Primary : Color.Default)"
+                                         OnClick="@(() => Dispatcher.Dispatch(new ToggleNotePinAction(note.Id)))"
+                                         Title="Pin/Unpin" />
+                            <MudIconButton Icon="@(note.IsFavorite ? Icons.Material.Filled.Star : Icons.Material.Outlined.Star)"
+                                         Size="Size.Small"
+                                         Color="@(note.IsFavorite ? Color.Warning : Color.Default)"
+                                         OnClick="@(() => Dispatcher.Dispatch(new ToggleNoteFavoriteAction(note.Id)))"
+                                         Title="Favorite" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Archive"
+                                         Size="Size.Small"
+                                         OnClick="@(() => Dispatcher.Dispatch(new ArchiveNoteAction(note.Id, !note.IsArchived)))"
+                                         Title="@(note.IsArchived ? "Unarchive" : "Archive")" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                         Size="Size.Small"
+                                         Color="Color.Error"
+                                         OnClick="@(() => HandleDeleteNote(note))"
+                                         Title="Delete" />
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudStack>
+
+<style>
+    .note-preview {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-height: 60px;
+    }
+</style>
+
+@code {
+    private string _searchQuery = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Dispatcher.Dispatch(new LoadNotesAction());
+    }
+
+    private bool HasActiveFilters()
+    {
+        return !string.IsNullOrEmpty(NotesState.Value.SearchQuery) ||
+               NotesState.Value.SelectedCollection != null ||
+               NotesState.Value.SelectedTags.Any() ||
+               NotesState.Value.ShowArchivedOnly ||
+               NotesState.Value.ShowPinnedOnly ||
+               NotesState.Value.ShowFavoritesOnly;
+    }
+
+    private void ToggleTag(string tag)
+    {
+        var selectedTags = NotesState.Value.SelectedTags.ToList();
+        if (selectedTags.Contains(tag))
+        {
+            selectedTags.Remove(tag);
+        }
+        else
+        {
+            selectedTags.Add(tag);
+        }
+        Dispatcher.Dispatch(new SetTagsFilterAction(selectedTags));
+    }
+
+    private List<NoteDto> GetFilteredNotes()
+    {
+        var notes = NotesState.Value.Notes.AsEnumerable();
+
+        // Apply filters
+        if (!string.IsNullOrWhiteSpace(NotesState.Value.SearchQuery))
+        {
+            var query = NotesState.Value.SearchQuery.ToLower();
+            notes = notes.Where(n =>
+                n.Title.ToLower().Contains(query) ||
+                n.Content.ToLower().Contains(query) ||
+                n.Tags.Any(t => t.ToLower().Contains(query))
+            );
+        }
+
+        if (NotesState.Value.SelectedCollection != null)
+        {
+            notes = notes.Where(n => n.Collection == NotesState.Value.SelectedCollection);
+        }
+
+        if (NotesState.Value.SelectedTags.Any())
+        {
+            notes = notes.Where(n => NotesState.Value.SelectedTags.All(tag => n.Tags.Contains(tag)));
+        }
+
+        if (NotesState.Value.ShowArchivedOnly)
+        {
+            notes = notes.Where(n => n.IsArchived);
+        }
+        else
+        {
+            notes = notes.Where(n => !n.IsArchived);
+        }
+
+        if (NotesState.Value.ShowPinnedOnly)
+        {
+            notes = notes.Where(n => n.IsPinned);
+        }
+
+        if (NotesState.Value.ShowFavoritesOnly)
+        {
+            notes = notes.Where(n => n.IsFavorite);
+        }
+
+        // Apply sorting
+        notes = NotesState.Value.SortBy switch
+        {
+            "Title" => NotesState.Value.SortDescending ? notes.OrderByDescending(n => n.Title) : notes.OrderBy(n => n.Title),
+            "CreatedAt" => NotesState.Value.SortDescending ? notes.OrderByDescending(n => n.CreatedAt) : notes.OrderBy(n => n.CreatedAt),
+            _ => NotesState.Value.SortDescending ? notes.OrderByDescending(n => n.UpdatedAt) : notes.OrderBy(n => n.UpdatedAt)
+        };
+
+        // Pinned notes always on top (unless filtering for pinned only)
+        if (!NotesState.Value.ShowPinnedOnly)
+        {
+            notes = notes.OrderByDescending(n => n.IsPinned).ThenByDescending(n => n.UpdatedAt);
+        }
+
+        return notes.ToList();
+    }
+
+    private string GetContentPreview(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return "No content";
+
+        // Strip markdown/html for preview
+        var preview = content.Replace("#", "").Replace("*", "").Replace("_", "");
+        return preview.Length > 150 ? preview.Substring(0, 150) + "..." : preview;
+    }
+
+    private string GetNoteCardClass(NoteDto note)
+    {
+        var baseClass = "note-card";
+        if (!string.IsNullOrEmpty(note.Color))
+        {
+            baseClass += $" mud-elevation-2 mud-theme-{note.Color}";
+        }
+        return baseClass;
+    }
+
+    private async Task HandleCreateNote()
+    {
+        var newNote = new NoteDto
+        {
+            Id = Guid.NewGuid().ToString(),
+            Title = "",
+            Content = "",
+            ContentType = "markdown",
+            Tags = new List<string>(),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var parameters = new DialogParameters
+        {
+            ["Note"] = newNote,
+            ["IsNew"] = true,
+            ["ExistingCollections"] = NotesState.Value.Collections,
+            ["ExistingTags"] = NotesState.Value.AllTags
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true,
+            DisableBackdropClick = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditNoteDialog>("Create Note", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is NoteDto noteDto)
+        {
+            Dispatcher.Dispatch(new CreateNoteAction(noteDto));
+        }
+    }
+
+    private async Task HandleEditNote(NoteDto note)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Note"] = note with { }, // Create a copy
+            ["IsNew"] = false,
+            ["ExistingCollections"] = NotesState.Value.Collections,
+            ["ExistingTags"] = NotesState.Value.AllTags
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = true,
+            DisableBackdropClick = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditNoteDialog>("Edit Note", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is NoteDto updatedNote)
+        {
+            Dispatcher.Dispatch(new UpdateNoteAction(note.Id, updatedNote));
+        }
+    }
+
+    private async Task HandleDeleteNote(NoteDto note)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "Delete Note",
+            $"Are you sure you want to delete '{note.Title}'? This action cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed == true)
+        {
+            Dispatcher.Dispatch(new DeleteNoteAction(note.Id));
+        }
+    }
+}

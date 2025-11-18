@@ -1,0 +1,443 @@
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<MudDialog Style="min-width: 700px; max-width: 900px;">
+    <DialogContent>
+        <MudStack Spacing="2">
+            @* Search Bar *@
+            <MudTextField T="string" @bind-Value="@_searchQuery"
+                         Label="Search everything..."
+                         Variant="Variant.Outlined"
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="@Icons.Material.Filled.Search"
+                         Immediate="true"
+                         AutoFocus="true"
+                         OnKeyDown="@HandleKeyDown"
+                         ValueChanged="@OnSearchQueryChanged"
+                         HelperText="@GetSearchHelperText()" />
+
+            @* Filter Chips *@
+            <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                <MudChip T="string"
+                        Color="@(_includeChats ? Color.Primary : Color.Default)"
+                        Variant="@(_includeChats ? Variant.Filled : Variant.Outlined)"
+                        OnClick="@(() => _includeChats = !_includeChats)">
+                    <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Small" Class="mr-1" />
+                    Chats
+                    @if (GetFilteredResults("chats").Any())
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-1" Style="height: 20px;">
+                            @GetFilteredResults("chats").Count
+                        </MudChip>
+                    }
+                </MudChip>
+
+                <MudChip T="string"
+                        Color="@(_includeFiles ? Color.Success : Color.Default)"
+                        Variant="@(_includeFiles ? Variant.Filled : Variant.Outlined)"
+                        OnClick="@(() => _includeFiles = !_includeFiles)">
+                    <MudIcon Icon="@Icons.Material.Filled.InsertDriveFile" Size="Size.Small" Class="mr-1" />
+                    Files
+                    @if (GetFilteredResults("files").Any())
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="ml-1" Style="height: 20px;">
+                            @GetFilteredResults("files").Count
+                        </MudChip>
+                    }
+                </MudChip>
+
+                <MudChip T="string"
+                        Color="@(_includeArtifacts ? Color.Warning : Color.Default)"
+                        Variant="@(_includeArtifacts ? Variant.Filled : Variant.Outlined)"
+                        OnClick="@(() => _includeArtifacts = !_includeArtifacts)">
+                    <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Small" Class="mr-1" />
+                    Artifacts
+                    @if (GetFilteredResults("artifacts").Any())
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-1" Style="height: 20px;">
+                            @GetFilteredResults("artifacts").Count
+                        </MudChip>
+                    }
+                </MudChip>
+
+                <MudChip T="string"
+                        Color="@(_includeNotes ? Color.Info : Color.Default)"
+                        Variant="@(_includeNotes ? Variant.Filled : Variant.Outlined)"
+                        OnClick="@(() => _includeNotes = !_includeNotes)">
+                    <MudIcon Icon="@Icons.Material.Filled.Note" Size="Size.Small" Class="mr-1" />
+                    Notes
+                    @if (GetFilteredResults("notes").Any())
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="ml-1" Style="height: 20px;">
+                            @GetFilteredResults("notes").Count
+                        </MudChip>
+                    }
+                </MudChip>
+
+                <MudChip T="string"
+                        Color="@(_includeKnowledge ? Color.Tertiary : Color.Default)"
+                        Variant="@(_includeKnowledge ? Variant.Filled : Variant.Outlined)"
+                        OnClick="@(() => _includeKnowledge = !_includeKnowledge)">
+                    <MudIcon Icon="@Icons.Material.Filled.LibraryBooks" Size="Size.Small" Class="mr-1" />
+                    Knowledge
+                    @if (GetFilteredResults("knowledge").Any())
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Tertiary" Class="ml-1" Style="height: 20px;">
+                            @GetFilteredResults("knowledge").Count
+                        </MudChip>
+                    }
+                </MudChip>
+
+                @if (HasActiveFilters())
+                {
+                    <MudButton Variant="Variant.Text"
+                              StartIcon="@Icons.Material.Filled.Clear"
+                              Size="Size.Small"
+                              OnClick="@ClearFilters">
+                        Clear
+                    </MudButton>
+                }
+            </MudStack>
+
+            <MudDivider />
+
+            @* Results *@
+            @if (string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                @* Empty State *@
+                <MudPaper Class="pa-8" Elevation="0" Style="text-align: center; min-height: 300px; display: flex; flex-direction: column; justify-content: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.Search" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">
+                        Search across all your content
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Chats • Files • Artifacts • Notes • Knowledge Base
+                    </MudText>
+                    <MudStack Row="true" Justify="Justify.Center" Spacing="2" Class="mt-4">
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">⌘K to open</MudChip>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">↑↓ to navigate</MudChip>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">Enter to select</MudChip>
+                    </MudStack>
+                </MudPaper>
+            }
+            else if (_isSearching)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">
+                    Searching...
+                </MudText>
+            }
+            else if (!GetAllFilteredResults().Any())
+            {
+                @* No Results *@
+                <MudPaper Class="pa-8" Elevation="0" Style="text-align: center; min-height: 300px; display: flex; flex-direction: column; justify-content: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary" />
+                    <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">
+                        No results found
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Try adjusting your search or filters
+                    </MudText>
+                </MudPaper>
+            }
+            else
+            {
+                @* Results List *@
+                <MudPaper Style="max-height: 500px; overflow-y: auto;" Elevation="0">
+                    <MudList T="SearchResult" Clickable="true" Dense="true">
+                        @foreach (var result in GetAllFilteredResults().Take(50))
+                        {
+                            <MudListItem T="SearchResult"
+                                        Value="@result"
+                                        OnClick="@(() => NavigateToResult(result))"
+                                        Class="@(GetSelectedClass(result))">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudIcon Icon="@GetResultIcon(result.Type)"
+                                            Color="@GetResultColor(result.Type)"
+                                            Size="Size.Medium" />
+                                    <MudStack Spacing="0" Style="flex: 1;">
+                                        <MudText Typo="Typo.body1">
+                                            <Highlight Text="@result.Title" SearchTerm="@_searchQuery" />
+                                        </MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            <Highlight Text="@result.Preview" SearchTerm="@_searchQuery" />
+                                        </MudText>
+                                        <MudStack Row="true" Spacing="1" Class="mt-1">
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@GetResultColor(result.Type)">
+                                                @result.Type
+                                            </MudChip>
+                                            @if (!string.IsNullOrEmpty(result.Location))
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                                    @result.Location
+                                                </MudChip>
+                                            }
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                                @result.UpdatedAt.ToString("MMM dd, yyyy")
+                                            </MudChip>
+                                        </MudStack>
+                                    </MudStack>
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowForward"
+                                                  Size="Size.Small"
+                                                  Color="Color.Primary" />
+                                </MudStack>
+                            </MudListItem>
+                            <MudDivider />
+                        }
+                    </MudList>
+                </MudPaper>
+
+                @* Results Summary *@
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+                    Showing @Math.Min(50, GetAllFilteredResults().Count) of @GetAllFilteredResults().Count results
+                </MudText>
+            }
+        </MudStack>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+
+    private string _searchQuery = string.Empty;
+    private bool _isSearching = false;
+    private int _selectedIndex = 0;
+
+    // Filter toggles
+    private bool _includeChats = true;
+    private bool _includeFiles = true;
+    private bool _includeArtifacts = true;
+    private bool _includeNotes = true;
+    private bool _includeKnowledge = true;
+
+    // Mock data - TODO: Replace with actual search service
+    private List<SearchResult> _allResults = new();
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        // Initialize with mock data
+        GenerateMockResults();
+    }
+
+    private async Task OnSearchQueryChanged(string query)
+    {
+        _searchQuery = query;
+        _isSearching = true;
+        StateHasChanged();
+
+        // Simulate search delay
+        await Task.Delay(300);
+
+        // TODO: Call actual search service
+        // _allResults = await SearchService.SearchAsync(query);
+
+        _isSearching = false;
+        _selectedIndex = 0;
+        StateHasChanged();
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        var results = GetAllFilteredResults();
+
+        switch (e.Key)
+        {
+            case "ArrowDown":
+                _selectedIndex = Math.Min(_selectedIndex + 1, results.Count - 1);
+                StateHasChanged();
+                break;
+
+            case "ArrowUp":
+                _selectedIndex = Math.Max(_selectedIndex - 1, 0);
+                StateHasChanged();
+                break;
+
+            case "Enter":
+                if (results.Any() && _selectedIndex < results.Count)
+                {
+                    NavigateToResult(results[_selectedIndex]);
+                }
+                break;
+
+            case "Escape":
+                MudDialog.Close();
+                break;
+        }
+    }
+
+    private List<SearchResult> GetFilteredResults(string type)
+    {
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+            return new List<SearchResult>();
+
+        return _allResults
+            .Where(r => r.Type.ToLower() == type.ToLower())
+            .Where(r => MatchesSearch(r))
+            .ToList();
+    }
+
+    private List<SearchResult> GetAllFilteredResults()
+    {
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+            return new List<SearchResult>();
+
+        return _allResults
+            .Where(r => (r.Type == "Chats" && _includeChats) ||
+                       (r.Type == "Files" && _includeFiles) ||
+                       (r.Type == "Artifacts" && _includeArtifacts) ||
+                       (r.Type == "Notes" && _includeNotes) ||
+                       (r.Type == "Knowledge" && _includeKnowledge))
+            .Where(r => MatchesSearch(r))
+            .OrderByDescending(r => GetRelevanceScore(r))
+            .ToList();
+    }
+
+    private bool MatchesSearch(SearchResult result)
+    {
+        var query = _searchQuery.ToLower();
+        return result.Title.ToLower().Contains(query) ||
+               result.Preview.ToLower().Contains(query) ||
+               (result.Location?.ToLower().Contains(query) ?? false);
+    }
+
+    private double GetRelevanceScore(SearchResult result)
+    {
+        // Simple relevance scoring - can be enhanced
+        var query = _searchQuery.ToLower();
+        double score = 0;
+
+        if (result.Title.ToLower().Contains(query)) score += 10;
+        if (result.Title.ToLower().StartsWith(query)) score += 5;
+        if (result.Preview.ToLower().Contains(query)) score += 3;
+
+        return score;
+    }
+
+    private bool HasActiveFilters()
+    {
+        return !(_includeChats && _includeFiles && _includeArtifacts && _includeNotes && _includeKnowledge);
+    }
+
+    private void ClearFilters()
+    {
+        _includeChats = true;
+        _includeFiles = true;
+        _includeArtifacts = true;
+        _includeNotes = true;
+        _includeKnowledge = true;
+    }
+
+    private string GetSelectedClass(SearchResult result)
+    {
+        var results = GetAllFilteredResults();
+        var index = results.IndexOf(result);
+        return index == _selectedIndex ? "mud-selected-item mud-primary-hover" : "";
+    }
+
+    private string GetResultIcon(string type) => type switch
+    {
+        "Chats" => Icons.Material.Filled.Chat,
+        "Files" => Icons.Material.Filled.InsertDriveFile,
+        "Artifacts" => Icons.Material.Filled.Code,
+        "Notes" => Icons.Material.Filled.Note,
+        "Knowledge" => Icons.Material.Filled.LibraryBooks,
+        _ => Icons.Material.Filled.QuestionMark
+    };
+
+    private Color GetResultColor(string type) => type switch
+    {
+        "Chats" => Color.Primary,
+        "Files" => Color.Success,
+        "Artifacts" => Color.Warning,
+        "Notes" => Color.Info,
+        "Knowledge" => Color.Tertiary,
+        _ => Color.Default
+    };
+
+    private string GetSearchHelperText()
+    {
+        var enabled = new List<string>();
+        if (_includeChats) enabled.Add("Chats");
+        if (_includeFiles) enabled.Add("Files");
+        if (_includeArtifacts) enabled.Add("Artifacts");
+        if (_includeNotes) enabled.Add("Notes");
+        if (_includeKnowledge) enabled.Add("Knowledge");
+
+        return $"Searching: {string.Join(", ", enabled)}";
+    }
+
+    private void NavigateToResult(SearchResult result)
+    {
+        Snackbar.Add($"Navigating to {result.Type}: {result.Title}", Severity.Info);
+        Navigation.NavigateTo(result.Url);
+        MudDialog.Close();
+    }
+
+    private void GenerateMockResults()
+    {
+        // Mock data for demonstration
+        _allResults = new List<SearchResult>
+        {
+            // Chats
+            new() { Type = "Chats", Title = "Discussion about Blazor components", Preview = "We talked about MudBlazor and component architecture...", Location = "Workspace: Development", UpdatedAt = DateTime.Now.AddDays(-1), Url = "/chat/1" },
+            new() { Type = "Chats", Title = "Planning the new feature", Preview = "Discussed requirements for BYOK implementation...", Location = "Workspace: Planning", UpdatedAt = DateTime.Now.AddDays(-2), Url = "/chat/2" },
+
+            // Files
+            new() { Type = "Files", Title = "Architecture Diagram.png", Preview = "System architecture overview", Location = "Documents/Design", UpdatedAt = DateTime.Now.AddDays(-3), Url = "/files/1" },
+            new() { Type = "Files", Title = "API Documentation.md", Preview = "REST API endpoint reference", Location = "Documents/API", UpdatedAt = DateTime.Now.AddDays(-5), Url = "/files/2" },
+
+            // Artifacts
+            new() { Type = "Artifacts", Title = "UserService.cs", Preview = "public class UserService : IUserService {...", Location = "Generated Code", UpdatedAt = DateTime.Now.AddDays(-1), Url = "/artifacts/1" },
+            new() { Type = "Artifacts", Title = "Database Migration Script", Preview = "CREATE TABLE Users (...", Location = "SQL Scripts", UpdatedAt = DateTime.Now.AddDays(-4), Url = "/artifacts/2" },
+
+            // Notes
+            new() { Type = "Notes", Title = "Meeting Notes - Sprint Planning", Preview = "Discussed priorities for next sprint...", Location = "Collection: Meetings", UpdatedAt = DateTime.Now.AddHours(-6), Url = "/notes/1" },
+            new() { Type = "Notes", Title = "Research: Authentication Patterns", Preview = "OAuth 2.0, JWT, Session-based auth comparison...", Location = "Collection: Research", UpdatedAt = DateTime.Now.AddDays(-7), Url = "/notes/2" },
+
+            // Knowledge
+            new() { Type = "Knowledge", Title = "C# Best Practices", Preview = "Guidelines for writing clean C# code...", Location = "Category: Programming", UpdatedAt = DateTime.Now.AddDays(-10), Url = "/knowledge/1" },
+            new() { Type = "Knowledge", Title = "Blazor Component Patterns", Preview = "Common patterns for building Blazor components...", Location = "Category: Blazor", UpdatedAt = DateTime.Now.AddDays(-15), Url = "/knowledge/2" }
+        };
+    }
+
+    public class SearchResult
+    {
+        public string Type { get; set; } = string.Empty; // Chats, Files, Artifacts, Notes, Knowledge
+        public string Title { get; set; } = string.Empty;
+        public string Preview { get; set; } = string.Empty;
+        public string? Location { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public string Url { get; set; } = string.Empty;
+    }
+
+    @* Helper component for highlighting search terms *@
+    @code {
+        private RenderFragment Highlight(string text, string searchTerm) => builder =>
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm) || !text.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+            {
+                builder.AddContent(0, text);
+                return;
+            }
+
+            var index = text.IndexOf(searchTerm, StringComparison.OrdinalIgnoreCase);
+            if (index < 0)
+            {
+                builder.AddContent(0, text);
+                return;
+            }
+
+            var before = text.Substring(0, index);
+            var match = text.Substring(index, searchTerm.Length);
+            var after = text.Substring(index + searchTerm.Length);
+
+            builder.AddContent(0, before);
+            builder.OpenElement(1, "mark");
+            builder.AddAttribute(2, "style", "background-color: yellow; font-weight: bold;");
+            builder.AddContent(3, match);
+            builder.CloseElement();
+            builder.AddContent(4, after);
+        };
+    }
+}

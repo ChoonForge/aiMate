@@ -1,0 +1,805 @@
+@using AiMate.Shared.Models
+@using AiMate.Web.Store.Knowledge
+@using Fluxor
+@inject IState<KnowledgeState> KnowledgeState
+@inject IDispatcher Dispatcher
+
+<MudPaper Elevation="0" Class="pa-6">
+    <!-- Header with Title and Actions -->
+    <div class="d-flex justify-space-between align-center mb-6">
+        <div>
+            <MudText Typo="Typo.h5" Class="mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.LibraryBooks" Class="mr-2" />
+                Knowledge Base
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Reference materials, tutorials, and documentation
+            </MudText>
+        </div>
+        <div class="d-flex gap-2">
+            <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
+                <MudIconButton Icon="@Icons.Material.Filled.GridView"
+                              Color="@(KnowledgeState.Value.ViewMode == "Grid" ? Color.Primary : Color.Default)"
+                              OnClick="@(() => SetViewMode("Grid"))"
+                              Title="Grid View" />
+                <MudIconButton Icon="@Icons.Material.Filled.ViewList"
+                              Color="@(KnowledgeState.Value.ViewMode == "List" ? Color.Primary : Color.Default)"
+                              OnClick="@(() => SetViewMode("List"))"
+                              Title="List View" />
+                <MudIconButton Icon="@Icons.Material.Filled.Analytics"
+                              Color="@(KnowledgeState.Value.ViewMode == "Analytics" ? Color.Primary : Color.Default)"
+                              OnClick="@(() => SetViewMode("Analytics"))"
+                              Title="Analytics" />
+            </MudButtonGroup>
+            <MudButton Variant="Variant.Filled"
+                      Color="Color.Primary"
+                      StartIcon="@Icons.Material.Filled.Add"
+                      OnClick="OpenCreateDialog">
+                New Article
+            </MudButton>
+        </div>
+    </div>
+
+    @if (KnowledgeState.Value.ViewMode != "Analytics")
+    {
+        <!-- Search and Filters -->
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <MudTextField T="string"
+                         Value="@KnowledgeState.Value.SearchQuery"
+                         ValueChanged="@((string query) => Dispatcher.Dispatch(new SetSearchQueryAction(query)))"
+                         Placeholder="Search articles by title, content, or tags..."
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="@Icons.Material.Filled.Search"
+                         Immediate="true"
+                         DebounceInterval="300"
+                         Class="mb-3" />
+
+            <!-- Filter Chips -->
+            <div class="d-flex flex-wrap gap-2 align-center">
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-2">Filters:</MudText>
+
+                <!-- Type Filter -->
+                <MudMenu Dense="true">
+                    <ActivatorContent>
+                        <MudChip T="string"
+                                Size="Size.Small"
+                                Color="@(string.IsNullOrEmpty(KnowledgeState.Value.SelectedType) ? Color.Default : Color.Primary)"
+                                OnClose="@(() => Dispatcher.Dispatch(new SetTypeFilterAction(null)))">
+                            Type: @(KnowledgeState.Value.SelectedType ?? "All")
+                        </MudChip>
+                    </ActivatorContent>
+                    <ChildContent>
+                        <MudMenuItem OnClick="@(() => Dispatcher.Dispatch(new SetTypeFilterAction(null)))">All Types</MudMenuItem>
+                        <MudMenuItem OnClick="@(() => Dispatcher.Dispatch(new SetTypeFilterAction("Article")))">Article</MudMenuItem>
+                        <MudMenuItem OnClick="@(() => Dispatcher.Dispatch(new SetTypeFilterAction("Guide")))">Guide</MudMenuItem>
+                        <MudMenuItem OnClick="@(() => Dispatcher.Dispatch(new SetTypeFilterAction("Reference")))">Reference</MudMenuItem>
+                        <MudMenuItem OnClick="@(() => Dispatcher.Dispatch(new SetTypeFilterAction("Tutorial")))">Tutorial</MudMenuItem>
+                        <MudMenuItem OnClick="@(() => Dispatcher.Dispatch(new SetTypeFilterAction("FAQ")))">FAQ</MudMenuItem>
+                    </ChildContent>
+                </MudMenu>
+
+                <!-- Collection Filter -->
+                @if (KnowledgeState.Value.Collections.Any())
+                {
+                    <MudMenu Dense="true">
+                        <ActivatorContent>
+                            <MudChip T="string"
+                                    Size="Size.Small"
+                                    Color="@(string.IsNullOrEmpty(KnowledgeState.Value.SelectedCollection) ? Color.Default : Color.Primary)"
+                                    OnClose="@(() => Dispatcher.Dispatch(new SetCollectionFilterAction(null)))">
+                                Collection: @(KnowledgeState.Value.SelectedCollection ?? "All")
+                            </MudChip>
+                        </ActivatorContent>
+                        <ChildContent>
+                            <MudMenuItem OnClick="@(() => Dispatcher.Dispatch(new SetCollectionFilterAction(null)))">All Collections</MudMenuItem>
+                            @foreach (var collection in KnowledgeState.Value.Collections)
+                            {
+                                <MudMenuItem OnClick="@(() => Dispatcher.Dispatch(new SetCollectionFilterAction(collection)))">@collection</MudMenuItem>
+                            }
+                        </ChildContent>
+                    </MudMenu>
+                }
+
+                <!-- Featured Toggle -->
+                <MudChip T="string"
+                        Size="Size.Small"
+                        Icon="@Icons.Material.Filled.Star"
+                        Color="@(KnowledgeState.Value.ShowFeaturedOnly ? Color.Warning : Color.Default)"
+                        OnClick="@(() => Dispatcher.Dispatch(new ToggleShowFeaturedAction()))">
+                    Featured
+                </MudChip>
+
+                <!-- Verified Toggle -->
+                <MudChip T="string"
+                        Size="Size.Small"
+                        Icon="@Icons.Material.Filled.Verified"
+                        Color="@(KnowledgeState.Value.ShowVerifiedOnly ? Color.Success : Color.Default)"
+                        OnClick="@(() => Dispatcher.Dispatch(new ToggleShowVerifiedAction()))">
+                    Verified
+                </MudChip>
+
+                <!-- Clear Filters -->
+                @if (!string.IsNullOrEmpty(KnowledgeState.Value.SearchQuery) ||
+                     !string.IsNullOrEmpty(KnowledgeState.Value.SelectedType) ||
+                     !string.IsNullOrEmpty(KnowledgeState.Value.SelectedCollection) ||
+                     KnowledgeState.Value.ShowFeaturedOnly ||
+                     KnowledgeState.Value.ShowVerifiedOnly)
+                {
+                    <MudChip T="string"
+                            Size="Size.Small"
+                            Icon="@Icons.Material.Filled.Clear"
+                            Color="Color.Error"
+                            OnClick="@(() => Dispatcher.Dispatch(new ClearFiltersAction()))">
+                        Clear All
+                    </MudChip>
+                }
+            </div>
+        </MudPaper>
+
+        <!-- Tabs -->
+        <MudTabs Elevation="0"
+                Rounded="true"
+                ApplyEffectsToContainer="true"
+                ActivePanelIndex="@GetActiveTabIndex()"
+                ActivePanelIndexChanged="@HandleTabChanged"
+                Class="mb-4">
+            <MudTabPanel Text="All Articles" Icon="@Icons.Material.Filled.Article">
+                @if (KnowledgeState.Value.IsLoading)
+                {
+                    <div class="d-flex justify-center pa-8">
+                        <MudProgressCircular Indeterminate="true" />
+                    </div>
+                }
+                else
+                {
+                    @RenderArticles(FilteredArticles)
+                }
+            </MudTabPanel>
+            <MudTabPanel Text="Featured" Icon="@Icons.Material.Filled.Star" BadgeData="@FeaturedCount">
+                @RenderArticles(FeaturedArticles)
+            </MudTabPanel>
+            <MudTabPanel Text="Recent" Icon="@Icons.Material.Filled.Schedule">
+                @RenderArticles(RecentArticles)
+            </MudTabPanel>
+            <MudTabPanel Text="Popular" Icon="@Icons.Material.Filled.TrendingUp">
+                @RenderArticles(PopularArticles)
+            </MudTabPanel>
+        </MudTabs>
+    }
+    else
+    {
+        <!-- Analytics View -->
+        @if (KnowledgeState.Value.Analytics != null)
+        {
+            <MudGrid>
+                <!-- Summary Cards -->
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Articles</MudText>
+                                <MudText Typo="Typo.h4">@KnowledgeState.Value.Analytics.TotalArticles</MudText>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.Article" Color="Color.Primary" Size="Size.Large" />
+                        </div>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Views</MudText>
+                                <MudText Typo="Typo.h4">@KnowledgeState.Value.Analytics.TotalViews.ToString("N0")</MudText>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Large" />
+                        </div>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total References</MudText>
+                                <MudText Typo="Typo.h4">@KnowledgeState.Value.Analytics.TotalReferences.ToString("N0")</MudText>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.Link" Color="Color.Success" Size="Size.Large" />
+                        </div>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Avg Views/Article</MudText>
+                                <MudText Typo="Typo.h4">@GetAverageViews()</MudText>
+                            </div>
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Warning" Size="Size.Large" />
+                        </div>
+                    </MudPaper>
+                </MudItem>
+
+                <!-- Most Viewed -->
+                <MudItem xs="12" md="6">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-4">
+                            <MudIcon Icon="@Icons.Material.Filled.Visibility" Class="mr-2" />
+                            Most Viewed Articles
+                        </MudText>
+                        @if (KnowledgeState.Value.Analytics.MostViewed.Any())
+                        {
+                            <MudList Dense="true">
+                                @foreach (var article in KnowledgeState.Value.Analytics.MostViewed)
+                                {
+                                    <MudListItem OnClick="@(() => OpenArticle(article))">
+                                        <div class="d-flex justify-space-between align-center">
+                                            <div>
+                                                <MudText Typo="Typo.body2">@article.Title</MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">@article.Type</MudText>
+                                            </div>
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Info">
+                                                @article.ViewCount.ToString("N0") views
+                                            </MudChip>
+                                        </div>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">No data available</MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+
+                <!-- Most Referenced -->
+                <MudItem xs="12" md="6">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-4">
+                            <MudIcon Icon="@Icons.Material.Filled.Link" Class="mr-2" />
+                            Most Referenced Articles
+                        </MudText>
+                        @if (KnowledgeState.Value.Analytics.MostReferenced.Any())
+                        {
+                            <MudList Dense="true">
+                                @foreach (var article in KnowledgeState.Value.Analytics.MostReferenced)
+                                {
+                                    <MudListItem OnClick="@(() => OpenArticle(article))">
+                                        <div class="d-flex justify-space-between align-center">
+                                            <div>
+                                                <MudText Typo="Typo.body2">@article.Title</MudText>
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">@article.Type</MudText>
+                                            </div>
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Success">
+                                                @article.ReferenceCount.ToString("N0") refs
+                                            </MudChip>
+                                        </div>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">No data available</MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+
+                <!-- Tag Distribution -->
+                <MudItem xs="12" md="6">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-4">
+                            <MudIcon Icon="@Icons.Material.Filled.LocalOffer" Class="mr-2" />
+                            Tag Distribution
+                        </MudText>
+                        @if (KnowledgeState.Value.Analytics.TagCounts.Any())
+                        {
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var tag in KnowledgeState.Value.Analytics.TagCounts.OrderByDescending(t => t.Value).Take(15))
+                                {
+                                    <MudChip T="string" Size="Size.Small">
+                                        @tag.Key (@tag.Value)
+                                    </MudChip>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">No tags available</MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+
+                <!-- Type Breakdown -->
+                <MudItem xs="12" md="6">
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-4">
+                            <MudIcon Icon="@Icons.Material.Filled.Category" Class="mr-2" />
+                            Article Types
+                        </MudText>
+                        @if (KnowledgeState.Value.Analytics.TypeCounts.Any())
+                        {
+                            <MudList Dense="true">
+                                @foreach (var type in KnowledgeState.Value.Analytics.TypeCounts.OrderByDescending(t => t.Value))
+                                {
+                                    <MudListItem>
+                                        <div class="d-flex justify-space-between align-center">
+                                            <MudText Typo="Typo.body2">@type.Key</MudText>
+                                            <div class="d-flex align-center gap-2">
+                                                <MudProgressLinear Value="@GetTypePercentage(type.Value)"
+                                                                  Color="Color.Primary"
+                                                                  Size="Size.Medium"
+                                                                  Style="width: 100px;" />
+                                                <MudText Typo="Typo.caption">@type.Value</MudText>
+                                            </div>
+                                        </div>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">No data available</MudText>
+                        }
+                    </MudPaper>
+                </MudItem>
+
+                <!-- Category Breakdown -->
+                @if (KnowledgeState.Value.Analytics.CategoryCounts.Any())
+                {
+                    <MudItem xs="12">
+                        <MudPaper Elevation="2" Class="pa-4">
+                            <MudText Typo="Typo.h6" Class="mb-4">
+                                <MudIcon Icon="@Icons.Material.Filled.FolderOpen" Class="mr-2" />
+                                Categories
+                            </MudText>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var category in KnowledgeState.Value.Analytics.CategoryCounts.OrderByDescending(c => c.Value))
+                                {
+                                    <MudChip T="string" Size="Size.Medium" Color="Color.Primary" Variant="Variant.Outlined">
+                                        @category.Key (@category.Value)
+                                    </MudChip>
+                                }
+                            </div>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+        else
+        {
+            <div class="d-flex flex-column align-center justify-center pa-8">
+                <MudIcon Icon="@Icons.Material.Filled.Analytics" Size="Size.Large" Color="Color.Secondary" Class="mb-4" />
+                <MudText Typo="Typo.h6" Color="Color.Secondary">No analytics data available</MudText>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="LoadAnalytics" Class="mt-4">
+                    Load Analytics
+                </MudButton>
+            </div>
+        }
+    }
+</MudPaper>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        if (!KnowledgeState.Value.Articles.Any())
+        {
+            Dispatcher.Dispatch(new LoadArticlesAction());
+        }
+        if (KnowledgeState.Value.ViewMode == "Analytics" && KnowledgeState.Value.Analytics == null)
+        {
+            Dispatcher.Dispatch(new LoadAnalyticsAction());
+        }
+    }
+
+    private void SetViewMode(string mode)
+    {
+        Dispatcher.Dispatch(new SetViewModeAction(mode));
+        if (mode == "Analytics" && KnowledgeState.Value.Analytics == null)
+        {
+            Dispatcher.Dispatch(new LoadAnalyticsAction());
+        }
+    }
+
+    private void LoadAnalytics()
+    {
+        Dispatcher.Dispatch(new LoadAnalyticsAction());
+    }
+
+    private int GetActiveTabIndex()
+    {
+        return KnowledgeState.Value.ActiveTab switch
+        {
+            "All" => 0,
+            "Featured" => 1,
+            "Recent" => 2,
+            "Popular" => 3,
+            _ => 0
+        };
+    }
+
+    private void HandleTabChanged(int index)
+    {
+        var tab = index switch
+        {
+            0 => "All",
+            1 => "Featured",
+            2 => "Recent",
+            3 => "Popular",
+            _ => "All"
+        };
+        Dispatcher.Dispatch(new SetActiveTabAction(tab));
+    }
+
+    private List<KnowledgeArticleDto> FilteredArticles
+    {
+        get
+        {
+            var articles = KnowledgeState.Value.Articles.AsEnumerable();
+
+            // Search query
+            if (!string.IsNullOrEmpty(KnowledgeState.Value.SearchQuery))
+            {
+                var query = KnowledgeState.Value.SearchQuery.ToLower();
+                articles = articles.Where(a =>
+                    a.Title.ToLower().Contains(query) ||
+                    a.Content.ToLower().Contains(query) ||
+                    a.Tags.Any(t => t.ToLower().Contains(query)));
+            }
+
+            // Type filter
+            if (!string.IsNullOrEmpty(KnowledgeState.Value.SelectedType))
+            {
+                articles = articles.Where(a => a.Type == KnowledgeState.Value.SelectedType);
+            }
+
+            // Collection filter
+            if (!string.IsNullOrEmpty(KnowledgeState.Value.SelectedCollection))
+            {
+                articles = articles.Where(a => a.Collection == KnowledgeState.Value.SelectedCollection);
+            }
+
+            // Featured filter
+            if (KnowledgeState.Value.ShowFeaturedOnly)
+            {
+                articles = articles.Where(a => a.IsFeatured);
+            }
+
+            // Verified filter
+            if (KnowledgeState.Value.ShowVerifiedOnly)
+            {
+                articles = articles.Where(a => a.IsVerified);
+            }
+
+            return articles.ToList();
+        }
+    }
+
+    private List<KnowledgeArticleDto> FeaturedArticles =>
+        FilteredArticles.Where(a => a.IsFeatured).OrderByDescending(a => a.UpdatedAt).ToList();
+
+    private List<KnowledgeArticleDto> RecentArticles =>
+        FilteredArticles.OrderByDescending(a => a.CreatedAt).ToList();
+
+    private List<KnowledgeArticleDto> PopularArticles =>
+        FilteredArticles.OrderByDescending(a => a.ViewCount).ToList();
+
+    private int FeaturedCount => KnowledgeState.Value.Articles.Count(a => a.IsFeatured);
+
+    private RenderFragment RenderArticles(List<KnowledgeArticleDto> articles)
+    {
+        return builder =>
+        {
+            if (!articles.Any())
+            {
+                builder.OpenElement(0, "div");
+                builder.AddAttribute(1, "class", "d-flex flex-column align-center justify-center pa-8");
+
+                builder.OpenComponent<MudIcon>(2);
+                builder.AddAttribute(3, "Icon", Icons.Material.Filled.SearchOff);
+                builder.AddAttribute(4, "Size", Size.Large);
+                builder.AddAttribute(5, "Color", Color.Secondary);
+                builder.AddAttribute(6, "Class", "mb-4");
+                builder.CloseComponent();
+
+                builder.OpenComponent<MudText>(7);
+                builder.AddAttribute(8, "Typo", Typo.h6);
+                builder.AddAttribute(9, "Color", Color.Secondary);
+                builder.AddAttribute(10, "ChildContent", (RenderFragment)(b => b.AddContent(0, "No articles found")));
+                builder.CloseComponent();
+
+                builder.OpenComponent<MudText>(11);
+                builder.AddAttribute(12, "Typo", Typo.body2);
+                builder.AddAttribute(13, "Color", Color.Secondary);
+                builder.AddAttribute(14, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Try adjusting your filters or create a new article")));
+                builder.CloseComponent();
+
+                builder.CloseElement();
+            }
+            else
+            {
+                if (KnowledgeState.Value.ViewMode == "Grid")
+                {
+                    builder.OpenComponent<MudGrid>(0);
+                    builder.AddAttribute(1, "ChildContent", (RenderFragment)(gridBuilder =>
+                    {
+                        int itemIndex = 0;
+                        foreach (var article in articles)
+                        {
+                            gridBuilder.OpenComponent<MudItem>(itemIndex++);
+                            gridBuilder.AddAttribute(itemIndex++, "xs", 12);
+                            gridBuilder.AddAttribute(itemIndex++, "sm", 6);
+                            gridBuilder.AddAttribute(itemIndex++, "md", 4);
+                            gridBuilder.AddAttribute(itemIndex++, "lg", 3);
+                            gridBuilder.AddAttribute(itemIndex++, "ChildContent", (RenderFragment)(itemBuilder =>
+                            {
+                                RenderArticleCard(itemBuilder, article);
+                            }));
+                            gridBuilder.CloseComponent();
+                        }
+                    }));
+                    builder.CloseComponent();
+                }
+                else // List view
+                {
+                    builder.OpenComponent<MudPaper>(0);
+                    builder.AddAttribute(1, "Elevation", 1);
+                    builder.AddAttribute(2, "ChildContent", (RenderFragment)(paperBuilder =>
+                    {
+                        paperBuilder.OpenComponent<MudList>(0);
+                        paperBuilder.AddAttribute(1, "Clickable", true);
+                        paperBuilder.AddAttribute(2, "Dense", true);
+                        paperBuilder.AddAttribute(3, "ChildContent", (RenderFragment)(listBuilder =>
+                        {
+                            int itemIndex = 0;
+                            foreach (var article in articles)
+                            {
+                                RenderArticleListItem(listBuilder, article, itemIndex++);
+                            }
+                        }));
+                        paperBuilder.CloseComponent();
+                    }));
+                    builder.CloseComponent();
+                }
+            }
+        };
+    }
+
+    private void RenderArticleCard(RenderTreeBuilder builder, KnowledgeArticleDto article)
+    {
+        builder.OpenComponent<MudCard>(0);
+        builder.AddAttribute(1, "Class", "cursor-pointer");
+        builder.AddAttribute(2, "onclick", EventCallback.Factory.Create(this, () => OpenArticle(article)));
+        builder.AddAttribute(3, "ChildContent", (RenderFragment)(cardBuilder =>
+        {
+            // Card Content
+            cardBuilder.OpenComponent<MudCardContent>(0);
+            cardBuilder.AddAttribute(1, "ChildContent", (RenderFragment)(contentBuilder =>
+            {
+                // Header with Type and Badges
+                contentBuilder.OpenElement(0, "div");
+                contentBuilder.AddAttribute(1, "class", "d-flex justify-space-between align-center mb-2");
+
+                contentBuilder.OpenComponent<MudChip>(2);
+                contentBuilder.AddAttribute(3, "T", typeof(string));
+                contentBuilder.AddAttribute(4, "Size", Size.Small);
+                contentBuilder.AddAttribute(5, "Color", GetTypeColor(article.Type));
+                contentBuilder.AddAttribute(6, "ChildContent", (RenderFragment)(b => b.AddContent(0, article.Type)));
+                contentBuilder.CloseComponent();
+
+                contentBuilder.OpenElement(7, "div");
+                contentBuilder.AddAttribute(8, "class", "d-flex gap-1");
+
+                if (article.IsFeatured)
+                {
+                    contentBuilder.OpenComponent<MudIcon>(9);
+                    contentBuilder.AddAttribute(10, "Icon", Icons.Material.Filled.Star);
+                    contentBuilder.AddAttribute(11, "Color", Color.Warning);
+                    contentBuilder.AddAttribute(12, "Size", Size.Small);
+                    contentBuilder.CloseComponent();
+                }
+
+                if (article.IsVerified)
+                {
+                    contentBuilder.OpenComponent<MudIcon>(13);
+                    contentBuilder.AddAttribute(14, "Icon", Icons.Material.Filled.Verified);
+                    contentBuilder.AddAttribute(15, "Color", Color.Success);
+                    contentBuilder.AddAttribute(16, "Size", Size.Small);
+                    contentBuilder.CloseComponent();
+                }
+
+                contentBuilder.CloseElement();
+                contentBuilder.CloseElement();
+
+                // Title
+                contentBuilder.OpenComponent<MudText>(17);
+                contentBuilder.AddAttribute(18, "Typo", Typo.h6);
+                contentBuilder.AddAttribute(19, "Class", "mb-2");
+                contentBuilder.AddAttribute(20, "ChildContent", (RenderFragment)(b => b.AddContent(0, article.Title)));
+                contentBuilder.CloseComponent();
+
+                // Summary
+                if (!string.IsNullOrEmpty(article.Summary))
+                {
+                    contentBuilder.OpenComponent<MudText>(21);
+                    contentBuilder.AddAttribute(22, "Typo", Typo.body2);
+                    contentBuilder.AddAttribute(23, "Color", Color.Secondary);
+                    contentBuilder.AddAttribute(24, "Class", "mb-3");
+                    contentBuilder.AddAttribute(25, "ChildContent", (RenderFragment)(b =>
+                        b.AddContent(0, article.Summary.Length > 120 ? article.Summary.Substring(0, 120) + "..." : article.Summary)));
+                    contentBuilder.CloseComponent();
+                }
+
+                // Tags
+                if (article.Tags.Any())
+                {
+                    contentBuilder.OpenElement(26, "div");
+                    contentBuilder.AddAttribute(27, "class", "d-flex flex-wrap gap-1 mb-3");
+
+                    int tagIndex = 28;
+                    foreach (var tag in article.Tags.Take(3))
+                    {
+                        contentBuilder.OpenComponent<MudChip>(tagIndex++);
+                        contentBuilder.AddAttribute(tagIndex++, "T", typeof(string));
+                        contentBuilder.AddAttribute(tagIndex++, "Size", Size.Small);
+                        contentBuilder.AddAttribute(tagIndex++, "Variant", Variant.Outlined);
+                        contentBuilder.AddAttribute(tagIndex++, "ChildContent", (RenderFragment)(b => b.AddContent(0, tag)));
+                        contentBuilder.CloseComponent();
+                    }
+
+                    contentBuilder.CloseElement();
+                }
+
+                // Stats
+                contentBuilder.OpenElement(100, "div");
+                contentBuilder.AddAttribute(101, "class", "d-flex gap-3");
+
+                contentBuilder.OpenElement(102, "div");
+                contentBuilder.AddAttribute(103, "class", "d-flex align-center gap-1");
+                contentBuilder.OpenComponent<MudIcon>(104);
+                contentBuilder.AddAttribute(105, "Icon", Icons.Material.Filled.Visibility);
+                contentBuilder.AddAttribute(106, "Size", Size.Small);
+                contentBuilder.AddAttribute(107, "Color", Color.Default);
+                contentBuilder.CloseComponent();
+                contentBuilder.OpenComponent<MudText>(108);
+                contentBuilder.AddAttribute(109, "Typo", Typo.caption);
+                contentBuilder.AddAttribute(110, "ChildContent", (RenderFragment)(b => b.AddContent(0, article.ViewCount.ToString("N0"))));
+                contentBuilder.CloseComponent();
+                contentBuilder.CloseElement();
+
+                contentBuilder.OpenElement(111, "div");
+                contentBuilder.AddAttribute(112, "class", "d-flex align-center gap-1");
+                contentBuilder.OpenComponent<MudIcon>(113);
+                contentBuilder.AddAttribute(114, "Icon", Icons.Material.Filled.Link);
+                contentBuilder.AddAttribute(115, "Size", Size.Small);
+                contentBuilder.AddAttribute(116, "Color", Color.Default);
+                contentBuilder.CloseComponent();
+                contentBuilder.OpenComponent<MudText>(117);
+                contentBuilder.AddAttribute(118, "Typo", Typo.caption);
+                contentBuilder.AddAttribute(119, "ChildContent", (RenderFragment)(b => b.AddContent(0, article.ReferenceCount.ToString("N0"))));
+                contentBuilder.CloseComponent();
+                contentBuilder.CloseElement();
+
+                contentBuilder.OpenElement(120, "div");
+                contentBuilder.AddAttribute(121, "class", "d-flex align-center gap-1");
+                contentBuilder.OpenComponent<MudIcon>(122);
+                contentBuilder.AddAttribute(123, "Icon", Icons.Material.Filled.ThumbUp);
+                contentBuilder.AddAttribute(124, "Size", Size.Small);
+                contentBuilder.AddAttribute(125, "Color", Color.Default);
+                contentBuilder.CloseComponent();
+                contentBuilder.OpenComponent<MudText>(126);
+                contentBuilder.AddAttribute(127, "Typo", Typo.caption);
+                contentBuilder.AddAttribute(128, "ChildContent", (RenderFragment)(b => b.AddContent(0, article.UpvoteCount.ToString("N0"))));
+                contentBuilder.CloseComponent();
+                contentBuilder.CloseElement();
+
+                contentBuilder.CloseElement();
+            }));
+            cardBuilder.CloseComponent();
+        }));
+        builder.CloseComponent();
+    }
+
+    private void RenderArticleListItem(RenderTreeBuilder builder, KnowledgeArticleDto article, int index)
+    {
+        builder.OpenComponent<MudListItem>(index * 100);
+        builder.AddAttribute(index * 100 + 1, "OnClick", EventCallback.Factory.Create(this, () => OpenArticle(article)));
+        builder.AddAttribute(index * 100 + 2, "ChildContent", (RenderFragment)(itemBuilder =>
+        {
+            itemBuilder.OpenElement(0, "div");
+            itemBuilder.AddAttribute(1, "class", "d-flex justify-space-between align-center py-2");
+
+            // Left side - Title and meta
+            itemBuilder.OpenElement(2, "div");
+            itemBuilder.AddAttribute(3, "class", "d-flex flex-column");
+
+            itemBuilder.OpenElement(4, "div");
+            itemBuilder.AddAttribute(5, "class", "d-flex align-center gap-2 mb-1");
+
+            itemBuilder.OpenComponent<MudText>(6);
+            itemBuilder.AddAttribute(7, "Typo", Typo.body1);
+            itemBuilder.AddAttribute(8, "ChildContent", (RenderFragment)(b => b.AddContent(0, article.Title)));
+            itemBuilder.CloseComponent();
+
+            if (article.IsFeatured)
+            {
+                itemBuilder.OpenComponent<MudIcon>(9);
+                itemBuilder.AddAttribute(10, "Icon", Icons.Material.Filled.Star);
+                itemBuilder.AddAttribute(11, "Color", Color.Warning);
+                itemBuilder.AddAttribute(12, "Size", Size.Small);
+                itemBuilder.CloseComponent();
+            }
+
+            if (article.IsVerified)
+            {
+                itemBuilder.OpenComponent<MudIcon>(13);
+                itemBuilder.AddAttribute(14, "Icon", Icons.Material.Filled.Verified);
+                itemBuilder.AddAttribute(15, "Color", Color.Success);
+                itemBuilder.AddAttribute(16, "Size", Size.Small);
+                itemBuilder.CloseComponent();
+            }
+
+            itemBuilder.CloseElement();
+
+            itemBuilder.OpenComponent<MudText>(17);
+            itemBuilder.AddAttribute(18, "Typo", Typo.caption);
+            itemBuilder.AddAttribute(19, "Color", Color.Secondary);
+            itemBuilder.AddAttribute(20, "ChildContent", (RenderFragment)(b =>
+                b.AddContent(0, $"{article.Type} • {article.ViewCount} views • {article.ReferenceCount} refs")));
+            itemBuilder.CloseComponent();
+
+            itemBuilder.CloseElement();
+
+            // Right side - Type chip
+            itemBuilder.OpenComponent<MudChip>(21);
+            itemBuilder.AddAttribute(22, "T", typeof(string));
+            itemBuilder.AddAttribute(23, "Size", Size.Small);
+            itemBuilder.AddAttribute(24, "Color", GetTypeColor(article.Type));
+            itemBuilder.AddAttribute(25, "ChildContent", (RenderFragment)(b => b.AddContent(0, article.Type)));
+            itemBuilder.CloseComponent();
+
+            itemBuilder.CloseElement();
+        }));
+        builder.CloseComponent();
+    }
+
+    private Color GetTypeColor(string type) => type switch
+    {
+        "Article" => Color.Primary,
+        "Guide" => Color.Info,
+        "Reference" => Color.Success,
+        "Tutorial" => Color.Warning,
+        "FAQ" => Color.Secondary,
+        _ => Color.Default
+    };
+
+    private void OpenArticle(KnowledgeArticleDto article)
+    {
+        Dispatcher.Dispatch(new ViewArticleAction(article.Id));
+        Dispatcher.Dispatch(new OpenEditDialogAction(article));
+    }
+
+    private void OpenCreateDialog()
+    {
+        Dispatcher.Dispatch(new OpenEditDialogAction(null));
+    }
+
+    private string GetAverageViews()
+    {
+        if (KnowledgeState.Value.Analytics == null || KnowledgeState.Value.Analytics.TotalArticles == 0)
+            return "0";
+
+        var avg = (double)KnowledgeState.Value.Analytics.TotalViews / KnowledgeState.Value.Analytics.TotalArticles;
+        return avg.ToString("N1");
+    }
+
+    private double GetTypePercentage(int count)
+    {
+        if (KnowledgeState.Value.Analytics == null || KnowledgeState.Value.Analytics.TotalArticles == 0)
+            return 0;
+
+        return (double)count / KnowledgeState.Value.Analytics.TotalArticles * 100;
+    }
+}

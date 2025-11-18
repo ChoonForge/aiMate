@@ -1,14 +1,152 @@
 @using Fluxor
 @using AiMate.Web.Store.Admin
+@using AiMate.Core.Enums
+@using AiMate.Core.Services
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @inject IState<AdminState> AdminState
 @inject IDispatcher Dispatcher
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IPermissionService PermissionService
 
 <MudStack Spacing="3">
     <MudText Typo="Typo.h6">System Configuration</MudText>
     <MudDivider />
+
+    @* General Settings *@
+    <MudText Typo="Typo.subtitle1">General Settings</MudText>
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudSwitch T="bool" @bind-Checked="@_enableAdminPanel"
+                          Label="Enable Admin Panel"
+                          Color="Color.Primary"
+                          CheckedChanged="@((bool val) => HandleToggleSetting("EnableAdminPanel", val))" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Allow access to the admin panel for users with Admin tier
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSwitch T="bool" @bind-Checked="@_allowUserRegistration"
+                          Label="Allow User Registration"
+                          Color="Color.Primary"
+                          CheckedChanged="@((bool val) => HandleToggleSetting("AllowUserRegistration", val))" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Enable new user sign-up on the platform
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSwitch T="bool" @bind-Checked="@_enableApiAccess"
+                          Label="Enable API Access"
+                          Color="Color.Primary"
+                          CheckedChanged="@((bool val) => HandleToggleSetting("EnableApiAccess", val))" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Allow external API access to aiMate services
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudSwitch T="bool" @bind-Checked="@_debugMode"
+                          Label="Debug Mode"
+                          Color="Color.Warning"
+                          CheckedChanged="@((bool val) => HandleToggleSetting("DebugMode", val))" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Enable verbose logging and debugging features
+                </MudText>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudDivider Class="my-4" />
+
+    @* BYOK Configuration *@
+    <MudText Typo="Typo.subtitle1">BYOK (Bring Your Own Key) Configuration</MudText>
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+        Control which user tiers can bring their own API keys for LLM providers
+    </MudText>
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.CardMembership" Color="Color.Secondary" />
+                            <MudText Typo="Typo.subtitle2">Free Tier</MudText>
+                        </MudStack>
+                        <MudSwitch T="bool" Checked="@_byokFreeTier"
+                                  Color="Color.Success"
+                                  CheckedChanged="@((bool val) => HandleBYOKToggle(UserTier.Free, val))" />
+                    </MudStack>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Max 3 connections • Ideal for individual users bringing own keys
+                    </MudText>
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.Key" Color="Color.Primary" />
+                            <MudText Typo="Typo.subtitle2">BYOK Tier ($10/mo)</MudText>
+                        </MudStack>
+                        <MudSwitch T="bool" Checked="@_byokBYOKTier"
+                                  Color="Color.Success"
+                                  CheckedChanged="@((bool val) => HandleBYOKToggle(UserTier.BYOK, val))" />
+                    </MudStack>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Max 10 connections • Enhanced limits for BYOK users
+                    </MudText>
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.Code" Color="Color.Info" />
+                            <MudText Typo="Typo.subtitle2">Developer Tier ($30/mo)</MudText>
+                        </MudStack>
+                        <MudSwitch T="bool" Checked="@_byokDeveloperTier"
+                                  Color="Color.Success"
+                                  CheckedChanged="@((bool val) => HandleBYOKToggle(UserTier.Developer, val))" />
+                    </MudStack>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Max 50 connections • Platform keys + BYOK + custom endpoints
+                    </MudText>
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Error" />
+                            <MudText Typo="Typo.subtitle2">Admin Tier</MudText>
+                        </MudStack>
+                        <MudSwitch T="bool" Checked="@_byokAdminTier"
+                                  Color="Color.Success"
+                                  CheckedChanged="@((bool val) => HandleBYOKToggle(UserTier.Admin, val))" />
+                    </MudStack>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Unlimited connections • Full system access
+                    </MudText>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider Class="my-3" />
+
+        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.Info">
+            <strong>Freemium Model Strategy:</strong>
+            <br />
+            Free users with BYOK = Zero platform costs • Paid users get platform-provided API keys + enhanced features
+        </MudAlert>
+    </MudPaper>
+
+    <MudDivider Class="my-4" />
 
     @* Database Management *@
     <MudText Typo="Typo.subtitle1">Database Management</MudText>
@@ -116,6 +254,94 @@
 </MudStack>
 
 @code {
+    // General Settings
+    private bool _enableAdminPanel = true;
+    private bool _allowUserRegistration = false;
+    private bool _enableApiAccess = true;
+    private bool _debugMode = false;
+
+    // BYOK Settings per tier
+    private bool _byokFreeTier = true;
+    private bool _byokBYOKTier = true;
+    private bool _byokDeveloperTier = true;
+    private bool _byokAdminTier = true;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // Load current BYOK settings from PermissionService
+        _byokFreeTier = PermissionService.IsBYOKEnabledForTier(UserTier.Free);
+        _byokBYOKTier = PermissionService.IsBYOKEnabledForTier(UserTier.BYOK);
+        _byokDeveloperTier = PermissionService.IsBYOKEnabledForTier(UserTier.Developer);
+        _byokAdminTier = PermissionService.IsBYOKEnabledForTier(UserTier.Admin);
+
+        // TODO: Load general settings from AdminState or Settings service
+        // _enableAdminPanel = AdminState.Value.EnableAdminPanel;
+        // _allowUserRegistration = AdminState.Value.AllowUserRegistration;
+        // _enableApiAccess = AdminState.Value.EnableApiAccess;
+        // _debugMode = AdminState.Value.DebugMode;
+    }
+
+    private void HandleToggleSetting(string setting, bool value)
+    {
+        switch (setting)
+        {
+            case "EnableAdminPanel":
+                _enableAdminPanel = value;
+                Snackbar.Add($"Admin Panel {(value ? "enabled" : "disabled")}", Severity.Success);
+                // TODO: Dispatch action to update AdminState
+                // Dispatcher.Dispatch(new UpdateAdminSettingAction("EnableAdminPanel", value));
+                break;
+
+            case "AllowUserRegistration":
+                _allowUserRegistration = value;
+                Snackbar.Add($"User Registration {(value ? "enabled" : "disabled")}", Severity.Success);
+                // TODO: Dispatch action
+                break;
+
+            case "EnableApiAccess":
+                _enableApiAccess = value;
+                Snackbar.Add($"API Access {(value ? "enabled" : "disabled")}", Severity.Success);
+                // TODO: Dispatch action
+                break;
+
+            case "DebugMode":
+                _debugMode = value;
+                Snackbar.Add($"Debug Mode {(value ? "enabled" : "disabled")}", value ? Severity.Warning : Severity.Success);
+                // TODO: Dispatch action
+                break;
+        }
+    }
+
+    private void HandleBYOKToggle(UserTier tier, bool enabled)
+    {
+        // Update the PermissionService
+        PermissionService.SetBYOKEnabledForTier(tier, enabled);
+
+        // Update local state
+        switch (tier)
+        {
+            case UserTier.Free:
+                _byokFreeTier = enabled;
+                break;
+            case UserTier.BYOK:
+                _byokBYOKTier = enabled;
+                break;
+            case UserTier.Developer:
+                _byokDeveloperTier = enabled;
+                break;
+            case UserTier.Admin:
+                _byokAdminTier = enabled;
+                break;
+        }
+
+        Snackbar.Add($"BYOK {(enabled ? "enabled" : "disabled")} for {tier} tier", Severity.Success);
+
+        // TODO: Persist this setting to database/configuration
+        // Dispatcher.Dispatch(new UpdateBYOKSettingAction(tier, enabled));
+    }
+
     private Color GetLogColor(string level) => level.ToUpper() switch
     {
         "ERROR" => Color.Error,

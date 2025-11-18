@@ -1,0 +1,212 @@
+@using Fluxor
+@using AiMate.Web.Store.Plugin
+@using AiMate.Core.Plugins
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<PluginState> PluginState
+@inject IDispatcher Dispatcher
+
+<MudStack Spacing="3">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.h6">Plugin Management</MudText>
+        <MudButton Variant="Variant.Filled"
+                  Color="Color.Primary"
+                  StartIcon="@Icons.Material.Filled.Refresh"
+                  OnClick="@HandleRefresh">
+            Refresh
+        </MudButton>
+    </MudStack>
+    <MudDivider />
+
+    <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.Extension">
+        <strong>Plugin System</strong> - Extend aiMate with custom functionality. All core features are implemented as plugins!
+    </MudAlert>
+
+    @if (PluginState.Value.Error != null)
+    {
+        <MudAlert Severity="Severity.Error" CloseIconClicked="@(() => Dispatcher.Dispatch(new ClearPluginErrorAction()))">
+            @PluginState.Value.Error
+        </MudAlert>
+    }
+
+    @if (PluginState.Value.IsLoading)
+    {
+        <MudProgressLinear T="double" Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (PluginState.Value.LoadedPlugins.Any())
+    {
+        @* Plugin Statistics *@
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4" Elevation="2">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Total Plugins</MudText>
+                        <MudText Typo="Typo.h4">@PluginState.Value.LoadedPlugins.Count</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4" Elevation="2">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Active</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Success">
+                            @PluginState.Value.LoadedPlugins.Count(p => p.IsEnabled)
+                        </MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4" Elevation="2">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Disabled</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Warning">
+                            @PluginState.Value.LoadedPlugins.Count(p => !p.IsEnabled)
+                        </MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4" Elevation="2">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Categories</MudText>
+                        <MudText Typo="Typo.h4">
+                            @PluginState.Value.LoadedPlugins.Select(p => p.Category).Distinct().Count()
+                        </MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        @* Plugins Table *@
+        <MudTable T="PluginInfo" Items="@PluginState.Value.LoadedPlugins" Hover="true" Striped="true" Dense="true">
+            <HeaderContent>
+                <MudTh>Plugin</MudTh>
+                <MudTh>Category</MudTh>
+                <MudTh>Version</MudTh>
+                <MudTh>Author</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Plugin">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudIcon Icon="@($"@Icons.Material.Filled.{context.Icon}")" Color="Color.Primary" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body2"><strong>@context.Name</strong></MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Description</MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudTd>
+                <MudTd DataLabel="Category">
+                    <MudChip T="string" Size="Size.Small" Color="@GetCategoryColor(context.Category)">
+                        @context.Category
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Version">
+                    <MudText Typo="Typo.caption">v@context.Version</MudText>
+                </MudTd>
+                <MudTd DataLabel="Author">
+                    <MudText Typo="Typo.caption">@context.Author</MudText>
+                </MudTd>
+                <MudTd DataLabel="Status">
+                    <MudSwitch T="bool" Checked="@context.IsEnabled"
+                              Color="Color.Success"
+                              CheckedChanged="@((bool val) => HandleToggle(context.Id))" />
+                </MudTd>
+                <MudTd DataLabel="Actions">
+                    <MudStack Row="true" Spacing="1">
+                        @if (context.HasSettings)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.Settings"
+                                          Size="Size.Small"
+                                          Title="Settings"
+                                          OnClick="@(() => HandleSettings(context.Id))" />
+                        }
+                        <MudIconButton Icon="@Icons.Material.Filled.Info"
+                                      Size="Size.Small"
+                                      Title="Plugin Info" />
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        @* Plugin Categories Summary *@
+        <MudText Typo="Typo.subtitle1" Class="mt-4">Plugins by Category</MudText>
+        <MudDivider />
+        <MudGrid>
+            @foreach (var category in PluginState.Value.LoadedPlugins.GroupBy(p => p.Category))
+            {
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-3" Elevation="1">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.subtitle2">@category.Key</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @category.Count() plugins
+                                </MudText>
+                            </MudStack>
+                            <MudChip T="string" Size="Size.Small" Color="@GetCategoryColor(category.Key)">
+                                @category.Count(p => p.IsEnabled) active
+                            </MudChip>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    else
+    {
+        <MudPaper Class="pa-8" Elevation="0" Style="text-align: center;">
+            <MudIcon Icon="@Icons.Material.Filled.Extension" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">
+                No Plugins Loaded
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Click Refresh to load available plugins
+            </MudText>
+        </MudPaper>
+    }
+</MudStack>
+
+@code {
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // Load plugins on init
+        if (!PluginState.Value.IsLoading && !PluginState.Value.LoadedPlugins.Any())
+        {
+            Dispatcher.Dispatch(new LoadPluginsAction());
+        }
+    }
+
+    private void HandleRefresh()
+    {
+        Dispatcher.Dispatch(new LoadPluginsAction());
+    }
+
+    private void HandleToggle(string pluginId)
+    {
+        Dispatcher.Dispatch(new TogglePluginAction(pluginId));
+    }
+
+    private void HandleSettings(string pluginId)
+    {
+        Dispatcher.Dispatch(new OpenPluginSettingsAction(pluginId));
+    }
+
+    private Color GetCategoryColor(PluginCategory category) => category switch
+    {
+        PluginCategory.MessageActions => Color.Primary,
+        PluginCategory.InputExtensions => Color.Secondary,
+        PluginCategory.Interceptors => Color.Info,
+        PluginCategory.Tools => Color.Success,
+        PluginCategory.Analytics => Color.Warning,
+        PluginCategory.Integration => Color.Tertiary,
+        PluginCategory.UI => Color.Dark,
+        PluginCategory.Safety => Color.Error,
+        _ => Color.Default
+    };
+}

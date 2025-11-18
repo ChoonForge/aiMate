@@ -4,236 +4,226 @@ namespace AiMate.Web.Store.Knowledge;
 
 public static class KnowledgeReducers
 {
-    // Search
-    [ReducerMethod]
-    public static KnowledgeState OnSearchKnowledge(KnowledgeState state, SearchKnowledgeAction action)
-    {
-        return state with { IsSearching = true, SearchQuery = action.Query, Error = null };
-    }
+    // ========================================================================
+    // LOAD ARTICLES
+    // ========================================================================
 
     [ReducerMethod]
-    public static KnowledgeState OnSearchKnowledgeSuccess(KnowledgeState state, SearchKnowledgeSuccessAction action)
-    {
-        return state with { SearchResults = action.Results, IsSearching = false };
-    }
+    public static KnowledgeState LoadArticles(KnowledgeState state, LoadArticlesAction action)
+        => state with { IsLoading = true, Error = null };
 
     [ReducerMethod]
-    public static KnowledgeState OnSearchKnowledgeFailure(KnowledgeState state, SearchKnowledgeFailureAction action)
+    public static KnowledgeState LoadArticlesSuccess(KnowledgeState state, LoadArticlesSuccessAction action)
     {
-        return state with { IsSearching = false, Error = action.Error };
-    }
+        // Extract metadata
+        var collections = action.Articles
+            .Where(a => !string.IsNullOrEmpty(a.Collection))
+            .Select(a => a.Collection!)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList();
 
-    // Load all
-    [ReducerMethod]
-    public static KnowledgeState OnLoadKnowledgeItems(KnowledgeState state, LoadKnowledgeItemsAction action)
-    {
-        return state with { IsLoading = true, Error = null };
-    }
-
-    [ReducerMethod]
-    public static KnowledgeState OnLoadKnowledgeItemsSuccess(KnowledgeState state, LoadKnowledgeItemsSuccessAction action)
-    {
-        var items = action.Items.ToDictionary(i => i.Id);
-
-        // Extract all unique tags
-        var allTags = action.Items
-            .SelectMany(i => i.Tags)
+        var tags = action.Articles
+            .SelectMany(a => a.Tags)
             .Distinct()
             .OrderBy(t => t)
             .ToList();
 
+        var categories = action.Articles
+            .Where(a => !string.IsNullOrEmpty(a.Category))
+            .Select(a => a.Category!)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList();
+
         return state with
         {
-            KnowledgeItems = items,
-            AllTags = allTags,
+            Articles = action.Articles,
+            Collections = collections,
+            AllTags = tags,
+            Categories = categories,
             IsLoading = false
         };
     }
 
     [ReducerMethod]
-    public static KnowledgeState OnLoadKnowledgeItemsFailure(KnowledgeState state, LoadKnowledgeItemsFailureAction action)
-    {
-        return state with { IsLoading = false, Error = action.Error };
-    }
+    public static KnowledgeState LoadArticlesFailure(KnowledgeState state, LoadArticlesFailureAction action)
+        => state with { IsLoading = false, Error = action.Error };
 
-    // Select item
-    [ReducerMethod]
-    public static KnowledgeState OnSelectKnowledgeItem(KnowledgeState state, SelectKnowledgeItemAction action)
-    {
-        return state with { SelectedItemId = action.ItemId };
-    }
+    // ========================================================================
+    // LOAD ANALYTICS
+    // ========================================================================
 
     [ReducerMethod]
-    public static KnowledgeState OnLoadRelatedItems(KnowledgeState state, LoadRelatedItemsAction action)
+    public static KnowledgeState LoadAnalytics(KnowledgeState state, LoadAnalyticsAction action)
+        => state with { IsLoading = true };
+
+    [ReducerMethod]
+    public static KnowledgeState LoadAnalyticsSuccess(KnowledgeState state, LoadAnalyticsSuccessAction action)
+        => state with { Analytics = action.Analytics, IsLoading = false };
+
+    [ReducerMethod]
+    public static KnowledgeState LoadAnalyticsFailure(KnowledgeState state, LoadAnalyticsFailureAction action)
+        => state with { IsLoading = false, Error = action.Error };
+
+    // ========================================================================
+    // CREATE/UPDATE/DELETE
+    // ========================================================================
+
+    [ReducerMethod]
+    public static KnowledgeState CreateArticle(KnowledgeState state, CreateArticleAction action)
+        => state with { IsSaving = true, Error = null };
+
+    [ReducerMethod]
+    public static KnowledgeState CreateArticleSuccess(KnowledgeState state, CreateArticleSuccessAction action)
     {
-        return state with { IsLoading = true };
+        var articles = state.Articles.ToList();
+        articles.Insert(0, action.Article);
+        return state with { Articles = articles, IsSaving = false, IsEditDialogOpen = false };
     }
 
     [ReducerMethod]
-    public static KnowledgeState OnLoadRelatedItemsSuccess(KnowledgeState state, LoadRelatedItemsSuccessAction action)
+    public static KnowledgeState CreateArticleFailure(KnowledgeState state, CreateArticleFailureAction action)
+        => state with { IsSaving = false, Error = action.Error };
+
+    [ReducerMethod]
+    public static KnowledgeState UpdateArticle(KnowledgeState state, UpdateArticleAction action)
+        => state with { IsSaving = true, Error = null };
+
+    [ReducerMethod]
+    public static KnowledgeState UpdateArticleSuccess(KnowledgeState state, UpdateArticleSuccessAction action)
     {
-        return state with { RelatedItems = action.RelatedItems, IsLoading = false };
+        var articles = state.Articles.ToList();
+        var index = articles.FindIndex(a => a.Id == action.UpdatedArticle.Id);
+        if (index >= 0) articles[index] = action.UpdatedArticle;
+        return state with { Articles = articles, IsSaving = false, IsEditDialogOpen = false };
     }
 
-    // Tag filtering
     [ReducerMethod]
-    public static KnowledgeState OnToggleTagFilter(KnowledgeState state, ToggleTagFilterAction action)
-    {
-        var selectedTags = state.SelectedTags.ToList();
+    public static KnowledgeState UpdateArticleFailure(KnowledgeState state, UpdateArticleFailureAction action)
+        => state with { IsSaving = false, Error = action.Error };
 
-        if (selectedTags.Contains(action.Tag))
+    [ReducerMethod]
+    public static KnowledgeState DeleteArticle(KnowledgeState state, DeleteArticleAction action)
+        => state with { IsLoading = true, Error = null };
+
+    [ReducerMethod]
+    public static KnowledgeState DeleteArticleSuccess(KnowledgeState state, DeleteArticleSuccessAction action)
+    {
+        var articles = state.Articles.Where(a => a.Id != action.ArticleId).ToList();
+        return state with { Articles = articles, IsLoading = false };
+    }
+
+    [ReducerMethod]
+    public static KnowledgeState DeleteArticleFailure(KnowledgeState state, DeleteArticleFailureAction action)
+        => state with { IsLoading = false, Error = action.Error };
+
+    // ========================================================================
+    // ARTICLE INTERACTIONS
+    // ========================================================================
+
+    [ReducerMethod]
+    public static KnowledgeState ViewArticle(KnowledgeState state, ViewArticleAction action)
+    {
+        var articles = state.Articles.ToList();
+        var article = articles.FirstOrDefault(a => a.Id == action.ArticleId);
+        if (article != null)
         {
-            selectedTags.Remove(action.Tag);
+            var index = articles.IndexOf(article);
+            articles[index] = article with { ViewCount = article.ViewCount + 1, LastViewedAt = DateTime.UtcNow };
         }
-        else
+        return state with { Articles = articles };
+    }
+
+    [ReducerMethod]
+    public static KnowledgeState ReferenceArticle(KnowledgeState state, ReferenceArticleAction action)
+    {
+        var articles = state.Articles.ToList();
+        var article = articles.FirstOrDefault(a => a.Id == action.ArticleId);
+        if (article != null)
         {
-            selectedTags.Add(action.Tag);
+            var index = articles.IndexOf(article);
+            articles[index] = article with { ReferenceCount = article.ReferenceCount + 1 };
         }
-
-        return state with { SelectedTags = selectedTags };
+        return state with { Articles = articles };
     }
 
     [ReducerMethod]
-    public static KnowledgeState OnClearTagFilters(KnowledgeState state, ClearTagFiltersAction action)
+    public static KnowledgeState UpvoteArticle(KnowledgeState state, UpvoteArticleAction action)
     {
-        return state with { SelectedTags = new List<string>() };
-    }
-
-    // Create
-    [ReducerMethod]
-    public static KnowledgeState OnCreateKnowledgeItem(KnowledgeState state, CreateKnowledgeItemAction action)
-    {
-        return state with { IsSaving = true, Error = null };
-    }
-
-    [ReducerMethod]
-    public static KnowledgeState OnCreateKnowledgeItemSuccess(KnowledgeState state, CreateKnowledgeItemSuccessAction action)
-    {
-        var newItems = new Dictionary<Guid, Core.Entities.KnowledgeItem>(state.KnowledgeItems)
+        var articles = state.Articles.ToList();
+        var article = articles.FirstOrDefault(a => a.Id == action.ArticleId);
+        if (article != null)
         {
-            [action.Item.Id] = action.Item
+            var index = articles.IndexOf(article);
+            articles[index] = article with { UpvoteCount = article.UpvoteCount + 1 };
+        }
+        return state with { Articles = articles };
+    }
+
+    [ReducerMethod]
+    public static KnowledgeState ToggleFeatured(KnowledgeState state, ToggleFeaturedAction action)
+    {
+        var articles = state.Articles.ToList();
+        var article = articles.FirstOrDefault(a => a.Id == action.ArticleId);
+        if (article != null)
+        {
+            var index = articles.IndexOf(article);
+            articles[index] = article with { IsFeatured = !article.IsFeatured };
+        }
+        return state with { Articles = articles };
+    }
+
+    // ========================================================================
+    // FILTERS
+    // ========================================================================
+
+    [ReducerMethod]
+    public static KnowledgeState SetSearchQuery(KnowledgeState state, SetSearchQueryAction action)
+        => state with { SearchQuery = action.Query };
+
+    [ReducerMethod]
+    public static KnowledgeState SetTypeFilter(KnowledgeState state, SetTypeFilterAction action)
+        => state with { SelectedType = action.Type };
+
+    [ReducerMethod]
+    public static KnowledgeState SetCollectionFilter(KnowledgeState state, SetCollectionFilterAction action)
+        => state with { SelectedCollection = action.Collection };
+
+    [ReducerMethod]
+    public static KnowledgeState ToggleShowFeatured(KnowledgeState state, ToggleShowFeaturedAction action)
+        => state with { ShowFeaturedOnly = !state.ShowFeaturedOnly };
+
+    [ReducerMethod]
+    public static KnowledgeState ClearFilters(KnowledgeState state, ClearFiltersAction action)
+        => state with
+        {
+            SearchQuery = string.Empty,
+            SelectedType = null,
+            SelectedCollection = null,
+            SelectedCategory = null,
+            SelectedTags = new(),
+            ShowFeaturedOnly = false,
+            ShowVerifiedOnly = false
         };
 
-        // Update all tags
-        var allTags = newItems.Values
-            .SelectMany(i => i.Tags)
-            .Distinct()
-            .OrderBy(t => t)
-            .ToList();
-
-        return state with
-        {
-            KnowledgeItems = newItems,
-            AllTags = allTags,
-            IsSaving = false,
-            ShowItemEditor = false,
-            EditingItemId = null,
-            SelectedItemId = action.Item.Id
-        };
-    }
-
-    // Update
-    [ReducerMethod]
-    public static KnowledgeState OnUpdateKnowledgeItem(KnowledgeState state, UpdateKnowledgeItemAction action)
-    {
-        return state with { IsSaving = true, Error = null };
-    }
+    // ========================================================================
+    // UI
+    // ========================================================================
 
     [ReducerMethod]
-    public static KnowledgeState OnUpdateKnowledgeItemSuccess(KnowledgeState state, UpdateKnowledgeItemSuccessAction action)
-    {
-        var newItems = new Dictionary<Guid, Core.Entities.KnowledgeItem>(state.KnowledgeItems)
-        {
-            [action.Item.Id] = action.Item
-        };
-
-        // Update all tags
-        var allTags = newItems.Values
-            .SelectMany(i => i.Tags)
-            .Distinct()
-            .OrderBy(t => t)
-            .ToList();
-
-        return state with
-        {
-            KnowledgeItems = newItems,
-            AllTags = allTags,
-            IsSaving = false,
-            ShowItemEditor = false,
-            EditingItemId = null
-        };
-    }
-
-    // Delete
-    [ReducerMethod]
-    public static KnowledgeState OnDeleteKnowledgeItem(KnowledgeState state, DeleteKnowledgeItemAction action)
-    {
-        return state with { IsLoading = true, Error = null };
-    }
+    public static KnowledgeState SetViewMode(KnowledgeState state, SetViewModeAction action)
+        => state with { ViewMode = action.ViewMode };
 
     [ReducerMethod]
-    public static KnowledgeState OnDeleteKnowledgeItemSuccess(KnowledgeState state, DeleteKnowledgeItemSuccessAction action)
-    {
-        var newItems = new Dictionary<Guid, Core.Entities.KnowledgeItem>(state.KnowledgeItems);
-        newItems.Remove(action.ItemId);
-
-        // Update all tags
-        var allTags = newItems.Values
-            .SelectMany(i => i.Tags)
-            .Distinct()
-            .OrderBy(t => t)
-            .ToList();
-
-        var newSelectedItemId = state.SelectedItemId == action.ItemId ? null : state.SelectedItemId;
-
-        return state with
-        {
-            KnowledgeItems = newItems,
-            AllTags = allTags,
-            SelectedItemId = newSelectedItemId,
-            IsLoading = false
-        };
-    }
-
-    // UI actions
-    [ReducerMethod]
-    public static KnowledgeState OnOpenKnowledgeItemEditor(KnowledgeState state, OpenKnowledgeItemEditorAction action)
-    {
-        return state with
-        {
-            ShowItemEditor = true,
-            EditingItemId = action.ItemId,
-            Error = null
-        };
-    }
+    public static KnowledgeState SetActiveTab(KnowledgeState state, SetActiveTabAction action)
+        => state with { ActiveTab = action.Tab };
 
     [ReducerMethod]
-    public static KnowledgeState OnCloseKnowledgeItemEditor(KnowledgeState state, CloseKnowledgeItemEditorAction action)
-    {
-        return state with
-        {
-            ShowItemEditor = false,
-            EditingItemId = null,
-            Error = null
-        };
-    }
+    public static KnowledgeState OpenEditDialog(KnowledgeState state, OpenEditDialogAction action)
+        => state with { IsEditDialogOpen = true, SelectedArticle = action.Article };
 
     [ReducerMethod]
-    public static KnowledgeState OnUpdateSearchQuery(KnowledgeState state, UpdateSearchQueryAction action)
-    {
-        return state with { SearchQuery = action.Query };
-    }
-
-    // Error handling
-    [ReducerMethod]
-    public static KnowledgeState OnSetKnowledgeError(KnowledgeState state, SetKnowledgeErrorAction action)
-    {
-        return state with { Error = action.Error, IsLoading = false, IsSearching = false, IsSaving = false };
-    }
-
-    [ReducerMethod]
-    public static KnowledgeState OnClearKnowledgeError(KnowledgeState state, ClearKnowledgeErrorAction action)
-    {
-        return state with { Error = null };
-    }
+    public static KnowledgeState CloseEditDialog(KnowledgeState state, CloseEditDialogAction action)
+        => state with { IsEditDialogOpen = false, SelectedArticle = null };
 }

@@ -1,0 +1,304 @@
+@using AiMate.Shared.Models
+@using AiMate.Core.Enums
+@using AiMate.Core.Services
+@inject IPermissionService PermissionService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudTabs Elevation="0" Rounded="true" ActivePanelIndex="@_activeTab" ActivePanelIndexChanged="@((int index) => _activeTab = index)">
+            <MudTabPanel Text="General" Icon="@Icons.Material.Filled.Settings">
+                <div class="pa-4">
+                    <MudTextField T="string" @bind-Value="@Model.Name"
+                                Label="Model Name"
+                                Variant="Variant.Outlined"
+                                Required="true"
+                                Class="mb-4" />
+
+                    <MudTextField T="string" @bind-Value="@Model.ModelId"
+                                Label="Model ID"
+                                Variant="Variant.Outlined"
+                                Required="true"
+                                HelperText="e.g., gpt-4, claude-3-opus"
+                                Class="mb-4" />
+
+                    <MudTextField T="string" @bind-Value="@Model.Description"
+                                Label="Description"
+                                Variant="Variant.Outlined"
+                                Lines="2"
+                                Class="mb-4" />
+
+                    <MudSelect T="string" @bind-Value="@Model.Connection"
+                             Label="Connection"
+                             Variant="Variant.Outlined"
+                             AnchorOrigin="Origin.BottomCenter"
+                             Class="mb-4">
+                        <MudSelectItem T="string" Value="@("OpenAI")">OpenAI</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Anthropic")">Anthropic</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Local")">Local (LiteLLM)</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Custom")">Custom Endpoint</MudSelectItem>
+                    </MudSelect>
+
+                    @if (_userTier == UserTier.Free || _userTier == UserTier.BYOK || HasPermission(UserPermission.AddOwnKeys))
+                    {
+                        <MudTextField T="string" @bind-Value="@Model.ApiKey"
+                                    Label="API Key"
+                                    Variant="Variant.Outlined"
+                                    InputType="InputType.Password"
+                                    Placeholder="Enter your API key"
+                                    HelperText="Your key is encrypted and stored securely"
+                                    Class="mb-4" />
+                    }
+
+                    @if (HasPermission(UserPermission.AddCustomEndpoints))
+                    {
+                        <MudTextField T="string" @bind-Value="@Model.CustomEndpoint"
+                                    Label="Custom Endpoint (optional)"
+                                    Variant="Variant.Outlined"
+                                    Placeholder="https://api.example.com/v1"
+                                    HelperText="Override default endpoint URL"
+                                    Class="mb-4" />
+                    }
+
+                    <MudButton Variant="Variant.Outlined"
+                             Color="Color.Primary"
+                             StartIcon="@Icons.Material.Filled.Cable"
+                             OnClick="@TestConnection"
+                             Disabled="@_isTestingConnection">
+                        @if (_isTestingConnection)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                            <span>Testing...</span>
+                        }
+                        else
+                        {
+                            <span>Test Connection</span>
+                        }
+                    </MudButton>
+
+                    @if (!string.IsNullOrEmpty(_connectionTestResult))
+                    {
+                        <MudAlert Severity="@(_connectionTestSuccess ? Severity.Success : Severity.Error)"
+                                Class="mt-2">
+                            @_connectionTestResult
+                        </MudAlert>
+                    }
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Model Params" Icon="@Icons.Material.Filled.Tune">
+                <div class="pa-4">
+                    <MudNumericField T="int" @bind-Value="@Model.ContextWindow"
+                                   Label="Context Window"
+                                   Variant="Variant.Outlined"
+                                   HelperText="Maximum context length (tokens)"
+                                   Class="mb-4" />
+
+                    <MudNumericField T="int" @bind-Value="@Model.MaxTokens"
+                                   Label="Max Tokens"
+                                   Variant="Variant.Outlined"
+                                   HelperText="Maximum tokens in response"
+                                   Class="mb-4" />
+
+                    <MudSlider T="double" @bind-Value="@Model.Temperature"
+                             Min="0" Max="2" Step="0.1"
+                             Color="Color.Primary"
+                             Class="mb-4">
+                        Temperature: @Model.Temperature.ToString("F1")
+                    </MudSlider>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-4">
+                        Controls randomness. Higher = more creative
+                    </MudText>
+
+                    <MudSlider T="double" @bind-Value="@Model.TopP"
+                             Min="0" Max="1" Step="0.05"
+                             Color="Color.Primary"
+                             Class="mb-4">
+                        Top P: @Model.TopP.ToString("F2")
+                    </MudSlider>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-4">
+                        Nucleus sampling threshold
+                    </MudText>
+
+                    <MudSlider T="double" @bind-Value="@Model.FrequencyPenalty"
+                             Min="0" Max="2" Step="0.1"
+                             Color="Color.Primary"
+                             Class="mb-4">
+                        Frequency Penalty: @Model.FrequencyPenalty.ToString("F1")
+                    </MudSlider>
+
+                    <MudSlider T="double" @bind-Value="@Model.PresencePenalty"
+                             Min="0" Max="2" Step="0.1"
+                             Color="Color.Primary"
+                             Class="mb-4">
+                        Presence Penalty: @Model.PresencePenalty.ToString("F1")
+                    </MudSlider>
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Advanced Params" Icon="@Icons.Material.Filled.Science">
+                <div class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-4">Capabilities</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                        Enable features this model supports
+                    </MudText>
+
+                    <MudCheckBox T="bool" @bind-Checked="@Model.SupportsVision"
+                               Label="Vision"
+                               Color="Color.Primary"
+                               Class="mb-2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Can analyze images and visual content
+                        </MudText>
+                    </MudCheckBox>
+
+                    <MudCheckBox T="bool" @bind-Checked="@Model.SupportsWebSearch"
+                               Label="Web Search"
+                               Color="Color.Primary"
+                               Class="mb-2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Can search the web for real-time information
+                        </MudText>
+                    </MudCheckBox>
+
+                    <MudCheckBox T="bool" @bind-Checked="@Model.SupportsFileUpload"
+                               Label="File Upload"
+                               Color="Color.Primary"
+                               Class="mb-2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Can process uploaded files and documents
+                        </MudText>
+                    </MudCheckBox>
+
+                    <MudCheckBox T="bool" @bind-Checked="@Model.SupportsImageGeneration"
+                               Label="Image Generation"
+                               Color="Color.Primary"
+                               Class="mb-2">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Can generate images from text descriptions
+                        </MudText>
+                    </MudCheckBox>
+                </div>
+            </MudTabPanel>
+        </MudTabs>
+    </DialogContent>
+    <DialogActions>
+        @if (_userTier == UserTier.Admin && !string.IsNullOrEmpty(Model.Id))
+        {
+            <MudButton Variant="Variant.Filled"
+                     Color="Color.Error"
+                     OnClick="@HandleDelete"
+                     Class="mr-auto">
+                Delete
+            </MudButton>
+        }
+        <MudButton Variant="Variant.Text" OnClick="@Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled"
+                 Color="Color.Primary"
+                 OnClick="@Save"
+                 Disabled="@(!IsValid())">
+            Save
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public AIModelDto Model { get; set; } = new();
+
+    [Parameter]
+    public UserTier UserTier
+    {
+        get => _userTier;
+        set => _userTier = value;
+    }
+
+    private UserTier _userTier = UserTier.Free;
+    private int _activeTab = 0;
+    private bool _isTestingConnection = false;
+    private string? _connectionTestResult;
+    private bool _connectionTestSuccess = false;
+
+    protected override void OnInitialized()
+    {
+        // Initialize defaults if new model
+        if (string.IsNullOrEmpty(Model.Id))
+        {
+            Model.ContextWindow = 8192;
+            Model.MaxTokens = 4096;
+            Model.Temperature = 0.7;
+            Model.TopP = 1.0;
+            Model.FrequencyPenalty = 0.0;
+            Model.PresencePenalty = 0.0;
+        }
+    }
+
+    private bool HasPermission(UserPermission permission)
+    {
+        return PermissionService.HasPermission(_userTier, permission);
+    }
+
+    private bool IsValid()
+    {
+        return !string.IsNullOrWhiteSpace(Model.Name)
+            && !string.IsNullOrWhiteSpace(Model.ModelId)
+            && !string.IsNullOrWhiteSpace(Model.Connection);
+    }
+
+    private async Task TestConnection()
+    {
+        _isTestingConnection = true;
+        _connectionTestResult = null;
+        StateHasChanged();
+
+        try
+        {
+            // TODO: Implement actual connection test
+            await Task.Delay(1500); // Simulate API call
+
+            // Simulate success/failure
+            _connectionTestSuccess = !string.IsNullOrEmpty(Model.ApiKey);
+            _connectionTestResult = _connectionTestSuccess
+                ? "Connection successful! Model is responding."
+                : "Failed: API key is required";
+        }
+        catch (Exception ex)
+        {
+            _connectionTestSuccess = false;
+            _connectionTestResult = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _isTestingConnection = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Save()
+    {
+        if (IsValid())
+        {
+            MudDialog.Close(DialogResult.Ok(Model));
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task HandleDelete()
+    {
+        var confirmed = await Snackbar.ShowConfirmation(
+            "Delete this model?",
+            "This action cannot be undone.");
+
+        if (confirmed)
+        {
+            MudDialog.Close(DialogResult.Ok(new { Action = "Delete", Model }));
+        }
+    }
+}

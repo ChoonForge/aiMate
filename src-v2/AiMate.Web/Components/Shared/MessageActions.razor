@@ -1,0 +1,156 @@
+@using AiMate.Core.Entities
+@using AiMate.Core.Services
+@using AiMate.Core.Plugins
+@inject IPluginManager PluginManager
+@inject IJSRuntime JSRuntime
+
+@if (!Message.IsStreaming && _actions.Any())
+{
+    <div class="chat-message-actions">
+        @foreach (var action in _actions.OrderBy(a => a.Order))
+        {
+            @if (ShouldShowAction(action))
+            {
+                <button class="btn btn-icon btn-sm"
+                        title="@action.Tooltip"
+                        @onclick="@(() => HandleActionClick(action))">
+                    <MudIcon Icon="@GetMudIcon(action.Icon)" Size="Size.Small" />
+                </button>
+            }
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Message Message { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<MessageActionButton> OnActionClick { get; set; }
+
+    private List<MessageActionButton> _actions = new();
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        // Get actions from all plugins for this message
+        _actions = PluginManager.GetMessageActions(Message).ToList();
+    }
+
+    private bool ShouldShowAction(MessageActionButton action)
+    {
+        if (Message.Role == Core.Enums.MessageRole.User)
+        {
+            return action.ShowOnUserMessages;
+        }
+        else
+        {
+            return action.ShowOnAssistantMessages;
+        }
+    }
+
+    private string GetMudIcon(string iconName)
+    {
+        // Map plugin icon names to MudBlazor icons
+        return iconName switch
+        {
+            "ContentCopy" => Icons.Material.Filled.ContentCopy,
+            "Edit" => Icons.Material.Filled.Edit,
+            "Refresh" => Icons.Material.Filled.Refresh,
+            "Share" => Icons.Material.Filled.Share,
+            "Delete" => Icons.Material.Filled.Delete,
+            "ThumbUp" => Icons.Material.Filled.ThumbUp,
+            "ThumbDown" => Icons.Material.Filled.ThumbDown,
+            "Code" => Icons.Material.Filled.Code,
+            _ => Icons.Material.Filled.MoreVert
+        };
+    }
+
+    private async Task HandleActionClick(MessageActionButton action)
+    {
+        // Execute the action based on its handler
+        switch (action.OnClickHandler)
+        {
+            case "handleCopyMessage":
+                await CopyToClipboard(Message.Content);
+                break;
+
+            case "handleCopyAllCode":
+                await CopyAllCodeBlocks(Message.Content);
+                break;
+
+            case "handleEditMessage":
+                await OnActionClick.InvokeAsync(action);
+                break;
+
+            case "handleRegenerateMessage":
+                await OnActionClick.InvokeAsync(action);
+                break;
+
+            case "handleShareMessage":
+                await OnActionClick.InvokeAsync(action);
+                break;
+
+            case "handleDeleteMessage":
+                await OnActionClick.InvokeAsync(action);
+                break;
+
+            case "handleThumbsUp":
+                await OnActionClick.InvokeAsync(action);
+                break;
+
+            case "handleThumbsDown":
+                await OnActionClick.InvokeAsync(action);
+                break;
+
+            default:
+                // For custom actions, invoke the callback
+                await OnActionClick.InvokeAsync(action);
+                break;
+        }
+    }
+
+    private async Task CopyToClipboard(string text)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", text);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to copy to clipboard: {ex.Message}");
+        }
+    }
+
+    private async Task CopyAllCodeBlocks(string content)
+    {
+        // Extract all code blocks from markdown
+        var codeBlockRegex = new System.Text.RegularExpressions.Regex(@"```[\s\S]*?```");
+        var matches = codeBlockRegex.Matches(content);
+
+        if (matches.Any())
+        {
+            var allCode = string.Join("\n\n", matches.Select(m =>
+            {
+                var block = m.Value;
+                // Remove the ``` delimiters and language identifier
+                var lines = block.Split('\n');
+                if (lines.Length > 2)
+                {
+                    return string.Join('\n', lines.Skip(1).Take(lines.Length - 2));
+                }
+                return block;
+            }));
+
+            await CopyToClipboard(allCode);
+        }
+    }
+}
+
+<style>
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+</style>

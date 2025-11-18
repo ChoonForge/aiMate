@@ -1,5 +1,7 @@
 @using Fluxor
 @using AiMate.Web.Store.Admin
+@using AiMate.Shared.Models
+@using AiMate.Core.Enums
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @inject IState<AdminState> AdminState
 @inject IDispatcher Dispatcher
@@ -70,32 +72,119 @@
 @code {
     private async Task HandleAddModel()
     {
-        var parameters = new DialogParameters<AddModelDialog>();
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        // Create new empty model DTO for admin (has full permissions)
+        var newModel = new AIModelDto
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "",
+            ModelId = "",
+            Description = "",
+            Connection = "default",
+            Provider = "OpenAI",
+            IsEnabled = true,
+            ContextWindow = 8192,
+            MaxTokens = 4096,
+            Temperature = 0.7,
+            TopP = 1.0,
+            FrequencyPenalty = 0.0,
+            PresencePenalty = 0.0,
+            Visibility = "Public", // Admin models are public by default
+            AllowedGroups = new List<string>()
+        };
 
-        var dialog = await DialogService.ShowAsync<AddModelDialog>("Add New Model", parameters, options);
+        var parameters = new DialogParameters
+        {
+            ["Model"] = newModel,
+            ["UserTier"] = UserTier.Admin, // Admin has full access
+            ["IsNew"] = true
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true,
+            DisableBackdropClick = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditModelDialog>("Add New Model", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is AIModelConfig model)
+        if (!result.Canceled && result.Data is AIModelDto modelDto)
         {
-            Dispatcher.Dispatch(new AddModelAction(model));
+            // Convert DTO back to AIModelConfig for AdminState
+            var modelConfig = new AIModelConfig
+            {
+                Id = modelDto.Id,
+                Name = modelDto.Name,
+                Provider = modelDto.Provider,
+                IsEnabled = modelDto.IsEnabled,
+                MaxTokens = modelDto.MaxTokens,
+                Description = modelDto.Description
+            };
+
+            Dispatcher.Dispatch(new AddModelAction(modelConfig));
         }
     }
 
     private async Task HandleEditModel(AIModelConfig model)
     {
-        var parameters = new DialogParameters<AddModelDialog>
+        // Convert AIModelConfig to AIModelDto for the comprehensive dialog
+        var modelDto = new AIModelDto
         {
-            { x => x.Model, model }
+            Id = model.Id,
+            Name = model.Name,
+            ModelId = model.Id, // Use Id as ModelId if not specified
+            Description = model.Description ?? "",
+            Connection = "default",
+            Provider = model.Provider,
+            IsEnabled = model.IsEnabled,
+            ContextWindow = 8192, // Default values since AIModelConfig doesn't store these
+            MaxTokens = model.MaxTokens,
+            Temperature = 0.7,
+            TopP = 1.0,
+            FrequencyPenalty = 0.0,
+            PresencePenalty = 0.0,
+            SupportsVision = false,
+            SupportsWebSearch = false,
+            SupportsFileUpload = false,
+            SupportsImageGeneration = false,
+            Visibility = "Public", // Admin models are public
+            AllowedGroups = new List<string>()
         };
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
 
-        var dialog = await DialogService.ShowAsync<AddModelDialog>("Edit Model", parameters, options);
+        var parameters = new DialogParameters
+        {
+            ["Model"] = modelDto,
+            ["UserTier"] = UserTier.Admin,
+            ["IsNew"] = false
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true,
+            DisableBackdropClick = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditModelDialog>("Edit Model", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is AIModelConfig updatedModel)
+        if (!result.Canceled && result.Data is AIModelDto updatedDto)
         {
-            Dispatcher.Dispatch(new UpdateModelAction(updatedModel));
+            // Convert back to AIModelConfig
+            var updatedConfig = new AIModelConfig
+            {
+                Id = updatedDto.Id,
+                Name = updatedDto.Name,
+                Provider = updatedDto.Provider,
+                IsEnabled = updatedDto.IsEnabled,
+                MaxTokens = updatedDto.MaxTokens,
+                Description = updatedDto.Description
+            };
+
+            Dispatcher.Dispatch(new UpdateModelAction(updatedConfig));
         }
     }
 

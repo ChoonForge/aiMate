@@ -1,161 +1,160 @@
-using AiMate.Core.Services;
+using AiMate.Shared.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AiMate.Web.Controllers;
 
-/// <summary>
-/// Knowledge API for Developer tier - semantic search and knowledge base access
-/// </summary>
 [ApiController]
-[Route("api/v1/knowledge")]
-public class KnowledgeApiController : ControllerBase
+[Route("api/v1/[controller]")]
+public class KnowledgeController : ControllerBase
 {
-    private readonly IKnowledgeGraphService _knowledgeService;
-    private readonly IApiKeyService _apiKeyService;
-    private readonly ILogger<KnowledgeApiController> _logger;
+    private readonly ILogger<KnowledgeController> _logger;
+    private static readonly List<KnowledgeArticleDto> _articles = new();
 
-    public KnowledgeApiController(
-        IKnowledgeGraphService knowledgeService,
-        IApiKeyService apiKeyService,
-        ILogger<KnowledgeApiController> logger)
+    public KnowledgeController(ILogger<KnowledgeController> logger)
     {
-        _knowledgeService = knowledgeService;
-        _apiKeyService = apiKeyService;
         _logger = logger;
+        if (!_articles.Any()) InitializeSampleData();
     }
 
-    /// <summary>
-    /// Search knowledge base with semantic similarity
-    /// </summary>
-    [HttpPost("search")]
-    public async Task<IActionResult> Search([FromBody] KnowledgeSearchRequest request)
+    [HttpGet]
+    public ActionResult<List<KnowledgeArticleDto>> GetArticles([FromQuery] string userId)
     {
-        var apiKey = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-        var userId = await _apiKeyService.ValidateApiKeyAsync(apiKey);
+        var articles = _articles
+            .Where(a => a.OwnerId == userId || a.Visibility == "Public")
+            .Where(a => a.IsPublished)
+            .OrderByDescending(a => a.IsFeatured)
+            .ThenByDescending(a => a.UpdatedAt)
+            .ToList();
+        return Ok(articles);
+    }
 
-        if (userId == null)
+    [HttpGet("analytics")]
+    public ActionResult<KnowledgeAnalyticsDto> GetAnalytics([FromQuery] string userId)
+    {
+        var userArticles = _articles.Where(a => a.OwnerId == userId || a.Visibility == "Public").ToList();
+        var analytics = new KnowledgeAnalyticsDto
         {
-            return Unauthorized(new { error = "Invalid API key" });
-        }
+            TotalArticles = userArticles.Count,
+            TotalViews = userArticles.Sum(a => a.ViewCount),
+            TotalReferences = userArticles.Sum(a => a.ReferenceCount),
+            MostViewed = userArticles.OrderByDescending(a => a.ViewCount).Take(5).ToList(),
+            MostReferenced = userArticles.OrderByDescending(a => a.ReferenceCount).Take(5).ToList(),
+            RecentlyAdded = userArticles.OrderByDescending(a => a.CreatedAt).Take(5).ToList(),
+            TagCounts = userArticles.SelectMany(a => a.Tags).GroupBy(t => t).ToDictionary(g => g.Key, g => g.Count()),
+            TypeCounts = userArticles.GroupBy(a => a.Type).ToDictionary(g => g.Key, g => g.Count()),
+            CategoryCounts = userArticles.Where(a => !string.IsNullOrEmpty(a.Category)).GroupBy(a => a.Category!).ToDictionary(g => g.Key, g => g.Count())
+        };
+        return Ok(analytics);
+    }
 
-        try
+    [HttpGet("{id}")]
+    public ActionResult<KnowledgeArticleDto> GetArticle(string id, [FromQuery] string userId)
+    {
+        var article = _articles.FirstOrDefault(a => a.Id == id);
+        if (article == null) return NotFound();
+        if (article.OwnerId != userId && article.Visibility == "Private") return Forbid();
+        
+        var index = _articles.IndexOf(article);
+        _articles[index] = article with { ViewCount = article.ViewCount + 1, LastViewedAt = DateTime.UtcNow };
+        return Ok(_articles[index]);
+    }
+
+    [HttpPost]
+    public ActionResult<KnowledgeArticleDto> CreateArticle([FromBody] CreateKnowledgeArticleRequest request, [FromQuery] string userId)
+    {
+        var article = new KnowledgeArticleDto
         {
-            _logger.LogInformation("Knowledge search for query: {Query}", request.Query);
+            Id = Guid.NewGuid().ToString(),
+            Title = request.Title,
+            Content = request.Content,
+            ContentType = request.ContentType,
+            Summary = request.Summary,
+            Type = request.Type,
+            Tags = request.Tags ?? new(),
+            Collection = request.Collection,
+            Category = request.Category,
+            Source = request.Source,
+            OwnerId = userId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            PublishedAt = DateTime.UtcNow
+        };
+        _articles.Add(article);
+        return CreatedAtAction(nameof(GetArticle), new { id = article.Id, userId }, article);
+    }
 
-            var results = await _knowledgeService.SearchAsync(
-                request.WorkspaceId,
-                request.Query,
-                request.Limit,
-                request.Tags);
+    [HttpPut("{id}")]
+    public ActionResult<KnowledgeArticleDto> UpdateArticle(string id, [FromBody] UpdateKnowledgeArticleRequest request, [FromQuery] string userId)
+    {
+        var article = _articles.FirstOrDefault(a => a.Id == id);
+        if (article == null) return NotFound();
+        if (article.OwnerId != userId) return Forbid();
 
-            return Ok(new
+        var updated = article with
+        {
+            Title = request.Title ?? article.Title,
+            Content = request.Content ?? article.Content,
+            Summary = request.Summary ?? article.Summary,
+            Tags = request.Tags ?? article.Tags,
+            IsFeatured = request.IsFeatured ?? article.IsFeatured,
+            IsVerified = request.IsVerified ?? article.IsVerified,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var index = _articles.IndexOf(article);
+        _articles[index] = updated;
+        return Ok(updated);
+    }
+
+    [HttpDelete("{id}")]
+    public IActionResult DeleteArticle(string id, [FromQuery] string userId)
+    {
+        var article = _articles.FirstOrDefault(a => a.Id == id);
+        if (article == null) return NotFound();
+        if (article.OwnerId != userId) return Forbid();
+        _articles.Remove(article);
+        return NoContent();
+    }
+
+    private void InitializeSampleData()
+    {
+        _articles.AddRange(new[]
+        {
+            new KnowledgeArticleDto
             {
-                query = request.Query,
-                results = results.Select(r => new
-                {
-                    id = r.Id,
-                    title = r.Title,
-                    content = r.Content,
-                    similarity = r.Similarity,
-                    tags = r.Tags,
-                    createdAt = r.CreatedAt
-                })
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Knowledge search failed");
-            return StatusCode(500, new { error = "Internal server error" });
-        }
+                Id = Guid.NewGuid().ToString(),
+                Title = "Getting Started with Blazor",
+                Content = "# Blazor Basics\n\nBlazor is a framework for building interactive web UIs...",
+                Summary = "Learn the fundamentals of Blazor development",
+                Type = "Tutorial",
+                Tags = new List<string> { "blazor", "csharp", "web" },
+                Collection = "Development",
+                Category = "Web Development",
+                OwnerId = "user-1",
+                Visibility = "Public",
+                IsFeatured = true,
+                IsVerified = true,
+                ViewCount = 245,
+                ReferenceCount = 12,
+                UpvoteCount = 34,
+                CreatedAt = DateTime.UtcNow.AddDays(-30)
+            },
+            new KnowledgeArticleDto
+            {
+                Id = Guid.NewGuid().ToString(),
+                Title = "C# Best Practices",
+                Content = "# Coding Standards\n\n1. Use meaningful names...",
+                Summary = "Essential coding standards for C# development",
+                Type = "Reference",
+                Tags = new List<string> { "csharp", "best-practices" },
+                Collection = "Development",
+                OwnerId = "user-1",
+                Visibility = "Public",
+                IsVerified = true,
+                ViewCount = 189,
+                ReferenceCount = 28,
+                CreatedAt = DateTime.UtcNow.AddDays(-60)
+            }
+        });
     }
-
-    /// <summary>
-    /// Add knowledge item to workspace
-    /// </summary>
-    [HttpPost("items")]
-    public async Task<IActionResult> AddKnowledgeItem([FromBody] AddKnowledgeItemRequest request)
-    {
-        var apiKey = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-        var userId = await _apiKeyService.ValidateApiKeyAsync(apiKey);
-
-        if (userId == null)
-        {
-            return Unauthorized(new { error = "Invalid API key" });
-        }
-
-        try
-        {
-            _logger.LogInformation("Adding knowledge item to workspace {WorkspaceId}", request.WorkspaceId);
-
-            var item = await _knowledgeService.AddKnowledgeAsync(
-                request.WorkspaceId,
-                request.Title,
-                request.Content,
-                request.Tags);
-
-            return CreatedAtAction(
-                nameof(GetKnowledgeItem),
-                new { id = item.Id },
-                new
-                {
-                    id = item.Id,
-                    title = item.Title,
-                    content = item.Content,
-                    tags = item.Tags,
-                    createdAt = item.CreatedAt
-                });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to add knowledge item");
-            return StatusCode(500, new { error = "Internal server error" });
-        }
-    }
-
-    /// <summary>
-    /// Get knowledge item by ID
-    /// </summary>
-    [HttpGet("items/{id}")]
-    public async Task<IActionResult> GetKnowledgeItem(Guid id)
-    {
-        var apiKey = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-        var userId = await _apiKeyService.ValidateApiKeyAsync(apiKey);
-
-        if (userId == null)
-        {
-            return Unauthorized(new { error = "Invalid API key" });
-        }
-
-        try
-        {
-            // IMPLEMENTATION NEEDED: Add GetByIdAsync to IKnowledgeGraphService
-            // Method signature: Task<KnowledgeItem?> GetByIdAsync(Guid id, Guid userId, CancellationToken)
-            // Implementation: _context.KnowledgeItems.FirstOrDefaultAsync(k => k.Id == id && k.UserId == userId)
-            // Then: var item = await _knowledgeService.GetByIdAsync(id, userId.Value);
-            _logger.LogInformation("Fetching knowledge item {Id}", id);
-
-            return StatusCode(501, new { error = "GetByIdAsync not yet implemented in IKnowledgeGraphService" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to fetch knowledge item");
-            return StatusCode(500, new { error = "Internal server error" });
-        }
-    }
-}
-
-public class KnowledgeSearchRequest
-{
-    public Guid WorkspaceId { get; set; }
-    public string Query { get; set; } = string.Empty;
-    public int Limit { get; set; } = 10;
-    public List<string>? Tags { get; set; }
-}
-
-public class AddKnowledgeItemRequest
-{
-    public Guid WorkspaceId { get; set; }
-    public string Title { get; set; } = string.Empty;
-    public string Content { get; set; } = string.Empty;
-    public List<string> Tags { get; set; } = new();
 }

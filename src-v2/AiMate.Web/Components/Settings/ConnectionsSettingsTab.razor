@@ -1,10 +1,155 @@
 @using Fluxor
 @using AiMate.Web.Store.Settings
+@using AiMate.Web.Store.Connection
+@using AiMate.Shared.Models
+@using AiMate.Core.Enums
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @inject IState<SettingsState> SettingsState
+@inject IState<ConnectionState> ConnectionState
 @inject IDispatcher Dispatcher
+@inject IDialogService DialogService
 
-<MudText Typo="Typo.h6" Class="mb-4">Connection Settings</MudText>
+<MudStack Spacing="3">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.h6">Provider Connections</MudText>
+        @if (ConnectionState.Value.BYOKEnabled && ConnectionState.Value.CanAddOwnKeys)
+        {
+            <MudButton Variant="Variant.Filled"
+                     Color="Color.Primary"
+                     StartIcon="@Icons.Material.Filled.Add"
+                     OnClick="@HandleAddConnection"
+                     Disabled="@(ConnectionState.Value.Connections.Count >= ConnectionState.Value.MaxConnections)">
+                Add Connection
+            </MudButton>
+        }
+    </MudStack>
+
+    @if (!ConnectionState.Value.BYOKEnabled)
+    {
+        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.Info">
+            <strong>BYOK (Bring Your Own Key) is not enabled for your tier.</strong>
+            <br />
+            Upgrade to use your own API keys and manage provider connections.
+        </MudAlert>
+    }
+    else
+    {
+        @* Connection Limits *@
+        <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-surface);">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.body2">
+                    <strong>@ConnectionState.Value.Connections.Count</strong> of <strong>@ConnectionState.Value.MaxConnections</strong> connections used
+                </MudText>
+                <MudProgressLinear Value="@GetConnectionUsagePercent()" Color="@GetUsageColor()" Size="Size.Small" Class="flex-grow-1 ml-4" />
+            </MudStack>
+        </MudPaper>
+
+        @if (ConnectionState.Value.Error != null)
+        {
+            <MudAlert Severity="Severity.Error" CloseIconClicked="@(() => Dispatcher.Dispatch(new ClearConnectionErrorAction()))">
+                @ConnectionState.Value.Error
+            </MudAlert>
+        }
+
+        @* Connections List *@
+        @if (ConnectionState.Value.IsLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (!ConnectionState.Value.Connections.Any())
+        {
+            <MudPaper Class="pa-8" Elevation="0" Style="text-align: center;">
+                <MudIcon Icon="@Icons.Material.Filled.CloudOff" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">
+                    No Provider Connections
+                </MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Add your first connection to start using your own API keys
+                </MudText>
+                <MudButton Variant="Variant.Filled"
+                         Color="Color.Primary"
+                         StartIcon="@Icons.Material.Filled.Add"
+                         OnClick="@HandleAddConnection"
+                         Class="mt-4">
+                    Add Connection
+                </MudButton>
+            </MudPaper>
+        }
+        else
+        {
+            <MudGrid>
+                @foreach (var connection in ConnectionState.Value.Connections)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudCard>
+                            <MudCardHeader>
+                                <CardHeaderContent>
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudIcon Icon="@GetProviderIcon(connection.ProviderType)" Color="Color.Primary" />
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.body1"><strong>@connection.Name</strong></MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@connection.ProviderType</MudText>
+                                        </MudStack>
+                                    </MudStack>
+                                </CardHeaderContent>
+                                <CardHeaderActions>
+                                    <MudSwitch T="bool" Checked="@connection.IsEnabled"
+                                             Color="Color.Success"
+                                             CheckedChanged="@((bool val) => HandleToggleConnection(connection.Id, val))" />
+                                </CardHeaderActions>
+                            </MudCardHeader>
+                            <MudCardContent>
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        <MudIcon Icon="@Icons.Material.Filled.Link" Size="Size.Small" />
+                                        @connection.Url
+                                    </MudText>
+                                    @if (connection.ModelIds.Any())
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            <MudIcon Icon="@Icons.Material.Filled.Psychology" Size="Size.Small" />
+                                            @connection.ModelIds.Count models
+                                        </MudText>
+                                    }
+                                    @if (connection.Tags.Any())
+                                    {
+                                        <MudStack Row="true" Spacing="1" Class="mt-2">
+                                            @foreach (var tag in connection.Tags.Take(3))
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@tag</MudChip>
+                                            }
+                                        </MudStack>
+                                    }
+                                </MudStack>
+                            </MudCardContent>
+                            <MudCardActions>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                             Size="Size.Small"
+                                             OnClick="@(() => HandleEditConnection(connection))"
+                                             Title="Edit" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Cable"
+                                             Size="Size.Small"
+                                             OnClick="@(() => HandleTestConnection(connection.Id))"
+                                             Title="Test Connection" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                             Size="Size.Small"
+                                             Color="Color.Error"
+                                             OnClick="@(() => HandleDeleteConnection(connection.Id))"
+                                             Title="Delete" />
+                            </MudCardActions>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    }
+
+    @* Legacy LiteLLM Settings *@
+    <MudDivider Class="my-4" />
+    <MudText Typo="Typo.subtitle1">LiteLLM Gateway</MudText>
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+        Configure your LiteLLM gateway for local model access
+    </MudText>
 
 <MudGrid>
     <MudItem xs="12">
@@ -88,6 +233,15 @@
     private string? _connectionTestResult;
     private bool _connectionTestSuccess = false;
 
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // Load connections on init
+        Dispatcher.Dispatch(new LoadConnectionsAction());
+        Dispatcher.Dispatch(new LoadConnectionLimitsAction());
+    }
+
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
@@ -98,6 +252,120 @@
         _maxRetries = SettingsState.Value.MaxRetries;
         _useStreamingByDefault = SettingsState.Value.UseStreamingByDefault;
     }
+
+    // BYOK Connection Management Handlers
+
+    private async Task HandleAddConnection()
+    {
+        var parameters = new DialogParameters
+        {
+            ["Connection"] = new ProviderConnectionDto { Type = "Cloud", ProviderType = "OpenAI" },
+            ["UserTier"] = UserTier.Free, // TODO: Get from auth service
+            ["IsNew"] = true
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true,
+            DisableBackdropClick = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditConnectionDialog>("Add Connection", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is ProviderConnectionDto connection)
+        {
+            Dispatcher.Dispatch(new CreateConnectionAction(connection));
+        }
+    }
+
+    private async Task HandleEditConnection(ProviderConnectionDto connection)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Connection"] = connection,
+            ["UserTier"] = UserTier.Free, // TODO: Get from auth service
+            ["IsNew"] = false
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = true,
+            DisableBackdropClick = true
+        };
+
+        var dialog = await DialogService.ShowAsync<EditConnectionDialog>("Edit Connection", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is ProviderConnectionDto updated)
+        {
+            Dispatcher.Dispatch(new UpdateConnectionAction(connection.Id, updated));
+        }
+    }
+
+    private void HandleToggleConnection(string id, bool enabled)
+    {
+        var connection = ConnectionState.Value.Connections.FirstOrDefault(c => c.Id == id);
+        if (connection == null) return;
+
+        var updated = connection with { IsEnabled = enabled };
+        Dispatcher.Dispatch(new UpdateConnectionAction(id, updated));
+    }
+
+    private void HandleTestConnection(string id)
+    {
+        Dispatcher.Dispatch(new TestConnectionAction(id));
+    }
+
+    private async Task HandleDeleteConnection(string id)
+    {
+        var connection = ConnectionState.Value.Connections.FirstOrDefault(c => c.Id == id);
+        if (connection == null) return;
+
+        var confirmed = await DialogService.ShowMessageBox(
+            "Delete Connection",
+            $"Are you sure you want to delete '{connection.Name}'? This action cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed == true)
+        {
+            Dispatcher.Dispatch(new DeleteConnectionAction(id));
+        }
+    }
+
+    private double GetConnectionUsagePercent()
+    {
+        if (ConnectionState.Value.MaxConnections == 0) return 0;
+        return (double)ConnectionState.Value.Connections.Count / ConnectionState.Value.MaxConnections * 100;
+    }
+
+    private Color GetUsageColor()
+    {
+        var percent = GetConnectionUsagePercent();
+        if (percent >= 90) return Color.Error;
+        if (percent >= 70) return Color.Warning;
+        return Color.Success;
+    }
+
+    private string GetProviderIcon(string providerType)
+    {
+        return providerType switch
+        {
+            "OpenAI" => Icons.Material.Filled.Psychology,
+            "Anthropic" => Icons.Material.Filled.SmartToy,
+            "Ollama" => Icons.Material.Filled.Computer,
+            "LiteLLM" => Icons.Material.Filled.Hub,
+            "Custom" => Icons.Material.Filled.Code,
+            _ => Icons.Material.Filled.Cloud
+        };
+    }
+
+    // Legacy LiteLLM Connection Test Handler
 
     private void HandleTestConnection()
     {
