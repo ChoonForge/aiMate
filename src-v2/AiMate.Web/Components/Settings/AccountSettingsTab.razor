@@ -12,7 +12,7 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudTextField @bind-Value="@_username"
+        <MudTextField T="string" @bind-Value="@_username"
                      Label="Username"
                      Variant="Variant.Outlined"
                      Placeholder="johndoe"
@@ -20,7 +20,7 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudTextField @bind-Value="@_email"
+        <MudTextField T="string" @bind-Value="@_email"
                      Label="Email"
                      Variant="Variant.Outlined"
                      InputType="InputType.Email"
@@ -29,7 +29,7 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudTextField @bind-Value="@_avatarUrl"
+        <MudTextField T="string" @bind-Value="@_avatarUrl"
                      Label="Avatar URL"
                      Variant="Variant.Outlined"
                      Placeholder="https://example.com/avatar.jpg"

@@ -9,34 +9,34 @@
 
 <MudGrid>
     <MudItem xs="12" md="6">
-        <MudSelect @bind-Value="@_defaultPersonality"
+        <MudSelect T="string" @bind-Value="@_defaultPersonality"
                   Label="Default Personality"
                   Variant="Variant.Outlined"
                   OnValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateDefaultPersonalityAction(value)))">
-            <MudSelectItem Value="@(PersonalityMode.KiwiMate.ToString())">Kiwi Mate (Casual & Friendly)</MudSelectItem>
-            <MudSelectItem Value="@(PersonalityMode.KiwiProfessional.ToString())">Kiwi Professional</MudSelectItem>
-            <MudSelectItem Value="@(PersonalityMode.KiwiDev.ToString())">Kiwi Dev (Technical)</MudSelectItem>
-            <MudSelectItem Value="@(PersonalityMode.TeReoMaori.ToString())">Te Reo Māori</MudSelectItem>
-            <MudSelectItem Value="@(PersonalityMode.MentalHealthSupport.ToString())">Mental Health Support</MudSelectItem>
-            <MudSelectItem Value="@(PersonalityMode.Standard.ToString())">Standard AI</MudSelectItem>
+            <MudSelectItem T="string" Value="@(PersonalityMode.KiwiMate.ToString())">Kiwi Mate (Casual & Friendly)</MudSelectItem>
+            <MudSelectItem T="string" Value="@(PersonalityMode.KiwiProfessional.ToString())">Kiwi Professional</MudSelectItem>
+            <MudSelectItem T="string" Value="@(PersonalityMode.KiwiDev.ToString())">Kiwi Dev (Technical)</MudSelectItem>
+            <MudSelectItem T="string" Value="@(PersonalityMode.TeReoMaori.ToString())">Te Reo Māori</MudSelectItem>
+            <MudSelectItem T="string" Value="@(PersonalityMode.MentalHealthSupport.ToString())">Mental Health Support</MudSelectItem>
+            <MudSelectItem T="string" Value="@(PersonalityMode.Standard.ToString())">Standard AI</MudSelectItem>
         </MudSelect>
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudSelect @bind-Value="@_defaultModel"
+        <MudSelect T="string" @bind-Value="@_defaultModel"
                   Label="Default Model"
                   Variant="Variant.Outlined"
                   OnValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateDefaultModelAction(value)))">
-            <MudSelectItem Value="@("gpt-4")">GPT-4</MudSelectItem>
-            <MudSelectItem Value="@("gpt-3.5-turbo")">GPT-3.5 Turbo</MudSelectItem>
-            <MudSelectItem Value="@("claude-3-5-sonnet-20241022")">Claude 3.5 Sonnet</MudSelectItem>
-            <MudSelectItem Value="@("claude-3-opus-20240229")">Claude 3 Opus</MudSelectItem>
-            <MudSelectItem Value="@("gemini-pro")">Gemini Pro</MudSelectItem>
+            <MudSelectItem T="string" Value="@("gpt-4")">GPT-4</MudSelectItem>
+            <MudSelectItem T="string" Value="@("gpt-3.5-turbo")">GPT-3.5 Turbo</MudSelectItem>
+            <MudSelectItem T="string" Value="@("claude-3-5-sonnet-20241022")">Claude 3.5 Sonnet</MudSelectItem>
+            <MudSelectItem T="string" Value="@("claude-3-opus-20240229")">Claude 3 Opus</MudSelectItem>
+            <MudSelectItem T="string" Value="@("gemini-pro")">Gemini Pro</MudSelectItem>
         </MudSelect>
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudSlider @bind-Value="@_temperature"
+        <MudSlider T="double" @bind-Value="@_temperature"
                   Min="0"
                   Max="2"
                   Step="0.1"
@@ -50,7 +50,7 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudNumericField @bind-Value="@_maxTokens"
+        <MudNumericField T="int" @bind-Value="@_maxTokens"
                         Label="Max Tokens"
                         Variant="Variant.Outlined"
                         Min="100"
@@ -60,7 +60,7 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudTextField @bind-Value="@_systemPromptOverride"
+        <MudTextField T="string" @bind-Value="@_systemPromptOverride"
                      Label="System Prompt Override (Advanced)"
                      Variant="Variant.Outlined"
                      Lines="5"

@@ -8,7 +8,7 @@
 
 <MudGrid>
     <MudItem xs="12">
-        <MudSwitch @bind-Checked="@_trackUsage"
+        <MudSwitch T="bool" @bind-Checked="@_trackUsage"
                   Label="Track Usage"
                   Color="Color.Primary"
                   CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateTrackUsageAction(value)))" />
@@ -18,7 +18,7 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch @bind-Checked="@_showCostEstimates"
+        <MudSwitch T="bool" @bind-Checked="@_showCostEstimates"
                   Label="Show Cost Estimates"
                   Color="Color.Primary"
                   CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateShowCostEstimatesAction(value)))" />
@@ -28,7 +28,7 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch @bind-Checked="@_enableUsageAlerts"
+        <MudSwitch T="bool" @bind-Checked="@_enableUsageAlerts"
                   Label="Enable Usage Alerts"
                   Color="Color.Primary"
                   CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateUsageAlertsAction(value)))" />
@@ -42,7 +42,7 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudNumericField @bind-Value="@_monthlyBudget"
+        <MudNumericField T="int" @bind-Value="@_monthlyBudget"
                         Label="Monthly Budget (NZD)"
                         Variant="Variant.Outlined"
                         Min="0"

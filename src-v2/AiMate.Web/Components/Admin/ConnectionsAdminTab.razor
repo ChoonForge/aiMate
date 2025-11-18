@@ -1,0 +1,96 @@
+@using Fluxor
+@using AiMate.Web.Store.Admin
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<AdminState> AdminState
+@inject IDispatcher Dispatcher
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    <MudText Typo="Typo.h6">Global Connection Settings</MudText>
+    <MudDivider />
+
+    @* LiteLLM Configuration *@
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.subtitle1"><strong>LiteLLM Proxy</strong></MudText>
+
+            <MudTextField T="string" @bind-Value="@_liteLLMUrl"
+                         Label="Base URL"
+                         Variant="Variant.Outlined"
+                         HelperText="The LiteLLM proxy server endpoint"
+                         ValueChanged="@((string val) => Dispatcher.Dispatch(new UpdateAdminLiteLLMUrlAction(val)))" />
+
+            <MudTextField T="string" @bind-Value="@_liteLLMApiKey"
+                         Label="API Key (Optional)"
+                         Variant="Variant.Outlined"
+                         InputType="InputType.Password"
+                         HelperText="Leave blank if no authentication required"
+                         ValueChanged="@((string val) => Dispatcher.Dispatch(new UpdateAdminLiteLLMApiKeyAction(val)))" />
+
+            <MudButton Variant="Variant.Filled"
+                      Color="Color.Primary"
+                      StartIcon="@Icons.Material.Filled.Sensors"
+                      OnClick="@HandleTestConnection">
+                Test Connection
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    @* Direct Provider Connections *@
+    <MudText Typo="Typo.subtitle1" Class="mt-4">Direct Provider Connections</MudText>
+    <MudDivider />
+    <MudAlert Severity="Severity.Info">
+        Configure direct API connections (bypassing LiteLLM). These will be available to all users.
+    </MudAlert>
+
+    <MudExpansionPanels>
+        <MudExpansionPanel Text="OpenAI">
+            <MudStack Spacing="2">
+                <MudTextField T="string" Label="API Key" Variant="Variant.Outlined" InputType="InputType.Password" />
+                <MudTextField T="string" Label="Organization ID (Optional)" Variant="Variant.Outlined" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary">Test Connection</MudButton>
+            </MudStack>
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Anthropic">
+            <MudStack Spacing="2">
+                <MudTextField T="string" Label="API Key" Variant="Variant.Outlined" InputType="InputType.Password" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary">Test Connection</MudButton>
+            </MudStack>
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Google AI">
+            <MudStack Spacing="2">
+                <MudTextField T="string" Label="API Key" Variant="Variant.Outlined" InputType="InputType.Password" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary">Test Connection</MudButton>
+            </MudStack>
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Azure OpenAI">
+            <MudStack Spacing="2">
+                <MudTextField T="string" Label="Endpoint" Variant="Variant.Outlined" />
+                <MudTextField T="string" Label="API Key" Variant="Variant.Outlined" InputType="InputType.Password" />
+                <MudTextField T="string" Label="Deployment Name" Variant="Variant.Outlined" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary">Test Connection</MudButton>
+            </MudStack>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+</MudStack>
+
+@code {
+    private string _liteLLMUrl = "http://localhost:4000";
+    private string? _liteLLMApiKey;
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        _liteLLMUrl = AdminState.Value.AdminLiteLLMUrl;
+        _liteLLMApiKey = AdminState.Value.AdminLiteLLMApiKey;
+    }
+
+    private void HandleTestConnection()
+    {
+        Dispatcher.Dispatch(new TestLiteLLMConnectionAction());
+        Snackbar.Add("Testing connection to LiteLLM...", Severity.Info);
+    }
+}

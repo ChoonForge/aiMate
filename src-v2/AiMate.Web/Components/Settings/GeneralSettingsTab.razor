@@ -8,29 +8,29 @@
 
 <MudGrid>
     <MudItem xs="12" md="6">
-        <MudSelect @bind-Value="@_language"
+        <MudSelect T="string" @bind-Value="@_language"
                   Label="Language"
                   Variant="Variant.Outlined"
                   OnValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateLanguageAction(value)))">
-            <MudSelectItem Value="@("en-NZ")">English (New Zealand)</MudSelectItem>
-            <MudSelectItem Value="@("mi-NZ")">Te Reo Māori</MudSelectItem>
-            <MudSelectItem Value="@("en-US")">English (United States)</MudSelectItem>
-            <MudSelectItem Value="@("en-GB")">English (United Kingdom)</MudSelectItem>
+            <MudSelectItem T="string" Value="@("en-NZ")">English (New Zealand)</MudSelectItem>
+            <MudSelectItem T="string" Value="@("mi-NZ")">Te Reo Māori</MudSelectItem>
+            <MudSelectItem T="string" Value="@("en-US")">English (United States)</MudSelectItem>
+            <MudSelectItem T="string" Value="@("en-GB")">English (United Kingdom)</MudSelectItem>
         </MudSelect>
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudSelect @bind-Value="@_timeZone"
+        <MudSelect T="string" @bind-Value="@_timeZone"
                   Label="Time Zone"
                   Variant="Variant.Outlined"
                   OnValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateTimeZoneAction(value)))">
-            <MudSelectItem Value="@("Pacific/Auckland")">Pacific/Auckland (NZ)</MudSelectItem>
-            <MudSelectItem Value="@("Pacific/Chatham")">Pacific/Chatham (NZ)</MudSelectItem>
-            <MudSelectItem Value="@("Australia/Sydney")">Australia/Sydney</MudSelectItem>
-            <MudSelectItem Value="@("America/Los_Angeles")">America/Los_Angeles</MudSelectItem>
-            <MudSelectItem Value="@("America/New_York")">America/New_York</MudSelectItem>
-            <MudSelectItem Value="@("Europe/London")">Europe/London</MudSelectItem>
-            <MudSelectItem Value="@("UTC")">UTC</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Pacific/Auckland")">Pacific/Auckland (NZ)</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Pacific/Chatham")">Pacific/Chatham (NZ)</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Australia/Sydney")">Australia/Sydney</MudSelectItem>
+            <MudSelectItem T="string" Value="@("America/Los_Angeles")">America/Los_Angeles</MudSelectItem>
+            <MudSelectItem T="string" Value="@("America/New_York")">America/New_York</MudSelectItem>
+            <MudSelectItem T="string" Value="@("Europe/London")">Europe/London</MudSelectItem>
+            <MudSelectItem T="string" Value="@("UTC")">UTC</MudSelectItem>
         </MudSelect>
     </MudItem>
 
@@ -39,7 +39,7 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch @bind-Checked="@_enableNotifications"
+        <MudSwitch T="bool" @bind-Checked="@_enableNotifications"
                   Label="Enable Notifications"
                   Color="Color.Primary"
                   CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateNotificationsAction(value)))" />
@@ -49,7 +49,7 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch @bind-Checked="@_enableSoundEffects"
+        <MudSwitch T="bool" @bind-Checked="@_enableSoundEffects"
                   Label="Enable Sound Effects"
                   Color="Color.Primary"
                   CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateSoundEffectsAction(value)))" />

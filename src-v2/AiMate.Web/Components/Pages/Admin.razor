@@ -1,0 +1,119 @@
+@page "/admin"
+@using Fluxor
+@using AiMate.Web.Store.Admin
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<AdminState> AdminState
+@inject IDispatcher Dispatcher
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h4">Administration</MudText>
+        </MudStack>
+        <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.Shield">
+            Admin Mode
+        </MudChip>
+    </MudStack>
+
+    @if (AdminState.Value.Error != null)
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4" CloseIconClicked="@(() => Dispatcher.Dispatch(new ClearAdminErrorAction()))">
+            @AdminState.Value.Error
+        </MudAlert>
+    }
+
+    @if (AdminState.Value.IsSaving)
+    {
+        <MudAlert Severity="Severity.Info" Class="mb-4">
+            Saving changes...
+        </MudAlert>
+    }
+
+    <MudPaper Class="pa-4">
+        <MudTabs Elevation="0" Rounded="true" ActivePanelIndex="@AdminState.Value.ActiveTab" ActivePanelIndexChanged="@HandleTabChange">
+            <MudTabPanel Text="Overview" Icon="@Icons.Material.Filled.Dashboard">
+                <div class="pa-4">
+                    <OverviewAdminTab />
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Models" Icon="@Icons.Material.Filled.Psychology">
+                <div class="pa-4">
+                    <ModelsAdminTab />
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Connections" Icon="@Icons.Material.Filled.Cloud">
+                <div class="pa-4">
+                    <ConnectionsAdminTab />
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="MCP Servers" Icon="@Icons.Material.Filled.Extension">
+                <div class="pa-4">
+                    <McpAdminTab />
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Users" Icon="@Icons.Material.Filled.People">
+                <div class="pa-4">
+                    <UsersAdminTab />
+                </div>
+            </MudTabPanel>
+
+            <MudTabPanel Text="System" Icon="@Icons.Material.Filled.Storage">
+                <div class="pa-4">
+                    <SystemAdminTab />
+                </div>
+            </MudTabPanel>
+        </MudTabs>
+
+        <MudDivider Class="my-4" />
+
+        <div class="d-flex justify-space-between pa-4">
+            <MudButton Variant="Variant.Outlined"
+                      Color="Color.Secondary"
+                      StartIcon="@Icons.Material.Filled.Refresh"
+                      OnClick="@HandleRefresh">
+                Refresh
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                      Color="Color.Primary"
+                      StartIcon="@Icons.Material.Filled.Save"
+                      OnClick="@HandleSave"
+                      Disabled="@AdminState.Value.IsSaving">
+                @(AdminState.Value.IsSaving ? "Saving..." : "Save Changes")
+            </MudButton>
+        </div>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // Load admin data on component init
+        if (!AdminState.Value.IsLoading)
+        {
+            Dispatcher.Dispatch(new LoadAdminDataAction());
+        }
+    }
+
+    private void HandleTabChange(int index)
+    {
+        Dispatcher.Dispatch(new SetActiveAdminTabAction(index));
+    }
+
+    private void HandleSave()
+    {
+        Dispatcher.Dispatch(new SaveAdminChangesAction());
+    }
+
+    private void HandleRefresh()
+    {
+        Dispatcher.Dispatch(new LoadAdminDataAction());
+    }
+}

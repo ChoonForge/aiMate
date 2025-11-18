@@ -1,0 +1,189 @@
+@using Fluxor
+@using AiMate.Web.Store.Admin
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<AdminState> AdminState
+@inject IDispatcher Dispatcher
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    <MudText Typo="Typo.h6">System Configuration</MudText>
+    <MudDivider />
+
+    @* Database Management *@
+    <MudText Typo="Typo.subtitle1">Database Management</MudText>
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.subtitle2">LocalStorage</MudText>
+                    <MudProgressLinear T="double"
+                                      Value="@((AdminState.Value.LocalStorageUsedMB / AdminState.Value.LocalStorageLimitMB) * 100)"
+                                      Color="Color.Primary"
+                                      Size="Size.Medium" />
+                    <MudText Typo="Typo.body2">
+                        @AdminState.Value.LocalStorageUsedMB.ToString("F1") MB / @AdminState.Value.LocalStorageLimitMB.ToString("F1") MB
+                    </MudText>
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Error"
+                              OnClick="@HandleClearLocalStorage">
+                        Clear All Data
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.subtitle2">IndexedDB</MudText>
+                    <MudProgressLinear T="double"
+                                      Value="@((AdminState.Value.IndexedDBUsedMB / AdminState.Value.IndexedDBLimitMB) * 100)"
+                                      Color="Color.Secondary"
+                                      Size="Size.Medium" />
+                    <MudText Typo="Typo.body2">
+                        @AdminState.Value.IndexedDBUsedMB.ToString("F1") MB / @AdminState.Value.IndexedDBLimitMB.ToString("F1") MB
+                    </MudText>
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Error"
+                              OnClick="@HandleClearIndexedDB">
+                        Clear Files
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudDivider Class="my-4" />
+
+    @* System Logs *@
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.subtitle1">System Logs</MudText>
+        <MudStack Row="true" Spacing="1">
+            <MudButton Size="Size.Small" OnClick="@HandleRefreshLogs">Refresh</MudButton>
+            <MudButton Size="Size.Small" OnClick="@HandleClearLogs">Clear</MudButton>
+            <MudButton Size="Size.Small" OnClick="@HandleExportLogs">Export</MudButton>
+        </MudStack>
+    </MudStack>
+
+    <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-surface); max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px;">
+        @foreach (var log in AdminState.Value.SystemLogs.Take(50))
+        {
+            <MudText Typo="Typo.caption" Color="@GetLogColor(log.Level)">
+                [@log.Timestamp.ToString("HH:mm:ss")] [@log.Level] @log.Message
+            </MudText>
+        }
+    </MudPaper>
+
+    <MudDivider Class="my-4" />
+
+    @* Maintenance *@
+    <MudText Typo="Typo.subtitle1">Maintenance</MudText>
+    <MudStack Row="true" Spacing="2">
+        <MudButton Variant="Variant.Outlined"
+                  StartIcon="@Icons.Material.Filled.Download"
+                  OnClick="@(() => Dispatcher.Dispatch(new ExportSystemConfigAction()))">
+            Export System Config
+        </MudButton>
+        <MudButton Variant="Variant.Outlined"
+                  StartIcon="@Icons.Material.Filled.Upload">
+            Import Config
+        </MudButton>
+        <MudButton Variant="Variant.Outlined"
+                  StartIcon="@Icons.Material.Filled.Backup"
+                  OnClick="@(() => Dispatcher.Dispatch(new CreateBackupAction()))">
+            Create Backup
+        </MudButton>
+    </MudStack>
+
+    <MudDivider Class="my-4" />
+
+    @* Danger Zone *@
+    <MudAlert Severity="Severity.Error">
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.subtitle2">⚠️ Danger Zone</MudText>
+            <MudText Typo="Typo.body2">
+                Reset aiMate to factory defaults. This will delete ALL data, conversations, knowledge, and system configuration.
+            </MudText>
+            <MudButton Variant="Variant.Filled"
+                      Color="Color.Error"
+                      StartIcon="@Icons.Material.Filled.DeleteForever"
+                      OnClick="@HandleFactoryReset">
+                Factory Reset System
+            </MudButton>
+        </MudStack>
+    </MudAlert>
+</MudStack>
+
+@code {
+    private Color GetLogColor(string level) => level.ToUpper() switch
+    {
+        "ERROR" => Color.Error,
+        "WARNING" => Color.Warning,
+        "INFO" => Color.Info,
+        _ => Color.Default
+    };
+
+    private async Task HandleClearLocalStorage()
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "Clear LocalStorage",
+            "This will delete all locally stored data. Are you sure?",
+            yesText: "Clear",
+            cancelText: "Cancel");
+
+        if (confirmed == true)
+        {
+            Dispatcher.Dispatch(new ClearLocalStorageAction());
+            Snackbar.Add("LocalStorage cleared", Severity.Warning);
+        }
+    }
+
+    private async Task HandleClearIndexedDB()
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "Clear IndexedDB",
+            "This will delete all files stored in IndexedDB. Are you sure?",
+            yesText: "Clear",
+            cancelText: "Cancel");
+
+        if (confirmed == true)
+        {
+            Dispatcher.Dispatch(new ClearIndexedDBAction());
+            Snackbar.Add("IndexedDB cleared", Severity.Warning);
+        }
+    }
+
+    private void HandleRefreshLogs()
+    {
+        Dispatcher.Dispatch(new RefreshSystemLogsAction());
+        Snackbar.Add("Logs refreshed", Severity.Success);
+    }
+
+    private void HandleClearLogs()
+    {
+        Dispatcher.Dispatch(new ClearSystemLogsAction());
+        Snackbar.Add("Logs cleared", Severity.Success);
+    }
+
+    private void HandleExportLogs()
+    {
+        Dispatcher.Dispatch(new ExportSystemLogsAction());
+        Snackbar.Add("Logs exported", Severity.Success);
+    }
+
+    private async Task HandleFactoryReset()
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "⚠️ Factory Reset",
+            "This is PERMANENT and will delete ALL data. Type 'RESET' to confirm.",
+            yesText: "RESET",
+            cancelText: "Cancel");
+
+        if (confirmed == true)
+        {
+            Dispatcher.Dispatch(new FactoryResetAction());
+            Snackbar.Add("Factory reset initiated", Severity.Error);
+        }
+    }
+}

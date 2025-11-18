@@ -1,0 +1,100 @@
+@using AiMate.Web.Store.Admin
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTextField T="string" @bind-Value="@_name"
+                         Label="Server Name"
+                         Variant="Variant.Outlined"
+                         Required="true" />
+
+            <MudSelect T="string" @bind-Value="@_type"
+                      Label="Server Type"
+                      Variant="Variant.Outlined"
+                      Required="true">
+                <MudSelectItem T="string" Value="@("stdio")">Stdio (Local Process)</MudSelectItem>
+                <MudSelectItem T="string" Value="@("sse")">SSE (Server-Sent Events)</MudSelectItem>
+                <MudSelectItem T="string" Value="@("http")">HTTP (REST API)</MudSelectItem>
+            </MudSelect>
+
+            @if (_type == "stdio")
+            {
+                <MudTextField T="string" @bind-Value="@_command"
+                             Label="Command"
+                             Variant="Variant.Outlined"
+                             HelperText="e.g., npx, node, python"
+                             Required="true" />
+
+                <MudTextField T="string" @bind-Value="@_arguments"
+                             Label="Arguments"
+                             Variant="Variant.Outlined"
+                             Lines="3"
+                             HelperText="Command arguments, one per line" />
+            }
+            else if (_type == "http" || _type == "sse")
+            {
+                <MudTextField T="string" @bind-Value="@_url"
+                             Label="Server URL"
+                             Variant="Variant.Outlined"
+                             HelperText="e.g., http://localhost:8080/mcp"
+                             Required="true" />
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">
+            @(_isEditMode ? "Update" : "Add") Server
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public MCPServerConfig? Server { get; set; }
+
+    private string _name = string.Empty;
+    private string _type = "stdio";
+    private string? _command;
+    private string? _arguments;
+    private string? _url;
+    private bool _isEditMode = false;
+
+    protected override void OnInitialized()
+    {
+        if (Server != null)
+        {
+            _isEditMode = true;
+            _name = Server.Name;
+            _type = Server.Type;
+            _command = Server.Command;
+            _arguments = Server.Arguments;
+            _url = Server.Url;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private void Submit()
+    {
+        var server = new MCPServerConfig
+        {
+            Id = _isEditMode ? Server!.Id : Guid.NewGuid().ToString(),
+            Name = _name,
+            Type = _type,
+            Command = _command,
+            Arguments = _arguments,
+            Url = _url,
+            Connected = false,
+            ToolCount = 0
+        };
+
+        MudDialog?.Close(DialogResult.Ok(server));
+    }
+}

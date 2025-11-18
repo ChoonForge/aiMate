@@ -143,7 +143,7 @@
                                     <MudChip T="string" Size="Size.Small">@context.Provider</MudChip>
                                 </MudTd>
                                 <MudTd DataLabel="Status">
-                                    <MudSwitch @bind-Value="@context.IsEnabled" Color="Color.Success" />
+                                    <MudSwitch T="bool" @bind-Value="@context.IsEnabled" Color="Color.Success" />
                                 </MudTd>
                                 <MudTd DataLabel="Max Tokens">@context.MaxTokens</MudTd>
                                 <MudTd DataLabel="Actions">
@@ -450,14 +450,14 @@
         <MudStack Spacing="3" Class="mt-3">
             <MudTextField T="string" Label="Model ID" Variant="Variant.Outlined" HelperText="e.g., gpt-4, claude-3-opus" />
             <MudTextField T="string" Label="Display Name" Variant="Variant.Outlined" />
-            <MudSelect T="int" Label="Provider" Variant="Variant.Outlined">
-                <MudSelectItem Value="@("openai")">OpenAI</MudSelectItem>
-                <MudSelectItem Value="@("anthropic")">Anthropic</MudSelectItem>
-                <MudSelectItem Value="@("google")">Google AI</MudSelectItem>
-                <MudSelectItem Value="@("azure")">Azure OpenAI</MudSelectItem>
-                <MudSelectItem Value="@("custom")">Custom</MudSelectItem>
+            <MudSelect T="string" Label="Provider" Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@("openai")">OpenAI</MudSelectItem>
+                <MudSelectItem T="string" Value="@("anthropic")">Anthropic</MudSelectItem>
+                <MudSelectItem T="string" Value="@("google")">Google AI</MudSelectItem>
+                <MudSelectItem T="string" Value="@("azure")">Azure OpenAI</MudSelectItem>
+                <MudSelectItem T="string" Value="@("custom")">Custom</MudSelectItem>
             </MudSelect>
-            <MudNumericField Label="Max Tokens" Variant="Variant.Outlined" Value="4096" />
+            <MudNumericField T="int" Label="Max Tokens" Variant="Variant.Outlined" Value="4096" />
         </MudStack>
     </DialogContent>
     <DialogActions>
@@ -472,10 +472,10 @@
         <MudText Typo="Typo.h6">Add MCP Server</MudText>
         <MudStack Spacing="3" Class="mt-3">
             <MudTextField T="string" Label="Server Name" Variant="Variant.Outlined" />
-            <MudSelect T="int" Label="Server Type" Variant="Variant.Outlined">
-                <MudSelectItem Value="@("stdio")">Stdio</MudSelectItem>
-                <MudSelectItem Value="@("sse")">SSE</MudSelectItem>
-                <MudSelectItem Value="@("http")">HTTP</MudSelectItem>
+            <MudSelect T="string" Label="Server Type" Variant="Variant.Outlined">
+                <MudSelectItem T="string" Value="@("stdio")">Stdio</MudSelectItem>
+                <MudSelectItem T="string" Value="@("sse")">SSE</MudSelectItem>
+                <MudSelectItem T="string" Value="@("http")">HTTP</MudSelectItem>
             </MudSelect>
             <MudTextField T="string" Label="Command" Variant="Variant.Outlined" HelperText="" />
             <MudTextField T="string" Label="Arguments" Variant="Variant.Outlined" Lines="3" />

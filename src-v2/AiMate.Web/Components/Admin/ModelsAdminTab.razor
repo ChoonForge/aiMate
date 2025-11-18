@@ -1,0 +1,120 @@
+@using Fluxor
+@using AiMate.Web.Store.Admin
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<AdminState> AdminState
+@inject IDispatcher Dispatcher
+@inject IDialogService DialogService
+
+<MudStack Spacing="3">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.h6">Global Model Configuration</MudText>
+        <MudButton Variant="Variant.Filled"
+                  Color="Color.Primary"
+                  StartIcon="@Icons.Material.Filled.Add"
+                  OnClick="@HandleAddModel">
+            Add Model
+        </MudButton>
+    </MudStack>
+    <MudDivider />
+
+    <MudAlert Severity="Severity.Info">
+        Configure models available to all users. Users can select their preferred model from this list.
+    </MudAlert>
+
+    @if (AdminState.Value.Models.Any())
+    {
+        <MudTable T="AIModelConfig" Items="@AdminState.Value.Models" Hover="true">
+            <HeaderContent>
+                <MudTh>Model</MudTh>
+                <MudTh>Provider</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Max Tokens</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Model">
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.body2"><strong>@context.Name</strong></MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Id</MudText>
+                    </MudStack>
+                </MudTd>
+                <MudTd DataLabel="Provider">
+                    <MudChip T="string" Size="Size.Small">@context.Provider</MudChip>
+                </MudTd>
+                <MudTd DataLabel="Status">
+                    <MudSwitch T="bool" Checked="@context.IsEnabled"
+                              Color="Color.Success"
+                              CheckedChanged="@((bool val) => HandleToggleModel(context.Id))" />
+                </MudTd>
+                <MudTd DataLabel="Max Tokens">@context.MaxTokens</MudTd>
+                <MudTd DataLabel="Actions">
+                    <MudStack Row="true" Spacing="1">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                      Size="Size.Small"
+                                      OnClick="@(() => HandleEditModel(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                      Size="Size.Small"
+                                      Color="Color.Error"
+                                      OnClick="@(() => HandleDeleteModel(context.Id))" />
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Warning">No models configured. Add models to enable AI functionality.</MudAlert>
+    }
+</MudStack>
+
+@code {
+    private async Task HandleAddModel()
+    {
+        var parameters = new DialogParameters<AddModelDialog>();
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<AddModelDialog>("Add New Model", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is AIModelConfig model)
+        {
+            Dispatcher.Dispatch(new AddModelAction(model));
+        }
+    }
+
+    private async Task HandleEditModel(AIModelConfig model)
+    {
+        var parameters = new DialogParameters<AddModelDialog>
+        {
+            { x => x.Model, model }
+        };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<AddModelDialog>("Edit Model", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is AIModelConfig updatedModel)
+        {
+            Dispatcher.Dispatch(new UpdateModelAction(updatedModel));
+        }
+    }
+
+    private void HandleToggleModel(string modelId)
+    {
+        Dispatcher.Dispatch(new ToggleModelAction(modelId));
+    }
+
+    private async Task HandleDeleteModel(string modelId)
+    {
+        var confirmed = await DialogService.ShowMessageBox(
+            "Confirm Delete",
+            "Are you sure you want to delete this model? Users will no longer be able to select it.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed == true)
+        {
+            Dispatcher.Dispatch(new DeleteModelAction(modelId));
+        }
+    }
+}

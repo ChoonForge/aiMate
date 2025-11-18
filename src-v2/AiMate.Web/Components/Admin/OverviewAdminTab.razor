@@ -1,0 +1,137 @@
+@using Fluxor
+@using AiMate.Web.Store.Admin
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<AdminState> AdminState
+
+<MudText Typo="Typo.h6" Class="mb-4">System Overview</MudText>
+
+<MudGrid>
+    @* Quick Stats *@
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Users</MudText>
+                <MudText Typo="Typo.h4">@AdminState.Value.TotalUsers</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Info">
+                    Single-user mode
+                </MudText>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Conversations</MudText>
+                <MudText Typo="Typo.h4">@AdminState.Value.TotalConversations</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Success">
+                    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Small" />
+                    +@AdminState.Value.ConversationsToday today
+                </MudText>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Active Models</MudText>
+                <MudText Typo="Typo.h4">@AdminState.Value.ActiveModels</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @AdminState.Value.TotalModels configured
+                </MudText>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">MCP Servers</MudText>
+                <MudText Typo="Typo.h4">@AdminState.Value.ConnectedMcpServers</MudText>
+                <MudText Typo="Typo.caption" Color="@(AdminState.Value.ConnectedMcpServers > 0 ? Color.Success : Color.Secondary)">
+                    @(AdminState.Value.ConnectedMcpServers > 0 ? $"{AdminState.Value.ConnectedMcpServers} of {AdminState.Value.TotalMcpServers} connected" : "None configured")
+                </MudText>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    @* System Health *@
+    <MudItem xs="12">
+        <MudText Typo="Typo.h6" Class="mt-4 mb-2">System Health</MudText>
+        <MudDivider />
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudSimpleTable Dense="true">
+            <tbody>
+                <tr>
+                    <td><strong>LiteLLM Proxy</strong></td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="@(AdminState.Value.LiteLLMConnected ? Color.Success : Color.Error)">
+                            @(AdminState.Value.LiteLLMConnected ? "Connected" : "Disconnected")
+                        </MudChip>
+                    </td>
+                    <td>@AdminState.Value.LiteLLMUrl</td>
+                </tr>
+                <tr>
+                    <td><strong>Storage</strong></td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info">
+                            @AdminState.Value.StorageUsedMB.ToString("F1") / @AdminState.Value.StorageLimitMB.ToString("F1") MB
+                        </MudChip>
+                    </td>
+                    <td>@((AdminState.Value.StorageUsedMB / AdminState.Value.StorageLimitMB * 100).ToString("F1"))% used</td>
+                </tr>
+                <tr>
+                    <td><strong>App Version</strong></td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small">@AdminState.Value.AppVersion</MudChip>
+                    </td>
+                    <td>Blazor WASM • .NET 9</td>
+                </tr>
+                <tr>
+                    <td><strong>Uptime</strong></td>
+                    <td>@AdminState.Value.Uptime</td>
+                    <td>Since @DateTime.Now.AddHours(-2).ToString("HH:mm")</td>
+                </tr>
+            </tbody>
+        </MudSimpleTable>
+    </MudItem>
+
+    @* Storage Details *@
+    <MudItem xs="12">
+        <MudText Typo="Typo.h6" Class="mt-4 mb-2">Storage</MudText>
+        <MudDivider />
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle2">LocalStorage</MudText>
+                <MudProgressLinear T="double"
+                                  Value="@((AdminState.Value.LocalStorageUsedMB / AdminState.Value.LocalStorageLimitMB) * 100)"
+                                  Color="Color.Primary"
+                                  Size="Size.Medium" />
+                <MudText Typo="Typo.body2">
+                    @AdminState.Value.LocalStorageUsedMB.ToString("F1") MB / @AdminState.Value.LocalStorageLimitMB.ToString("F1") MB
+                </MudText>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle2">IndexedDB</MudText>
+                <MudProgressLinear T="double"
+                                  Value="@((AdminState.Value.IndexedDBUsedMB / AdminState.Value.IndexedDBLimitMB) * 100)"
+                                  Color="Color.Secondary"
+                                  Size="Size.Medium" />
+                <MudText Typo="Typo.body2">
+                    @AdminState.Value.IndexedDBUsedMB.ToString("F1") MB / @AdminState.Value.IndexedDBLimitMB.ToString("F1") MB
+                </MudText>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>

@@ -1,0 +1,47 @@
+@using Fluxor
+@using AiMate.Web.Store.Admin
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<AdminState> AdminState
+
+<MudStack Spacing="3">
+    <MudText Typo="Typo.h6">User Management</MudText>
+    <MudDivider />
+
+    <MudAlert Severity="Severity.Warning">
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.subtitle2">Multi-User Mode Not Enabled</MudText>
+            <MudText Typo="Typo.body2">
+                aiMate is currently running in single-user mode. Enable multi-user support to:
+            </MudText>
+            <ul style="margin: 0; padding-left: 20px;">
+                <li>Create and manage user accounts</li>
+                <li>Set user permissions and quotas</li>
+                <li>Track usage per user</li>
+                <li>Enable authentication</li>
+            </ul>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="true">
+                Enable Multi-User Mode
+            </MudButton>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Requires backend server configuration
+            </MudText>
+        </MudStack>
+    </MudAlert>
+
+    <MudDivider Class="my-4" />
+
+    <MudText Typo="Typo.subtitle1">Current User</MudText>
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.body1"><strong>Mode:</strong> Single-user (local)</MudText>
+            <MudText Typo="Typo.body1"><strong>Tier:</strong> Free</MudText>
+            <MudText Typo="Typo.body1"><strong>Conversations:</strong> @AdminState.Value.TotalConversations</MudText>
+            <MudText Typo="Typo.body1"><strong>Storage Used:</strong> @AdminState.Value.StorageUsedMB.ToString("F1") MB</MudText>
+        </MudStack>
+    </MudPaper>
+
+    <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-4">
+        🇳🇿 <strong>True Open Source:</strong> No gatekeeping, no "benefactors" model. All tiers get full access to the codebase.
+        Pay if you can, use free if you can't.
+    </MudText>
+</MudStack>

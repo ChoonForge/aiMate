@@ -1,0 +1,100 @@
+@using AiMate.Web.Store.Admin
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTextField T="string" @bind-Value="@_modelId"
+                         Label="Model ID"
+                         Variant="Variant.Outlined"
+                         HelperText="e.g., gpt-4, claude-3-opus"
+                         Required="true" />
+
+            <MudTextField T="string" @bind-Value="@_name"
+                         Label="Display Name"
+                         Variant="Variant.Outlined"
+                         Required="true" />
+
+            <MudSelect T="string" @bind-Value="@_provider"
+                      Label="Provider"
+                      Variant="Variant.Outlined"
+                      Required="true">
+                <MudSelectItem T="string" Value="@("OpenAI")">OpenAI</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Anthropic")">Anthropic</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Google")">Google AI</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Azure")">Azure OpenAI</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Custom")">Custom</MudSelectItem>
+            </MudSelect>
+
+            <MudNumericField T="int" @bind-Value="@_maxTokens"
+                            Label="Max Tokens"
+                            Variant="Variant.Outlined"
+                            Min="100"
+                            Max="100000" />
+
+            <MudTextField T="string" @bind-Value="@_description"
+                         Label="Description (Optional)"
+                         Variant="Variant.Outlined"
+                         Lines="2" />
+
+            <MudSwitch T="bool" @bind-Checked="@_isEnabled"
+                      Label="Enable this model"
+                      Color="Color.Primary" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">
+            @(_isEditMode ? "Update" : "Add") Model
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    MudDialogInstance? MudDialog { get; set; }
+
+    [Parameter]
+    public AIModelConfig? Model { get; set; }
+
+    private string _modelId = string.Empty;
+    private string _name = string.Empty;
+    private string _provider = "OpenAI";
+    private int _maxTokens = 4096;
+    private string? _description;
+    private bool _isEnabled = true;
+    private bool _isEditMode = false;
+
+    protected override void OnInitialized()
+    {
+        if (Model != null)
+        {
+            _isEditMode = true;
+            _modelId = Model.Id;
+            _name = Model.Name;
+            _provider = Model.Provider;
+            _maxTokens = Model.MaxTokens;
+            _description = Model.Description;
+            _isEnabled = Model.IsEnabled;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog?.Cancel();
+    }
+
+    private void Submit()
+    {
+        var model = new AIModelConfig
+        {
+            Id = _modelId,
+            Name = _name,
+            Provider = _provider,
+            MaxTokens = _maxTokens,
+            Description = _description,
+            IsEnabled = _isEnabled
+        };
+
+        MudDialog?.Close(DialogResult.Ok(model));
+    }
+}

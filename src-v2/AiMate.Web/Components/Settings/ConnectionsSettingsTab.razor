@@ -8,7 +8,7 @@
 
 <MudGrid>
     <MudItem xs="12">
-        <MudTextField @bind-Value="@_liteLLMUrl"
+        <MudTextField T="string" @bind-Value="@_liteLLMUrl"
                      Label="LiteLLM URL"
                      Variant="Variant.Outlined"
                      Placeholder="http://localhost:4000"
@@ -19,7 +19,7 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudTextField @bind-Value="@_apiKey"
+        <MudTextField T="string" @bind-Value="@_apiKey"
                      Label="API Key (optional)"
                      Variant="Variant.Outlined"
                      InputType="InputType.Password"
@@ -31,7 +31,7 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudNumericField @bind-Value="@_requestTimeout"
+        <MudNumericField T="int" @bind-Value="@_requestTimeout"
                         Label="Request Timeout (seconds)"
                         Variant="Variant.Outlined"
                         Min="30"
@@ -40,7 +40,7 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudNumericField @bind-Value="@_maxRetries"
+        <MudNumericField T="int" @bind-Value="@_maxRetries"
                         Label="Max Retries"
                         Variant="Variant.Outlined"
                         Min="0"
@@ -49,7 +49,7 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch @bind-Checked="@_useStreamingByDefault"
+        <MudSwitch T="bool" @bind-Checked="@_useStreamingByDefault"
                   Label="Use Streaming by Default"
                   Color="Color.Primary"
                   CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateStreamingDefaultAction(value)))" />

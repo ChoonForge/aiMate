@@ -1,0 +1,247 @@
+AIMATE CODEBASE - FILE STRUCTURE MAP
+====================================
+
+SRC-V2 (NEW - FLUXOR-BASED IMPLEMENTATION)
+==========================================
+
+AiMate.Web/
+├── Components/
+│   ├── Pages/
+│   │   ├── Settings.razor               [✅ USER SETTINGS PAGE]
+│   │   ├── Index.razor
+│   │   ├── Workspaces.razor
+│   │   ├── Knowledge.razor
+│   │   ├── Login.razor
+│   │   └── Routes.razor                 [ADD ADMIN ROUTE HERE]
+│   │
+│   ├── Settings/                        [✅ SETTINGS TABS]
+│   │   ├── GeneralSettingsTab.razor
+│   │   ├── InterfaceSettingsTab.razor
+│   │   ├── ConnectionsSettingsTab.razor
+│   │   ├── PersonalisationSettingsTab.razor
+│   │   ├── AccountSettingsTab.razor
+│   │   └── UsageSettingsTab.razor
+│   │
+│   ├── Admin/                           [TODO - CREATE FOR ADMIN]
+│   │   ├── AdminPage.razor              [NEW - MAIN ADMIN PAGE]
+│   │   ├── Tabs/                        [NEW - ADMIN TABS]
+│   │   │   ├── OverviewTab.razor
+│   │   │   ├── ModelManagementTab.razor
+│   │   │   ├── ConnectionsTab.razor
+│   │   │   ├── MCPServersTab.razor
+│   │   │   ├── SystemTab.razor
+│   │   │   └── UsersTab.razor
+│   │   │
+│   │   └── Dialogs/                     [NEW - ADMIN DIALOGS]
+│   │       ├── AddModelDialog.razor
+│   │       ├── EditModelDialog.razor
+│   │       ├── DeleteConfirmDialog.razor
+│   │       ├── AddMCPDialog.razor
+│   │       └── EditMCPDialog.razor
+│   │
+│   ├── Shared/                          [✅ SHARED COMPONENTS]
+│   │   ├── FileUploadDialog.razor       [PATTERN: Use for dialogs]
+│   │   ├── KnowledgeItemEditor.razor    [PATTERN: Fluxor + Dialog]
+│   │   ├── WorkspaceEditor.razor
+│   │   ├── KnowledgeItemViewer.razor
+│   │   ├── WorkspaceSwitcher.razor
+│   │   └── MarkdownRenderer.razor
+│   │
+│   ├── Layout/                          [✅ LAYOUT]
+│   │   ├── MainLayout.razor             [HAS: MudDialogProvider ✓]
+│   │   ├── Sidebar.razor                [ADD ADMIN LINK HERE]
+│   │   └── TopBar.razor
+│   │
+│   └── _Imports.razor
+│
+├── Store/                               [✅ FLUXOR STATE MANAGEMENT]
+│   ├── Settings/                        [✅ COMPLETE]
+│   │   ├── SettingsState.cs             [47 properties]
+│   │   ├── SettingsActions.cs           [60+ actions]
+│   │   ├── SettingsReducers.cs          [All reducer methods]
+│   │   └── SettingsEffects.cs           [Async operations]
+│   │
+│   ├── Admin/                           [TODO - MIRROR SETTINGS PATTERN]
+│   │   ├── AdminState.cs                [NEW - Admin properties]
+│   │   ├── AdminActions.cs              [NEW - Admin actions]
+│   │   ├── AdminReducers.cs             [NEW - Admin reducers]
+│   │   └── AdminEffects.cs              [NEW - Admin effects]
+│   │
+│   ├── Chat/
+│   │   ├── ChatState.cs
+│   │   ├── ChatActions.cs
+│   │   ├── ChatReducers.cs
+│   │   └── ChatEffects.cs
+│   │
+│   ├── Workspace/
+│   │   ├── WorkspaceState.cs
+│   │   ├── WorkspaceActions.cs
+│   │   ├── WorkspaceReducers.cs
+│   │   └── WorkspaceEffects.cs
+│   │
+│   ├── Project/
+│   │   ├── ProjectState.cs
+│   │   ├── ProjectActions.cs
+│   │   ├── ProjectReducers.cs
+│   │   └── ProjectEffects.cs
+│   │
+│   ├── Knowledge/
+│   │   ├── KnowledgeState.cs
+│   │   ├── KnowledgeActions.cs
+│   │   ├── KnowledgeReducers.cs
+│   │   └── KnowledgeEffects.cs
+│   │
+│   └── Auth/
+│       ├── AuthState.cs
+│       ├── AuthActions.cs
+│       ├── AuthReducers.cs
+│       └── AuthEffects.cs
+│
+└── wwwroot/
+    ├── css/
+    ├── js/
+    └── localization/
+
+AiMate.Core/                            [DOMAIN LOGIC]
+├── Entities/                           [✅ EXISTING]
+│   ├── User.cs
+│   ├── Workspace.cs
+│   ├── Conversation.cs
+│   ├── Message.cs
+│   ├── Project.cs
+│   ├── KnowledgeItem.cs
+│   ├── WorkspaceFile.cs
+│   ├── ToolCall.cs
+│   │
+│   └── [TODO] New Entities:
+│       ├── AIModel.cs                  [NEW]
+│       ├── MCPServerConfig.cs          [NEW]
+│       └── SystemConfiguration.cs      [NEW]
+│
+├── Enums/                              [✅ EXISTING]
+│   ├── MessageRole.cs
+│   ├── WorkspaceType.cs
+│   ├── UserTier.cs
+│   ├── PersonalityMode.cs
+│   │
+│   └── [TODO] New Enums:
+│       └── AdminPermission.cs          [NEW]
+│
+└── Services/                           [INTERFACES]
+    ├── IWorkspaceService.cs
+    ├── IEmbeddingService.cs
+    ├── IPersonalityService.cs
+    ├── IAuthService.cs
+    ├── ILiteLLMService.cs              [FOR LLMS]
+    ├── IFileUploadService.cs
+    ├── IKnowledgeGraphService.cs
+    ├── ILocalizationService.cs
+    ├── IMCPToolService.cs
+    ├── IDatasetGeneratorService.cs
+    ├── IApiKeyService.cs
+    │
+    └── [TODO] New Interfaces:
+        ├── IAdminService.cs            [NEW]
+        ├── IModelManagementService.cs  [NEW]
+        ├── IMCPManagementService.cs    [NEW]
+        ├── ISystemConfigService.cs     [NEW]
+        ├── IBackupService.cs           [NEW]
+        └── ILicenseService.cs          [NEW]
+
+AiMate.Infrastructure/                  [IMPLEMENTATION]
+├── Services/                           [✅ EXISTING IMPLEMENTATIONS]
+│   ├── LiteLLMService.cs
+│   └── [Other services...]
+│
+├── Data/                               [DATABASE]
+│   └── AiMateDbContext.cs
+│
+└── Migrations/                         [DATABASE MIGRATIONS]
+
+AiMate.Shared/                          [SHARED MODELS]
+├── Models/
+│   ├── LiteLLMModels.cs               [ChatCompletionRequest, etc.]
+│   │
+│   └── [TODO] New Models:
+│       └── AdminModels.cs             [NEW]
+
+
+================================================================================
+SRC (OLD IMPLEMENTATION - REFERENCE ONLY)
+==========================================
+
+AiMate.Client/
+├── Components/
+│   ├── Modals/
+│   │   ├── AdminModal.razor           [REFERENCE - Complex admin design]
+│   │   ├── SettingsModal.razor        [REFERENCE - Settings dialog]
+│   │   ├── SearchModal.razor
+│   │   ├── KnowledgeModal.razor
+│   │   └── CodeModal.razor
+│   │
+│   ├── Shared/
+│   │   └── MarkdownRenderer.razor
+│   │
+│   ├── Navigation/
+│   │   ├── ConversationNavItem.razor
+│   │   └── ProjectsTree.razor
+│   │
+│   └── Code/
+│       └── CodeEditor.razor
+│
+├── Pages/
+└── wwwroot/
+
+
+================================================================================
+KEY TAKEAWAYS
+=============
+
+WHERE TO LOOK FOR EXAMPLES:
+---------------------------
+✅ Settings Tab Pattern:
+   → Copy from: GeneralSettingsTab.razor
+   → Location: src-v2/AiMate.Web/Components/Settings/
+   → Key: Uses Fluxor, inherits FluxorComponent, dispatches actions
+
+✅ Dialog Pattern:
+   → Copy from: FileUploadDialog.razor
+   → Location: src-v2/AiMate.Web/Components/Shared/
+   → Key: MudDialog with @bind-IsVisible, parameters, callbacks
+
+✅ Fluxor Store Pattern:
+   → Copy from: Store/Settings/
+   → Location: src-v2/AiMate.Web/Store/
+   → Key: State, Actions, Reducers, Effects
+
+✅ Admin UI Design:
+   → Reference: src/AiMate.Client/Components/Modals/AdminModal.razor
+   → Note: Old version but has good admin UI patterns
+
+WHERE TO CREATE NEW FILES:
+--------------------------
+Admin Page:
+  → src-v2/AiMate.Web/Components/Admin/AdminPage.razor
+
+Admin Tabs:
+  → src-v2/AiMate.Web/Components/Admin/Tabs/*.razor
+
+Admin Dialogs:
+  → src-v2/AiMate.Web/Components/Admin/Dialogs/*.razor
+
+Admin State:
+  → src-v2/AiMate.Web/Store/Admin/AdminState.cs
+  → src-v2/AiMate.Web/Store/Admin/AdminActions.cs
+  → src-v2/AiMate.Web/Store/Admin/AdminReducers.cs
+  → src-v2/AiMate.Web/Store/Admin/AdminEffects.cs
+
+Admin Entities:
+  → src-v2/AiMate.Core/Entities/AIModel.cs
+  → src-v2/AiMate.Core/Entities/MCPServerConfig.cs
+  → src-v2/AiMate.Core/Entities/SystemConfiguration.cs
+
+Admin Services:
+  → src-v2/AiMate.Core/Services/IAdminService.cs
+  → src-v2/AiMate.Infrastructure/Services/AdminService.cs
+
+================================================================================

@@ -8,31 +8,31 @@
 
 <MudGrid>
     <MudItem xs="12" md="6">
-        <MudSelect @bind-Value="@_theme"
+        <MudSelect T="string" @bind-Value="@_theme"
                   Label="Theme"
                   Variant="Variant.Outlined"
                   OnValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateThemeAction(value)))">
-            <MudSelectItem Value="@("dark")">Dark (Kiwi Night)</MudSelectItem>
-            <MudSelectItem Value="@("light")">Light</MudSelectItem>
-            <MudSelectItem Value="@("auto")">Auto (System)</MudSelectItem>
+            <MudSelectItem T="string" Value="@("dark")">Dark (Kiwi Night)</MudSelectItem>
+            <MudSelectItem T="string" Value="@("light")">Light</MudSelectItem>
+            <MudSelectItem T="string" Value="@("auto")">Auto (System)</MudSelectItem>
         </MudSelect>
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudSelect @bind-Value="@_codeTheme"
+        <MudSelect T="string" @bind-Value="@_codeTheme"
                   Label="Code Theme"
                   Variant="Variant.Outlined"
                   OnValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateCodeThemeAction(value)))">
-            <MudSelectItem Value="@("dracula")">Dracula</MudSelectItem>
-            <MudSelectItem Value="@("monokai")">Monokai</MudSelectItem>
-            <MudSelectItem Value="@("github")">GitHub</MudSelectItem>
-            <MudSelectItem Value="@("nord")">Nord</MudSelectItem>
-            <MudSelectItem Value="@("solarized-dark")">Solarized Dark</MudSelectItem>
+            <MudSelectItem T="string" Value="@("dracula")">Dracula</MudSelectItem>
+            <MudSelectItem T="string" Value="@("monokai")">Monokai</MudSelectItem>
+            <MudSelectItem T="string" Value="@("github")">GitHub</MudSelectItem>
+            <MudSelectItem T="string" Value="@("nord")">Nord</MudSelectItem>
+            <MudSelectItem T="string" Value="@("solarized-dark")">Solarized Dark</MudSelectItem>
         </MudSelect>
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudSlider @bind-Value="@_fontSize"
+        <MudSlider T="int" @bind-Value="@_fontSize"
                   Min="10"
                   Max="24"
                   Step="1"
@@ -47,7 +47,7 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch @bind-Checked="@_compactMode"
+        <MudSwitch T="bool" @bind-Checked="@_compactMode"
                   Label="Compact Mode"
                   Color="Color.Primary"
                   CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateCompactModeAction(value)))" />
@@ -57,7 +57,7 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch @bind-Checked="@_showLineNumbers"
+        <MudSwitch T="bool" @bind-Checked="@_showLineNumbers"
                   Label="Show Line Numbers"
                   Color="Color.Primary"
                   CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateShowLineNumbersAction(value)))" />
@@ -67,7 +67,7 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch @bind-Checked="@_enableMarkdownPreview"
+        <MudSwitch T="bool" @bind-Checked="@_enableMarkdownPreview"
                   Label="Enable Markdown Preview"
                   Color="Color.Primary"
                   CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateMarkdownPreviewAction(value)))" />
