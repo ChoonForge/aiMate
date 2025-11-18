@@ -5,7 +5,7 @@ using AiMate.Core.Services;
 using AiMate.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Org.BouncyCastle.Crypto.Generators;
+
 
 namespace AiMate.Infrastructure.Services;
 

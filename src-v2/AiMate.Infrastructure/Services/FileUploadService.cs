@@ -58,6 +58,8 @@ public class FileUploadService : IFileUploadService
         // Create database record
         var workspaceFile = new WorkspaceFile
         {
+            StoragePath=uploadPath,            
+            ContentType= contentType,
             WorkspaceId = workspaceId,
             FileName = fileName,
             FilePath = filePath,
@@ -125,7 +127,7 @@ public class FileUploadService : IFileUploadService
 
     public long GetFileSizeLimit()
     {
-        return _configuration.GetValue<long?>("FileUpload:MaxSizeBytes") ?? DefaultFileSizeLimit;
+        return 1024 * 1024;//_configuration.GetValue<long?>("FileUpload:MaxSizeBytes") ?? DefaultFileSizeLimit;
     }
 
     private string GetUploadPath()

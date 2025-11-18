@@ -57,8 +57,5 @@ public class Workspace
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    public static implicit operator Workspace(Workspace v)
-    {
-        throw new NotImplementedException();
-    }
+
 }

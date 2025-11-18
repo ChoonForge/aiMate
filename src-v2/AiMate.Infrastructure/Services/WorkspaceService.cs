@@ -104,7 +104,7 @@ public class WorkspaceService : IWorkspaceService
     {
         // Check for existing default workspace
         var defaultWorkspace = await _context.Workspaces
-            .FirstOrDefaultAsync(w => w.UserId == userId && w.Type == "Default", cancellationToken);
+            .FirstOrDefaultAsync(w => w.UserId == userId && w.Type.ToString() == "Default", cancellationToken);
 
         if (defaultWorkspace != null)
         {
@@ -116,8 +116,8 @@ public class WorkspaceService : IWorkspaceService
         {
             UserId = userId,
             Name = "My Workspace",
-            Type = "Default",
-            DefaultPersonality = PersonalityMode.KiwiMate.ToString(),
+            Type = WorkspaceType.General,
+            DefaultPersonality = PersonalityMode.KiwiMate,
             EnabledTools = new List<string> { "web_search", "code_interpreter" }
         };
 
