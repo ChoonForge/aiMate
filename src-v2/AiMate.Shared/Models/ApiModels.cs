@@ -83,12 +83,59 @@ public class AdminOverviewDto
 /// </summary>
 public class AIModelDto
 {
+    // General
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public string ModelId { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Connection { get; set; } = string.Empty;
     public string Provider { get; set; } = string.Empty;
+    public string? ApiKey { get; set; }
+    public string? CustomEndpoint { get; set; }
     public bool IsEnabled { get; set; } = true;
+
+    // Model Parameters
+    public int ContextWindow { get; set; } = 8192;
     public int MaxTokens { get; set; } = 4096;
-    public string? Description { get; set; }
+    public double Temperature { get; set; } = 0.7;
+    public double TopP { get; set; } = 1.0;
+    public double FrequencyPenalty { get; set; } = 0.0;
+    public double PresencePenalty { get; set; } = 0.0;
+
+    // Capabilities
+    public bool SupportsVision { get; set; } = false;
+    public bool SupportsWebSearch { get; set; } = false;
+    public bool SupportsFileUpload { get; set; } = false;
+    public bool SupportsImageGeneration { get; set; } = false;
+
+    // Ownership & Access
+    public string? OwnerId { get; set; }
+    public string? Visibility { get; set; } = "Private";
+    public List<string> AllowedGroups { get; set; } = new();
+}
+
+/// <summary>
+/// LLM Provider Connection (OpenAI, Anthropic, etc.)
+/// </summary>
+public class ProviderConnectionDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = "Cloud"; // Cloud or Local
+    public string Url { get; set; } = string.Empty;
+    public string Auth { get; set; } = "None"; // None, Bearer, ApiKey, OAuth
+    public string? AuthToken { get; set; }
+    public string? Headers { get; set; } // JSON format
+    public string? PrefixId { get; set; }
+    public string ProviderType { get; set; } = "OpenAI"; // OpenAI, Anthropic, Local, etc.
+    public List<string> ModelIds { get; set; } = new();
+    public List<string> Tags { get; set; } = new();
+    public bool IsEnabled { get; set; } = true;
+
+    // Ownership & Visibility
+    public string? OwnerId { get; set; }
+    public string Visibility { get; set; } = "Private";
+    public List<string> AllowedGroups { get; set; } = new();
 }
 
 /// <summary>
@@ -104,6 +151,11 @@ public class MCPServerDto
     public string? Command { get; set; }
     public string? Arguments { get; set; }
     public string? Url { get; set; }
+
+    // Ownership & Visibility
+    public string? OwnerId { get; set; }
+    public string Visibility { get; set; } = "Private";
+    public List<string> AllowedGroups { get; set; } = new();
 }
 
 /// <summary>
