@@ -1,0 +1,421 @@
+@using AiMate.Core.Entities
+@using AiMate.Web.Store.Feedback
+@using Fluxor
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<FeedbackState> FeedbackState
+@inject IDispatcher Dispatcher
+
+<MudStack Spacing="4">
+    <!-- Header -->
+    <div class="d-flex justify-space-between align-center">
+        <div>
+            <MudText Typo="Typo.h5">Feedback Tag Templates</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Manage feedback tag categories and options that users can select when rating AI responses
+            </MudText>
+        </div>
+        <MudButton
+            Variant="Variant.Filled"
+            Color="Color.Primary"
+            StartIcon="@Icons.Material.Filled.Add"
+            OnClick="OpenCreateDialog">
+            New Template
+        </MudButton>
+    </div>
+
+    <!-- Loading state -->
+    @if (FeedbackState.Value.IsLoading)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+
+    <!-- Error message -->
+    @if (!string.IsNullOrEmpty(FeedbackState.Value.Error))
+    {
+        <MudAlert Severity="Severity.Error" CloseIcon="true" OnClose="@(() => {})">
+            @FeedbackState.Value.Error
+        </MudAlert>
+    }
+
+    <!-- Tag templates list -->
+    @if (FeedbackState.Value.TagTemplates.Any())
+    {
+        <MudGrid>
+            @foreach (var template in FeedbackState.Value.TagTemplates.OrderBy(t => t.DisplayOrder))
+            {
+                <MudItem xs="12" md="6">
+                    <MudCard Elevation="2">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <div class="d-flex align-center gap-2">
+                                    <MudIcon Icon="@Icons.Material.Filled.Label" />
+                                    <MudText Typo="Typo.h6">@template.Label</MudText>
+                                    @if (template.IsRequired)
+                                    {
+                                        <MudChip Size="Size.Small" Color="Color.Error">Required</MudChip>
+                                    }
+                                    @if (!template.IsActive)
+                                    {
+                                        <MudChip Size="Size.Small" Color="Color.Default">Inactive</MudChip>
+                                    }
+                                </div>
+                            </CardHeaderContent>
+                            <CardHeaderActions>
+                                <MudIconButton
+                                    Icon="@Icons.Material.Filled.Edit"
+                                    Size="Size.Small"
+                                    OnClick="@(() => OpenEditDialog(template))" />
+                                <MudIconButton
+                                    Icon="@Icons.Material.Filled.Delete"
+                                    Size="Size.Small"
+                                    Color="Color.Error"
+                                    OnClick="@(() => DeleteTemplate(template.Id))" />
+                            </CardHeaderActions>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                                Category: <strong>@template.Category</strong>
+                            </MudText>
+                            @if (!string.IsNullOrEmpty(template.Description))
+                            {
+                                <MudText Typo="Typo.body2" Class="mb-3">
+                                    @template.Description
+                                </MudText>
+                            }
+
+                            <!-- Options -->
+                            <MudText Typo="Typo.caption" Class="mb-1">Options:</MudText>
+                            <MudChipSet ReadOnly="true">
+                                @foreach (var option in template.Options.OrderBy(o => o.DisplayOrder))
+                                {
+                                    <MudChip
+                                        Text="@option.Value"
+                                        Style="@($"background-color: {option.Color}; color: white;")"
+                                        Icon="@GetIcon(option.Icon)">
+                                        @option.Value
+                                    </MudChip>
+                                }
+                            </MudChipSet>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                Display Order: @template.DisplayOrder
+                            </MudText>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    else
+    {
+        <MudPaper Elevation="0" Class="pa-8 text-center">
+            <MudIcon Icon="@Icons.Material.Filled.Label" Size="Size.Large" Color="Color.Secondary" />
+            <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">
+                No tag templates yet
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Create your first tag template to enable structured feedback collection
+            </MudText>
+            <MudButton
+                Variant="Variant.Filled"
+                Color="Color.Primary"
+                StartIcon="@Icons.Material.Filled.Add"
+                Class="mt-4"
+                OnClick="OpenCreateDialog">
+                Create Template
+            </MudButton>
+        </MudPaper>
+    }
+</MudStack>
+
+<!-- Create/Edit Dialog -->
+<MudDialog @bind-IsVisible="showDialog" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(isEditMode ? "Edit Tag Template" : "Create Tag Template")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTextField
+                @bind-Value="editingTemplate.Category"
+                Label="Category"
+                Variant="Variant.Outlined"
+                Required="true"
+                HelperText="e.g., Quality, Accuracy, Tone" />
+
+            <MudTextField
+                @bind-Value="editingTemplate.Label"
+                Label="Label"
+                Variant="Variant.Outlined"
+                Required="true"
+                HelperText="Display label shown to users" />
+
+            <MudTextField
+                @bind-Value="editingTemplate.Description"
+                Label="Description"
+                Variant="Variant.Outlined"
+                Lines="2"
+                HelperText="Optional description of what this tag measures" />
+
+            <MudSwitch
+                @bind-Checked="editingTemplate.IsRequired"
+                Label="Required"
+                Color="Color.Primary" />
+
+            <MudSwitch
+                @bind-Checked="editingTemplate.IsActive"
+                Label="Active"
+                Color="Color.Primary" />
+
+            <MudNumericField
+                @bind-Value="editingTemplate.DisplayOrder"
+                Label="Display Order"
+                Variant="Variant.Outlined"
+                Min="0" />
+
+            <!-- Options section -->
+            <MudDivider />
+            <div class="d-flex justify-space-between align-center">
+                <MudText Typo="Typo.subtitle1">Options</MudText>
+                <MudButton
+                    Size="Size.Small"
+                    StartIcon="@Icons.Material.Filled.Add"
+                    OnClick="AddOption">
+                    Add Option
+                </MudButton>
+            </div>
+
+            @for (int i = 0; i < editingTemplate.Options.Count; i++)
+            {
+                var index = i; // Capture for lambda
+                var option = editingTemplate.Options[index];
+
+                <MudPaper Elevation="1" Class="pa-3">
+                    <MudStack Spacing="2">
+                        <div class="d-flex gap-2 align-center">
+                            <MudTextField
+                                @bind-Value="option.Value"
+                                Label="Value"
+                                Variant="Variant.Outlined"
+                                Required="true"
+                                Style="flex: 1;" />
+
+                            <MudColorPicker
+                                @bind-Text="option.Color"
+                                Label="Color"
+                                Variant="Variant.Outlined"
+                                Style="width: 150px;" />
+
+                            <MudIconButton
+                                Icon="@Icons.Material.Filled.Delete"
+                                Color="Color.Error"
+                                OnClick="@(() => RemoveOption(index))" />
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <MudSelect
+                                @bind-Value="option.Sentiment"
+                                Label="Sentiment"
+                                Variant="Variant.Outlined">
+                                <MudSelectItem Value="TagSentiment.Positive">Positive</MudSelectItem>
+                                <MudSelectItem Value="TagSentiment.Neutral">Neutral</MudSelectItem>
+                                <MudSelectItem Value="TagSentiment.Negative">Negative</MudSelectItem>
+                            </MudSelect>
+
+                            <MudTextField
+                                @bind-Value="option.Icon"
+                                Label="Icon (optional)"
+                                Variant="Variant.Outlined"
+                                HelperText="MudBlazor icon name" />
+
+                            <MudNumericField
+                                @bind-Value="option.DisplayOrder"
+                                Label="Order"
+                                Variant="Variant.Outlined"
+                                Min="0" />
+                        </div>
+                    </MudStack>
+                </MudPaper>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseDialog">Cancel</MudButton>
+        <MudButton
+            Color="Color.Primary"
+            Variant="Variant.Filled"
+            OnClick="SaveTemplate"
+            Disabled="@(!IsFormValid())">
+            @(isEditMode ? "Update" : "Create")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private bool showDialog = false;
+    private bool isEditMode = false;
+    private EditableTemplate editingTemplate = new();
+
+    private DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true
+    };
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // Load templates on init
+        if (!FeedbackState.Value.TagTemplates.Any())
+        {
+            Dispatcher.Dispatch(new LoadTagTemplatesAction());
+        }
+    }
+
+    private void OpenCreateDialog()
+    {
+        isEditMode = false;
+        editingTemplate = new EditableTemplate
+        {
+            IsActive = true,
+            DisplayOrder = FeedbackState.Value.TagTemplates.Count,
+            Options = new List<EditableTagOption>()
+        };
+        showDialog = true;
+    }
+
+    private void OpenEditDialog(FeedbackTagTemplate template)
+    {
+        isEditMode = true;
+        editingTemplate = new EditableTemplate
+        {
+            Id = template.Id,
+            Category = template.Category,
+            Label = template.Label,
+            Description = template.Description,
+            IsRequired = template.IsRequired,
+            IsActive = template.IsActive,
+            DisplayOrder = template.DisplayOrder,
+            Options = template.Options.Select(o => new EditableTagOption
+            {
+                Id = o.Id,
+                Value = o.Value,
+                Color = o.Color,
+                Sentiment = o.Sentiment,
+                Icon = o.Icon,
+                DisplayOrder = o.DisplayOrder
+            }).ToList()
+        };
+        showDialog = true;
+    }
+
+    private void CloseDialog()
+    {
+        showDialog = false;
+        editingTemplate = new();
+    }
+
+    private void AddOption()
+    {
+        editingTemplate.Options.Add(new EditableTagOption
+        {
+            DisplayOrder = editingTemplate.Options.Count,
+            Sentiment = TagSentiment.Neutral
+        });
+    }
+
+    private void RemoveOption(int index)
+    {
+        editingTemplate.Options.RemoveAt(index);
+    }
+
+    private bool IsFormValid()
+    {
+        return !string.IsNullOrWhiteSpace(editingTemplate.Category)
+            && !string.IsNullOrWhiteSpace(editingTemplate.Label)
+            && editingTemplate.Options.Any()
+            && editingTemplate.Options.All(o => !string.IsNullOrWhiteSpace(o.Value));
+    }
+
+    private void SaveTemplate()
+    {
+        if (!IsFormValid()) return;
+
+        var options = editingTemplate.Options.Select(o => new FeedbackTagOption
+        {
+            Id = o.Id ?? Guid.NewGuid(),
+            Value = o.Value,
+            Color = o.Color,
+            Sentiment = o.Sentiment,
+            Icon = o.Icon,
+            DisplayOrder = o.DisplayOrder
+        }).ToList();
+
+        if (isEditMode)
+        {
+            Dispatcher.Dispatch(new UpdateTagTemplateAction(
+                editingTemplate.Id!.Value,
+                editingTemplate.Category,
+                editingTemplate.Label,
+                editingTemplate.Description,
+                editingTemplate.IsActive,
+                editingTemplate.IsRequired,
+                editingTemplate.DisplayOrder
+            ));
+        }
+        else
+        {
+            Dispatcher.Dispatch(new CreateTagTemplateAction(
+                editingTemplate.Category,
+                editingTemplate.Label,
+                editingTemplate.Description,
+                options,
+                editingTemplate.IsRequired
+            ));
+        }
+
+        CloseDialog();
+    }
+
+    private async void DeleteTemplate(Guid templateId)
+    {
+        // TODO: Add confirmation dialog
+        Dispatcher.Dispatch(new DeleteTagTemplateAction(templateId));
+    }
+
+    private string GetIcon(string? iconName) => iconName switch
+    {
+        "Stars" => Icons.Material.Filled.Stars,
+        "ThumbUp" => Icons.Material.Filled.ThumbUp,
+        "ThumbDown" => Icons.Material.Filled.ThumbDown,
+        "CheckCircle" => Icons.Material.Filled.CheckCircle,
+        "Cancel" => Icons.Material.Filled.Cancel,
+        _ => Icons.Material.Filled.Label
+    };
+
+    // Editable models for the form
+    private class EditableTemplate
+    {
+        public Guid? Id { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public bool IsRequired { get; set; }
+        public bool IsActive { get; set; } = true;
+        public int DisplayOrder { get; set; }
+        public List<EditableTagOption> Options { get; set; } = new();
+    }
+
+    private class EditableTagOption
+    {
+        public Guid? Id { get; set; }
+        public string Value { get; set; } = string.Empty;
+        public string? Color { get; set; } = "#2196f3";
+        public TagSentiment Sentiment { get; set; } = TagSentiment.Neutral;
+        public string? Icon { get; set; }
+        public int DisplayOrder { get; set; }
+    }
+}

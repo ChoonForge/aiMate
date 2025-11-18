@@ -22,6 +22,10 @@ public class AiMateDbContext : DbContext
     public DbSet<KnowledgeItem> KnowledgeItems => Set<KnowledgeItem>();
     public DbSet<WorkspaceFile> WorkspaceFiles => Set<WorkspaceFile>();
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
+    public DbSet<MessageFeedback> MessageFeedbacks => Set<MessageFeedback>();
+    public DbSet<FeedbackTag> FeedbackTags => Set<FeedbackTag>();
+    public DbSet<FeedbackTagTemplate> FeedbackTagTemplates => Set<FeedbackTagTemplate>();
+    public DbSet<FeedbackTagOption> FeedbackTagOptions => Set<FeedbackTagOption>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -161,6 +165,63 @@ public class AiMateDbContext : DbContext
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.CreatedAt);
             entity.HasIndex(e => new { e.UserId, e.IsRevoked });
+        });
+
+        // MessageFeedback configuration
+        modelBuilder.Entity<MessageFeedback>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.MessageId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.ModelId);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.Rating);
+
+            entity.HasOne(e => e.Message)
+                .WithMany()
+                .HasForeignKey(e => e.MessageId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Tags)
+                .WithOne(e => e.MessageFeedback)
+                .HasForeignKey(e => e.MessageFeedbackId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // FeedbackTag configuration
+        modelBuilder.Entity<FeedbackTag>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.MessageFeedbackId);
+            entity.HasIndex(e => e.Key);
+            entity.HasIndex(e => new { e.Key, e.Value });
+        });
+
+        // FeedbackTagTemplate configuration
+        modelBuilder.Entity<FeedbackTagTemplate>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Category);
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.DisplayOrder);
+
+            entity.HasMany(e => e.Options)
+                .WithOne(e => e.FeedbackTagTemplate)
+                .HasForeignKey(e => e.FeedbackTagTemplateId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // FeedbackTagOption configuration
+        modelBuilder.Entity<FeedbackTagOption>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.FeedbackTagTemplateId);
+            entity.HasIndex(e => e.DisplayOrder);
         });
     }
 }

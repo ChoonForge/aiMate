@@ -1,0 +1,253 @@
+@using AiMate.Core.Entities
+@using AiMate.Web.Store.Feedback
+@using Fluxor
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<FeedbackState> FeedbackState
+@inject IDispatcher Dispatcher
+
+<div class="message-feedback-widget">
+    @if (!IsExpanded)
+    {
+        <!-- Quick rating buttons (thumbs up/down) -->
+        <div class="quick-rating">
+            <MudTooltip Text="Good response">
+                <MudIconButton
+                    Icon="@Icons.Material.Filled.ThumbUp"
+                    Size="Size.Small"
+                    Color="@(CurrentRating >= 7 ? Color.Success : Color.Default)"
+                    OnClick="@(() => HandleQuickRating(8))" />
+            </MudTooltip>
+
+            <MudTooltip Text="Poor response">
+                <MudIconButton
+                    Icon="@Icons.Material.Filled.ThumbDown"
+                    Size="Size.Small"
+                    Color="@(CurrentRating <= 4 ? Color.Error : Color.Default)"
+                    OnClick="@(() => HandleQuickRating(3))" />
+            </MudTooltip>
+
+            <MudTooltip Text="Provide detailed feedback">
+                <MudIconButton
+                    Icon="@Icons.Material.Filled.RateReview"
+                    Size="Size.Small"
+                    OnClick="@(() => IsExpanded = true)" />
+            </MudTooltip>
+        </div>
+    }
+    else
+    {
+        <!-- Detailed feedback form -->
+        <MudPaper Elevation="2" Class="pa-4 mt-2">
+            <MudStack Spacing="3">
+                <!-- Header -->
+                <div class="d-flex justify-space-between align-center">
+                    <MudText Typo="Typo.h6">Rate this response</MudText>
+                    <MudIconButton
+                        Icon="@Icons.Material.Filled.Close"
+                        Size="Size.Small"
+                        OnClick="@(() => IsExpanded = false)" />
+                </div>
+
+                <!-- Rating slider (1-10) -->
+                <div>
+                    <MudText Typo="Typo.body2" Class="mb-2">
+                        Rating: <strong>@selectedRating / 10</strong>
+                    </MudText>
+                    <MudSlider
+                        @bind-Value="selectedRating"
+                        Min="1"
+                        Max="10"
+                        Step="1"
+                        Color="@GetRatingColor(selectedRating)">
+                        @selectedRating
+                    </MudSlider>
+                </div>
+
+                <!-- Tag templates -->
+                @if (FeedbackState.Value.TagTemplates.Any())
+                {
+                    <div>
+                        <MudText Typo="Typo.body2" Class="mb-2">Quick tags</MudText>
+                        @foreach (var template in FeedbackState.Value.TagTemplates.OrderBy(t => t.DisplayOrder))
+                        {
+                            <div class="mb-2">
+                                <MudText Typo="Typo.caption">@template.Label</MudText>
+                                <MudChipSet @bind-SelectedChip="selectedChips[template.Category]" Filter="true">
+                                    @foreach (var option in template.Options.OrderBy(o => o.DisplayOrder))
+                                    {
+                                        <MudChip
+                                            Text="@option.Value"
+                                            Color="@GetSentimentColor(option.Sentiment)"
+                                            Icon="@GetOptionIcon(option.Icon)"
+                                            OnClick="@(() => ToggleTag(template.Category, option.Value, option.Color, option.Sentiment))">
+                                            @option.Value
+                                        </MudChip>
+                                    }
+                                </MudChipSet>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Selected tags display -->
+                @if (selectedTags.Any())
+                {
+                    <div>
+                        <MudText Typo="Typo.caption">Selected tags:</MudText>
+                        <MudChipSet>
+                            @foreach (var tag in selectedTags)
+                            {
+                                <MudChip
+                                    Text="@tag.Value"
+                                    Color="@GetSentimentColor(tag.Sentiment)"
+                                    OnClose="@(() => RemoveTag(tag.Key))">
+                                    @tag.Key: @tag.Value
+                                </MudChip>
+                            }
+                        </MudChipSet>
+                    </div>
+                }
+
+                <!-- Text feedback -->
+                <MudTextField
+                    @bind-Value="textFeedback"
+                    Label="Additional feedback (optional)"
+                    Variant="Variant.Outlined"
+                    Lines="3"
+                    MaxLength="500"
+                    Counter="500"
+                    Placeholder="What did you like or dislike about this response?" />
+
+                <!-- Submit button -->
+                <div class="d-flex justify-end gap-2">
+                    <MudButton
+                        Variant="Variant.Text"
+                        OnClick="@(() => IsExpanded = false)">
+                        Cancel
+                    </MudButton>
+                    <MudButton
+                        Variant="Variant.Filled"
+                        Color="Color.Primary"
+                        StartIcon="@Icons.Material.Filled.Send"
+                        OnClick="SubmitFeedback"
+                        Disabled="@FeedbackState.Value.IsSubmitting">
+                        @(FeedbackState.Value.IsSubmitting ? "Submitting..." : "Submit Feedback")
+                    </MudButton>
+                </div>
+            </MudStack>
+        </MudPaper>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid MessageId { get; set; }
+
+    [Parameter]
+    public Guid UserId { get; set; }
+
+    [Parameter]
+    public string? ModelId { get; set; }
+
+    [Parameter]
+    public long? ResponseTimeMs { get; set; }
+
+    private bool IsExpanded { get; set; } = false;
+    private int selectedRating = 5;
+    private string? textFeedback;
+    private List<FeedbackTagDto> selectedTags = new();
+    private Dictionary<string, MudChip> selectedChips = new();
+
+    private int? CurrentRating =>
+        FeedbackState.Value.FeedbackByMessageId.TryGetValue(MessageId, out var feedback)
+            ? feedback.Rating
+            : null;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // Load tag templates if not already loaded
+        if (!FeedbackState.Value.TagTemplates.Any())
+        {
+            Dispatcher.Dispatch(new LoadTagTemplatesAction());
+        }
+
+        // Load existing feedback if available
+        if (FeedbackState.Value.FeedbackByMessageId.TryGetValue(MessageId, out var existingFeedback))
+        {
+            selectedRating = existingFeedback.Rating;
+            textFeedback = existingFeedback.TextFeedback;
+            selectedTags = existingFeedback.Tags.Select(t => new FeedbackTagDto(
+                t.Key,
+                t.Value,
+                t.Color,
+                t.Sentiment
+            )).ToList();
+        }
+    }
+
+    private void HandleQuickRating(int rating)
+    {
+        Dispatcher.Dispatch(new QuickRateMessageAction(MessageId, UserId, rating, ModelId));
+    }
+
+    private void ToggleTag(string key, string value, string? color, TagSentiment sentiment)
+    {
+        var existing = selectedTags.FirstOrDefault(t => t.Key == key);
+        if (existing != null)
+        {
+            selectedTags.Remove(existing);
+        }
+
+        selectedTags.Add(new FeedbackTagDto(key, value, color, sentiment));
+        StateHasChanged();
+    }
+
+    private void RemoveTag(string key)
+    {
+        selectedTags.RemoveAll(t => t.Key == key);
+        StateHasChanged();
+    }
+
+    private void SubmitFeedback()
+    {
+        Dispatcher.Dispatch(new SubmitFeedbackAction(
+            MessageId,
+            UserId,
+            selectedRating,
+            textFeedback,
+            selectedTags,
+            ModelId,
+            ResponseTimeMs
+        ));
+
+        IsExpanded = false;
+    }
+
+    private Color GetRatingColor(int rating) => rating switch
+    {
+        <= 3 => Color.Error,
+        <= 5 => Color.Warning,
+        <= 7 => Color.Info,
+        _ => Color.Success
+    };
+
+    private Color GetSentimentColor(TagSentiment sentiment) => sentiment switch
+    {
+        TagSentiment.Positive => Color.Success,
+        TagSentiment.Negative => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetOptionIcon(string? icon) => icon switch
+    {
+        "Stars" => Icons.Material.Filled.Stars,
+        "ThumbUp" => Icons.Material.Filled.ThumbUp,
+        "ThumbDown" => Icons.Material.Filled.ThumbDown,
+        "CheckCircle" => Icons.Material.Filled.CheckCircle,
+        "Cancel" => Icons.Material.Filled.Cancel,
+        "EmojiEmotions" => Icons.Material.Filled.EmojiEmotions,
+        _ => Icons.Material.Filled.Label
+    };
+}
