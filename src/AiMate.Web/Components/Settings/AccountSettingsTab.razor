@@ -12,28 +12,28 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudTextField T="string" @bind-Value="@_username"
+        <MudTextField T="string" Value="@_username"
                      Label="Username"
                      Variant="Variant.Outlined"
                      Placeholder="johndoe"
-                     ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateUsernameAction(value)))" />
+                     ValueChanged="@((string value) => { _username = value; Dispatcher.Dispatch(new UpdateUsernameAction(value)); })" />
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudTextField T="string" @bind-Value="@_email"
+        <MudTextField T="string" Value="@_email"
                      Label="Email"
                      Variant="Variant.Outlined"
                      InputType="InputType.Email"
                      Placeholder="john.doe@example.com"
-                     ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateEmailAction(value)))" />
+                     ValueChanged="@((string value) => { _email = value; Dispatcher.Dispatch(new UpdateEmailAction(value)); })" />
     </MudItem>
 
     <MudItem xs="12">
-        <MudTextField T="string" @bind-Value="@_avatarUrl"
+        <MudTextField T="string" Value="@_avatarUrl"
                      Label="Avatar URL"
                      Variant="Variant.Outlined"
                      Placeholder="https://example.com/avatar.jpg"
-                     ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateAvatarUrlAction(value)))" />
+                     ValueChanged="@((string value) => { _avatarUrl = value; Dispatcher.Dispatch(new UpdateAvatarUrlAction(value)); })" />
     </MudItem>
 
     <MudItem xs="12">

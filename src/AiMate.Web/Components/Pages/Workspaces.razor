@@ -58,14 +58,14 @@
                             </CardHeaderActions>
                         </MudCardHeader>
                         <MudCardContent>
-                            @if (!string.IsNullOrEmpty(workspace.Context))
+                            @if (!string.IsNullOrEmpty(workspace.Description))
                             {
                                 <MudText Typo="Typo.body2" Class="mb-2">
-                                    @(workspace.Context.Length > 100 ? workspace.Context.Substring(0, 100) + "..." : workspace.Context)
+                                    @(workspace.Description.Length > 100 ? workspace.Description.Substring(0, 100) + "..." : workspace.Description)
                                 </MudText>
                             }
                             <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                Personality: @(workspace.DefaultPersonality)
+                                Personality: @(workspace.Personality)
                             </MudText>
                         </MudCardContent>
                         <MudCardActions>

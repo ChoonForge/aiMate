@@ -32,12 +32,12 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudSlider T="int" @bind-Value="@_fontSize"
+        <MudSlider T="int" Value="@_fontSize"
                   Min="10"
                   Max="24"
                   Step="1"
                   Color="Color.Primary"
-                  ValueChanged="@((int value) => Dispatcher.Dispatch(new UpdateFontSizeAction(value)))">
+                  ValueChanged="@((int value) => { _fontSize = value; Dispatcher.Dispatch(new UpdateFontSizeAction(value)); })">
             Font Size: @_fontSize px
         </MudSlider>
     </MudItem>
@@ -47,30 +47,30 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch T="bool" @bind-Checked="@_compactMode"
+        <MudSwitch T="bool" Checked="@_compactMode"
                   Label="Compact Mode"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateCompactModeAction(value)))" />
+                  CheckedChanged="@((bool value) => { _compactMode = value; Dispatcher.Dispatch(new UpdateCompactModeAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Reduce spacing and padding for more content density
         </MudText>
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch T="bool" @bind-Checked="@_showLineNumbers"
+        <MudSwitch T="bool" Checked="@_showLineNumbers"
                   Label="Show Line Numbers"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateShowLineNumbersAction(value)))" />
+                  CheckedChanged="@((bool value) => { _showLineNumbers = value; Dispatcher.Dispatch(new UpdateShowLineNumbersAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Display line numbers in code blocks
         </MudText>
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch T="bool" @bind-Checked="@_enableMarkdownPreview"
+        <MudSwitch T="bool" Checked="@_enableMarkdownPreview"
                   Label="Enable Markdown Preview"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateMarkdownPreviewAction(value)))" />
+                  CheckedChanged="@((bool value) => { _enableMarkdownPreview = value; Dispatcher.Dispatch(new UpdateMarkdownPreviewAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Show live preview while typing messages
         </MudText>

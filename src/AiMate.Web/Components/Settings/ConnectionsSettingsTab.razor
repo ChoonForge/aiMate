@@ -153,51 +153,51 @@
 
 <MudGrid>
     <MudItem xs="12">
-        <MudTextField T="string" @bind-Value="@_liteLLMUrl"
+        <MudTextField T="string" Value="@_liteLLMUrl"
                      Label="LiteLLM URL"
                      Variant="Variant.Outlined"
                      Placeholder="http://localhost:4000"
-                     ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateLiteLLMUrlAction(value)))" />
+                     ValueChanged="@((string value) => { _liteLLMUrl = value; Dispatcher.Dispatch(new UpdateLiteLLMUrlAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             URL of your LiteLLM gateway instance
         </MudText>
     </MudItem>
 
     <MudItem xs="12">
-        <MudTextField T="string" @bind-Value="@_apiKey"
+        <MudTextField T="string" Value="@_apiKey"
                      Label="API Key (optional)"
                      Variant="Variant.Outlined"
                      InputType="InputType.Password"
                      Placeholder="sk-..."
-                     ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateApiKeyAction(value)))" />
+                     ValueChanged="@((string value) => { _apiKey = value; Dispatcher.Dispatch(new UpdateApiKeyAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Optional API key for authentication (BYOK tier)
         </MudText>
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudNumericField T="int" @bind-Value="@_requestTimeout"
+        <MudNumericField T="int" Value="@_requestTimeout"
                         Label="Request Timeout (seconds)"
                         Variant="Variant.Outlined"
                         Min="30"
                         Max="300"
-                        ValueChanged="@((int value) => Dispatcher.Dispatch(new UpdateRequestTimeoutAction(value)))" />
+                        ValueChanged="@((int value) => { _requestTimeout = value; Dispatcher.Dispatch(new UpdateRequestTimeoutAction(value)); })" />
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudNumericField T="int" @bind-Value="@_maxRetries"
+        <MudNumericField T="int" Value="@_maxRetries"
                         Label="Max Retries"
                         Variant="Variant.Outlined"
                         Min="0"
                         Max="10"
-                        ValueChanged="@((int value) => Dispatcher.Dispatch(new UpdateMaxRetriesAction(value)))" />
+                        ValueChanged="@((int value) => { _maxRetries = value; Dispatcher.Dispatch(new UpdateMaxRetriesAction(value)); })" />
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch T="bool" @bind-Checked="@_useStreamingByDefault"
+        <MudSwitch T="bool" Checked="@_useStreamingByDefault"
                   Label="Use Streaming by Default"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateStreamingDefaultAction(value)))" />
+                  CheckedChanged="@((bool value) => { _useStreamingByDefault = value; Dispatcher.Dispatch(new UpdateStreamingDefaultAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Stream responses token-by-token for faster perceived performance
         </MudText>
@@ -223,6 +223,7 @@
         }
     </MudItem>
 </MudGrid>
+</MudStack>
 
 @code {
     private string _liteLLMUrl = "http://localhost:4000";
@@ -269,7 +270,7 @@
             MaxWidth = MaxWidth.Large,
             FullWidth = true,
             CloseButton = true,
-            DisableBackdropClick = true
+            BackdropClick = false
         };
 
         var dialog = await DialogService.ShowAsync<EditConnectionDialog>("Add Connection", parameters, options);
@@ -295,7 +296,7 @@
             MaxWidth = MaxWidth.Large,
             FullWidth = true,
             CloseButton = true,
-            DisableBackdropClick = true
+            BackdropClick = false
         };
 
         var dialog = await DialogService.ShowAsync<EditConnectionDialog>("Edit Connection", parameters, options);
@@ -312,13 +313,13 @@
         var connection = ConnectionState.Value.Connections.FirstOrDefault(c => c.Id == id);
         if (connection == null) return;
 
-        var updated = connection with { IsEnabled = enabled };
-        Dispatcher.Dispatch(new UpdateConnectionAction(id, updated));
+        connection.IsEnabled = enabled;
+        Dispatcher.Dispatch(new UpdateConnectionAction(id, connection));
     }
 
     private void HandleTestConnection(string id)
     {
-        Dispatcher.Dispatch(new TestConnectionAction(id));
+        Dispatcher.Dispatch(new Store.Connection.TestConnectionAction(id));
     }
 
     private async Task HandleDeleteConnection(string id)
@@ -369,7 +370,7 @@
 
     private void HandleTestConnection()
     {
-        Dispatcher.Dispatch(new TestConnectionAction());
+        Dispatcher.Dispatch(new Store.Settings.TestConnectionAction());
         _connectionTestResult = "Testing connection...";
         _connectionTestSuccess = true;
     }

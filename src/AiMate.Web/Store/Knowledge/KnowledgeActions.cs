@@ -85,3 +85,16 @@ public record SelectArticleAction(KnowledgeArticleDto? Article);
 public record OpenEditDialogAction(KnowledgeArticleDto? Article = null);
 public record CloseEditDialogAction();
 public record ClearKnowledgeErrorAction();
+
+// ============================================================================
+// COMPATIBILITY ACTIONS FOR KNOWLEDGE.RAZOR
+// ============================================================================
+
+public record ToggleTagFilterAction(string Tag);
+public record SelectKnowledgeItemAction(Guid? ItemId);
+public record OpenKnowledgeItemEditorAction(Guid? ItemId = null);
+public record SearchKnowledgeAction(string Query);
+public record LoadKnowledgeItemsAction();
+public record DeleteKnowledgeItemAction(Guid ItemId);
+public record ClearTagFiltersAction();
+public record LoadRelatedItemsAction(Guid ItemId);

@@ -39,20 +39,20 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch T="bool" @bind-Checked="@_enableNotifications"
+        <MudSwitch T="bool" Checked="@_enableNotifications"
                   Label="Enable Notifications"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateNotificationsAction(value)))" />
+                  CheckedChanged="@((bool value) => { _enableNotifications = value; Dispatcher.Dispatch(new UpdateNotificationsAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Show desktop notifications for important events
         </MudText>
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch T="bool" @bind-Checked="@_enableSoundEffects"
+        <MudSwitch T="bool" Checked="@_enableSoundEffects"
                   Label="Enable Sound Effects"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateSoundEffectsAction(value)))" />
+                  CheckedChanged="@((bool value) => { _enableSoundEffects = value; Dispatcher.Dispatch(new UpdateSoundEffectsAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Play sounds for message sent/received
         </MudText>

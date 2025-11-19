@@ -116,10 +116,10 @@
             <MudDivider Class="my-2" />
             <MudText Typo="Typo.body2"><strong>Privacy Settings</strong></MudText>
             <MudStack Spacing="2">
-                <MudSwitch T="bool" @bind-Checked="@_allowPublicAccess"
+                <MudSwitch T="bool" Checked="@_allowPublicAccess"
                           Label="Allow public access"
                           Color="Color.Primary"
-                          CheckedChanged="@OnPrivacyChanged" />
+                          CheckedChanged="@((bool value) => { _allowPublicAccess = value; OnPrivacyChanged(value); })" />
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     When enabled, anyone with the link can view this conversation without logging in
                 </MudText>

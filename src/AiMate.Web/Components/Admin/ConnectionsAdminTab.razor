@@ -14,18 +14,18 @@
         <MudStack Spacing="3">
             <MudText Typo="Typo.subtitle1"><strong>LiteLLM Proxy</strong></MudText>
 
-            <MudTextField T="string" @bind-Value="@_liteLLMUrl"
+            <MudTextField T="string" Value="@_liteLLMUrl"
                          Label="Base URL"
                          Variant="Variant.Outlined"
                          HelperText="The LiteLLM proxy server endpoint"
-                         ValueChanged="@((string val) => Dispatcher.Dispatch(new UpdateAdminLiteLLMUrlAction(val)))" />
+                         ValueChanged="@((string val) => { _liteLLMUrl = val; Dispatcher.Dispatch(new UpdateAdminLiteLLMUrlAction(val)); })" />
 
-            <MudTextField T="string" @bind-Value="@_liteLLMApiKey"
+            <MudTextField T="string" Value="@_liteLLMApiKey"
                          Label="API Key (Optional)"
                          Variant="Variant.Outlined"
                          InputType="InputType.Password"
                          HelperText="Leave blank if no authentication required"
-                         ValueChanged="@((string val) => Dispatcher.Dispatch(new UpdateAdminLiteLLMApiKeyAction(val)))" />
+                         ValueChanged="@((string val) => { _liteLLMApiKey = val; Dispatcher.Dispatch(new UpdateAdminLiteLLMApiKeyAction(val)); })" />
 
             <MudButton Variant="Variant.Filled"
                       Color="Color.Primary"

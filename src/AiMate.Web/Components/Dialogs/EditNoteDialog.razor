@@ -180,7 +180,7 @@
         };
     }
 
-    private Task<IEnumerable<string>> SearchCollections(string value)
+    private Task<IEnumerable<string>> SearchCollections(string value, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(value))
             return Task.FromResult(ExistingCollections.AsEnumerable());

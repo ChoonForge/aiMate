@@ -8,30 +8,30 @@
 
 <MudGrid>
     <MudItem xs="12">
-        <MudSwitch T="bool" @bind-Checked="@_trackUsage"
+        <MudSwitch T="bool" Checked="@_trackUsage"
                   Label="Track Usage"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateTrackUsageAction(value)))" />
+                  CheckedChanged="@((bool value) => { _trackUsage = value; Dispatcher.Dispatch(new UpdateTrackUsageAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Track tokens used and estimated costs
         </MudText>
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch T="bool" @bind-Checked="@_showCostEstimates"
+        <MudSwitch T="bool" Checked="@_showCostEstimates"
                   Label="Show Cost Estimates"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateShowCostEstimatesAction(value)))" />
+                  CheckedChanged="@((bool value) => { _showCostEstimates = value; Dispatcher.Dispatch(new UpdateShowCostEstimatesAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Display estimated cost for each message
         </MudText>
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch T="bool" @bind-Checked="@_enableUsageAlerts"
+        <MudSwitch T="bool" Checked="@_enableUsageAlerts"
                   Label="Enable Usage Alerts"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => Dispatcher.Dispatch(new UpdateUsageAlertsAction(value)))" />
+                  CheckedChanged="@((bool value) => { _enableUsageAlerts = value; Dispatcher.Dispatch(new UpdateUsageAlertsAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Get notified when approaching monthly budget
         </MudText>
@@ -42,13 +42,13 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudNumericField T="int" @bind-Value="@_monthlyBudget"
+        <MudNumericField T="int" Value="@_monthlyBudget"
                         Label="Monthly Budget (NZD)"
                         Variant="Variant.Outlined"
                         Min="0"
                         Max="1000"
                         Step="10"
-                        ValueChanged="@((int value) => Dispatcher.Dispatch(new UpdateMonthlyBudgetAction(value)))" />
+                        ValueChanged="@((int value) => { _monthlyBudget = value; Dispatcher.Dispatch(new UpdateMonthlyBudgetAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             0 = unlimited (for BYOK users)
         </MudText>

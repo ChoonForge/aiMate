@@ -36,12 +36,12 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudSlider T="double" @bind-Value="@_temperature"
+        <MudSlider T="double" Value="@_temperature"
                   Min="0"
                   Max="2"
                   Step="0.1"
                   Color="Color.Primary"
-                  ValueChanged="@((double value) => Dispatcher.Dispatch(new UpdateTemperatureAction(value)))">
+                  ValueChanged="@((double value) => { _temperature = value; Dispatcher.Dispatch(new UpdateTemperatureAction(value)); })">
             Temperature: @_temperature.ToString("F1")
         </MudSlider>
         <MudText Typo="Typo.caption" Color="Color.Secondary">
@@ -50,22 +50,22 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudNumericField T="int" @bind-Value="@_maxTokens"
+        <MudNumericField T="int" Value="@_maxTokens"
                         Label="Max Tokens"
                         Variant="Variant.Outlined"
                         Min="100"
                         Max="8000"
                         Step="100"
-                        ValueChanged="@((int value) => Dispatcher.Dispatch(new UpdateMaxTokensAction(value)))" />
+                        ValueChanged="@((int value) => { _maxTokens = value; Dispatcher.Dispatch(new UpdateMaxTokensAction(value)); })" />
     </MudItem>
 
     <MudItem xs="12">
-        <MudTextField T="string" @bind-Value="@_systemPromptOverride"
+        <MudTextField T="string" Value="@_systemPromptOverride"
                      Label="System Prompt Override (Advanced)"
                      Variant="Variant.Outlined"
                      Lines="5"
                      Placeholder="Optional: Override the default system prompt"
-                     ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateSystemPromptOverrideAction(value)))" />
+                     ValueChanged="@((string value) => { _systemPromptOverride = value; Dispatcher.Dispatch(new UpdateSystemPromptOverrideAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Leave blank to use personality-specific prompts. Advanced users only!
         </MudText>

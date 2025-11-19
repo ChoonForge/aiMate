@@ -234,7 +234,6 @@
 
     private void HandleDelete(MouseEventArgs e, Guid itemId)
     {
-        e.StopPropagation();
         // UX ENHANCEMENT: Add confirmation dialog before delete
         // await DialogService.ShowMessageBox("Delete Knowledge Item?", "This action cannot be undone.", yesText: "Delete", cancelText: "Cancel")
         Dispatcher.Dispatch(new DeleteKnowledgeItemAction(itemId));

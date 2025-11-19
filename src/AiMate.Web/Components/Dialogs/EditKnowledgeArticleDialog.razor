@@ -108,14 +108,14 @@
                                 }
                             </div>
                             <MudAutocomplete T="string"
-                                           @bind-Value="_currentTag"
+                                           Value="_currentTag"
                                            Label="Add Tags"
                                            SearchFunc="SearchTags"
                                            Variant="Variant.Outlined"
                                            CoerceText="false"
                                            CoerceValue="false"
                                            Clearable="true"
-                                           ValueChanged="@((string value) => AddTag(value))"
+                                           ValueChanged="@((string value) => { _currentTag = value; AddTag(value); })"
                                            HelperText="Type and press Enter to add tags" />
                         </MudItem>
 
@@ -334,7 +334,7 @@
         }
     }
 
-    private Task<IEnumerable<string>> SearchCollections(string value)
+    private Task<IEnumerable<string>> SearchCollections(string value, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -354,7 +354,7 @@
         return Task.FromResult(results.AsEnumerable());
     }
 
-    private Task<IEnumerable<string>> SearchCategories(string value)
+    private Task<IEnumerable<string>> SearchCategories(string value, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -373,7 +373,7 @@
         return Task.FromResult(results.AsEnumerable());
     }
 
-    private Task<IEnumerable<string>> SearchTags(string value)
+    private Task<IEnumerable<string>> SearchTags(string value, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(value))
         {

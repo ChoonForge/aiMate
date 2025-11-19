@@ -6,7 +6,7 @@
 
 @if (SelectedItem != null)
 {
-    <MudDialog @bind-IsVisible="@_showViewer" Options="@_dialogOptions">
+    <MudDialog IsVisible="@_showViewer" IsVisibleChanged="@((bool visible) => { if (!visible) HandleClose(); })" Options="@_dialogOptions">
         <TitleContent>
             <MudText Typo="Typo.h5">@SelectedItem.Title</MudText>
         </TitleContent>

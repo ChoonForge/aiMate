@@ -97,10 +97,10 @@
                         <MudChipSet T="string">
                             @foreach (var tag in selectedTags)
                             {
-                                <MudChip
+                                <MudChip T="string"
                                     Text="@tag.Value"
                                     Color="@GetSentimentColor(tag.Sentiment)"
-                                    OnClose="@(() => RemoveTag(tag.Key))">
+                                    OnClose="@((MudChip<string> chip) => RemoveTag(tag.Key))">
                                     @tag.Key: @tag.Value
                                 </MudChip>
                             }

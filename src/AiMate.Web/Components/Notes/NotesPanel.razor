@@ -25,13 +25,13 @@
     <MudPaper Class="pa-3" Elevation="0">
         <MudStack Spacing="2">
             @* Search Bar *@
-            <MudTextField T="string" @bind-Value="@_searchQuery"
+            <MudTextField T="string" Value="@_searchQuery"
                          Label="Search notes..."
                          Variant="Variant.Outlined"
                          Adornment="Adornment.Start"
                          AdornmentIcon="@Icons.Material.Filled.Search"
                          Immediate="true"
-                         ValueChanged="@((string val) => Dispatcher.Dispatch(new SetSearchQueryAction(val)))" />
+                         ValueChanged="@((string val) => { _searchQuery = val; Dispatcher.Dispatch(new SetSearchQueryAction(val)); })" />
 
             @* Filter Row *@
             <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">

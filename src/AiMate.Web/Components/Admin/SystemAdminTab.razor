@@ -18,40 +18,40 @@
     <MudPaper Class="pa-4" Elevation="2">
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudSwitch T="bool" @bind-Checked="@_enableAdminPanel"
+                <MudSwitch T="bool" Checked="@_enableAdminPanel"
                           Label="Enable Admin Panel"
                           Color="Color.Primary"
-                          CheckedChanged="@((bool val) => HandleToggleSetting("EnableAdminPanel", val))" />
+                          CheckedChanged="@((bool val) => { _enableAdminPanel = val; HandleToggleSetting("EnableAdminPanel", val); })" />
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     Allow access to the admin panel for users with Admin tier
                 </MudText>
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudSwitch T="bool" @bind-Checked="@_allowUserRegistration"
+                <MudSwitch T="bool" Checked="@_allowUserRegistration"
                           Label="Allow User Registration"
                           Color="Color.Primary"
-                          CheckedChanged="@((bool val) => HandleToggleSetting("AllowUserRegistration", val))" />
+                          CheckedChanged="@((bool val) => { _allowUserRegistration = val; HandleToggleSetting("AllowUserRegistration", val); })" />
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     Enable new user sign-up on the platform
                 </MudText>
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudSwitch T="bool" @bind-Checked="@_enableApiAccess"
+                <MudSwitch T="bool" Checked="@_enableApiAccess"
                           Label="Enable API Access"
                           Color="Color.Primary"
-                          CheckedChanged="@((bool val) => HandleToggleSetting("EnableApiAccess", val))" />
+                          CheckedChanged="@((bool val) => { _enableApiAccess = val; HandleToggleSetting("EnableApiAccess", val); })" />
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     Allow external API access to aiMate services
                 </MudText>
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudSwitch T="bool" @bind-Checked="@_debugMode"
+                <MudSwitch T="bool" Checked="@_debugMode"
                           Label="Debug Mode"
                           Color="Color.Warning"
-                          CheckedChanged="@((bool val) => HandleToggleSetting("DebugMode", val))" />
+                          CheckedChanged="@((bool val) => { _debugMode = val; HandleToggleSetting("DebugMode", val); })" />
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     Enable verbose logging and debugging features
                 </MudText>

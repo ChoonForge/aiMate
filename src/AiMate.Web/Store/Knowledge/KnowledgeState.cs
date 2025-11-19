@@ -38,7 +38,14 @@ public record KnowledgeState
     // UI State
     public bool IsLoading { get; init; }
     public bool IsSaving { get; init; }
+    public bool IsSearching { get; init; }
     public string? Error { get; init; }
     public KnowledgeArticleDto? SelectedArticle { get; init; }
     public bool IsEditDialogOpen { get; init; }
+
+    // Additional state for Knowledge components compatibility
+    public Guid? SelectedItemId { get; init; }
+    public Dictionary<Guid, Core.Entities.KnowledgeItem> KnowledgeItems { get; init; } = new();
+    public List<Core.Entities.KnowledgeItem> SearchResults { get; init; } = new();
+    public List<Core.Entities.KnowledgeItem> RelatedItems { get; init; } = new();
 }
