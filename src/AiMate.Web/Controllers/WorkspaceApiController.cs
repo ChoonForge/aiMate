@@ -38,17 +38,17 @@ public class WorkspaceApiController : ControllerBase
 
             // DEMO MODE: Using hardcoded user ID
             // IMPLEMENTATION NEEDED: Get from authenticated user context
-            var userId = 1;
+            var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
-            var workspaces = await _workspaceService.GetWorkspacesAsync(userId);
+            var workspaces = await _workspaceService.GetUserWorkspacesAsync(userId);
 
             var workspaceDtos = workspaces.Select(w => new WorkspaceDto
             {
-                Id = w.Id,
+                Id = w.Id.GetHashCode(), // Convert Guid to int for DTO
                 Name = w.Name,
                 Description = w.Description,
                 Type = w.Type.ToString(),
-                Personality = w.Personality.ToString(),
+                Personality = w.DefaultPersonality.ToString(),
                 CreatedAt = w.CreatedAt,
                 UpdatedAt = w.UpdatedAt
             }).ToList();
@@ -66,7 +66,7 @@ public class WorkspaceApiController : ControllerBase
     /// Get a specific workspace by ID
     /// </summary>
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetWorkspace(int id)
+    public async Task<IActionResult> GetWorkspace(Guid id)
     {
         try
         {
@@ -81,11 +81,11 @@ public class WorkspaceApiController : ControllerBase
 
             var workspaceDto = new WorkspaceDto
             {
-                Id = workspace.Id,
+                Id = workspace.Id.GetHashCode(), // Convert Guid to int for DTO
                 Name = workspace.Name,
                 Description = workspace.Description,
                 Type = workspace.Type.ToString(),
-                Personality = workspace.Personality.ToString(),
+                Personality = workspace.DefaultPersonality.ToString(),
                 CreatedAt = workspace.CreatedAt,
                 UpdatedAt = workspace.UpdatedAt
             };
@@ -111,7 +111,7 @@ public class WorkspaceApiController : ControllerBase
 
             // DEMO MODE: Using hardcoded user ID
             // IMPLEMENTATION NEEDED: Get from authenticated user context
-            var userId = 1;
+            var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
             // Parse enums
             if (!Enum.TryParse<Core.Enums.WorkspaceType>(request.Type, out var workspaceType))
@@ -124,28 +124,31 @@ public class WorkspaceApiController : ControllerBase
                 personality = Core.Enums.PersonalityMode.KiwiMate;
             }
 
-            var workspace = await _workspaceService.CreateWorkspaceAsync(
-                userId,
-                request.Name,
-                workspaceType,
-                personality,
-                request.Description
-            );
+            var workspace = new Core.Entities.Workspace
+            {
+                Name = request.Name,
+                Description = request.Description,
+                Type = workspaceType,
+                DefaultPersonality = personality,
+                UserId = userId
+            };
+
+            var created = await _workspaceService.CreateWorkspaceAsync(workspace);
 
             var workspaceDto = new WorkspaceDto
             {
-                Id = workspace.Id,
-                Name = workspace.Name,
-                Description = workspace.Description,
-                Type = workspace.Type.ToString(),
-                Personality = workspace.Personality.ToString(),
-                CreatedAt = workspace.CreatedAt,
-                UpdatedAt = workspace.UpdatedAt
+                Id = created.Id.GetHashCode(), // Convert Guid to int for DTO
+                Name = created.Name,
+                Description = created.Description,
+                Type = created.Type.ToString(),
+                Personality = created.DefaultPersonality.ToString(),
+                CreatedAt = created.CreatedAt,
+                UpdatedAt = created.UpdatedAt
             };
 
             return CreatedAtAction(
                 nameof(GetWorkspace),
-                new { id = workspace.Id },
+                new { id = created.Id },
                 workspaceDto
             );
         }
@@ -160,7 +163,7 @@ public class WorkspaceApiController : ControllerBase
     /// Update an existing workspace
     /// </summary>
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateWorkspace(int id, [FromBody] UpdateWorkspaceRequest request)
+    public async Task<IActionResult> UpdateWorkspace(Guid id, [FromBody] UpdateWorkspaceRequest request)
     {
         try
         {
@@ -196,7 +199,7 @@ public class WorkspaceApiController : ControllerBase
             {
                 if (Enum.TryParse<Core.Enums.PersonalityMode>(request.Personality, out var personality))
                 {
-                    workspace.Personality = personality;
+                    workspace.DefaultPersonality = personality;
                 }
             }
 
@@ -204,11 +207,11 @@ public class WorkspaceApiController : ControllerBase
 
             var workspaceDto = new WorkspaceDto
             {
-                Id = workspace.Id,
+                Id = workspace.Id.GetHashCode(), // Convert Guid to int for DTO
                 Name = workspace.Name,
                 Description = workspace.Description,
                 Type = workspace.Type.ToString(),
-                Personality = workspace.Personality.ToString(),
+                Personality = workspace.DefaultPersonality.ToString(),
                 CreatedAt = workspace.CreatedAt,
                 UpdatedAt = workspace.UpdatedAt
             };
@@ -226,7 +229,7 @@ public class WorkspaceApiController : ControllerBase
     /// Delete a workspace
     /// </summary>
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteWorkspace(int id)
+    public async Task<IActionResult> DeleteWorkspace(Guid id)
     {
         try
         {

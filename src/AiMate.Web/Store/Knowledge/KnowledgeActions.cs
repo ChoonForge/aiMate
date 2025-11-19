@@ -98,3 +98,22 @@ public record LoadKnowledgeItemsAction();
 public record DeleteKnowledgeItemAction(Guid ItemId);
 public record ClearTagFiltersAction();
 public record LoadRelatedItemsAction(Guid ItemId);
+
+// ============================================================================
+// ITEM EDITOR ACTIONS
+// ============================================================================
+
+public record CloseKnowledgeItemEditorAction();
+public record CreateKnowledgeItemAction(
+    string Title,
+    string Content,
+    List<string> Tags,
+    string Type,
+    string? SourceUrl);
+public record UpdateKnowledgeItemAction(
+    Guid ItemId,
+    string Title,
+    string Content,
+    List<string> Tags,
+    string Type,
+    string? SourceUrl);

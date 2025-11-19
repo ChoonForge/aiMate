@@ -5,7 +5,7 @@
 @inject IState<WorkspaceState> WorkspaceState
 @inject IDispatcher Dispatcher
 
-<MudDialog @bind-IsVisible="@WorkspaceState.Value.ShowWorkspaceEditor">
+<MudDialog IsVisible="@WorkspaceState.Value.ShowWorkspaceEditor">
     <TitleContent>
         <MudText Typo="Typo.h6">
             @(IsEditMode ? "Edit Workspace" : "New Workspace")
@@ -87,9 +87,9 @@
             if (workspace != null)
             {
                 _name = workspace.Name;
-                _type = workspace.Type;
-                _defaultPersonality = workspace.DefaultPersonality ?? PersonalityMode.KiwiMate.ToString();
-                _context = workspace.Context ?? string.Empty;
+                _type = workspace.Type.ToString();
+                _defaultPersonality = workspace.DefaultPersonality.ToString();
+                _context = workspace.Context.TryGetValue("description", out var desc) ? desc : string.Empty;
             }
         }
         else if (WorkspaceState.Value.ShowWorkspaceEditor)

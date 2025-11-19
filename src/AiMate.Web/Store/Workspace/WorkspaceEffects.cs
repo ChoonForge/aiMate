@@ -54,13 +54,22 @@ public class WorkspaceEffects
             // DEMO MODE: Using hardcoded user ID (see HandleLoadWorkspaces for implementation notes)
             var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
+            // Parse enum types from string
+            var workspaceType = Enum.TryParse<Core.Enums.WorkspaceType>(action.Type, out var parsedType)
+                ? parsedType
+                : Core.Enums.WorkspaceType.General;
+
+            var personality = Enum.TryParse<Core.Enums.PersonalityMode>(action.DefaultPersonality, out var parsedPersonality)
+                ? parsedPersonality
+                : Core.Enums.PersonalityMode.KiwiMate;
+
             var workspace = new Core.Entities.Workspace
             {
                 UserId = userId,
                 Name = action.Name,
-                Type = action.Type,
-                DefaultPersonality = action.DefaultPersonality,
-                Context = action.Context,
+                Type = workspaceType,
+                DefaultPersonality = personality,
+                Context = string.IsNullOrEmpty(action.Context) ? new Dictionary<string, string>() : new Dictionary<string, string> { { "description", action.Context } },
                 EnabledTools = new List<string>() // Will be set from UI later
             };
 
@@ -91,9 +100,25 @@ public class WorkspaceEffects
             }
 
             workspace.Name = action.Name;
-            workspace.Type = action.Type;
-            workspace.DefaultPersonality = action.DefaultPersonality;
-            workspace.Context = action.Context;
+
+            // Parse enum types from string
+            if (Enum.TryParse<Core.Enums.WorkspaceType>(action.Type, out var parsedType))
+            {
+                workspace.Type = parsedType;
+            }
+
+            if (!string.IsNullOrEmpty(action.DefaultPersonality) &&
+                Enum.TryParse<Core.Enums.PersonalityMode>(action.DefaultPersonality, out var parsedPersonality))
+            {
+                workspace.DefaultPersonality = parsedPersonality;
+            }
+
+            // Update context
+            if (!string.IsNullOrEmpty(action.Context))
+            {
+                workspace.Context = new Dictionary<string, string> { { "description", action.Context } };
+            }
+
             workspace.EnabledTools = action.EnabledTools ?? new List<string>();
 
             var updated = await _workspaceService.UpdateWorkspaceAsync(workspace);

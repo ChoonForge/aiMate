@@ -37,4 +37,9 @@ public interface IPermissionService
     /// Check if BYOK is enabled for a tier (admin configurable)
     /// </summary>
     bool IsBYOKEnabledForTier(UserTier tier);
+
+    /// <summary>
+    /// Set if BYOK is enabled for a tier (admin only)
+    /// </summary>
+    void SetBYOKEnabledForTier(UserTier tier, bool enabled);
 }

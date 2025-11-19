@@ -1,4 +1,5 @@
 using AiMate.Infrastructure.Data;
+using AiMate.Web.Components;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using Fluxor;
@@ -83,7 +84,8 @@ builder.Services.AddMudServices();
 builder.Services.AddFluxor(options =>
 {
     options.ScanAssemblies(typeof(Program).Assembly);
-    options.UseReduxDevTools();
+    // UseReduxDevTools() is not available in this version of Fluxor
+    // For debugging, use browser developer tools with Fluxor DevTools extension
 });
 
 // Database

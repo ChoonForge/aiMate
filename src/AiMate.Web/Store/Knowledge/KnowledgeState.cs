@@ -48,4 +48,8 @@ public record KnowledgeState
     public Dictionary<Guid, Core.Entities.KnowledgeItem> KnowledgeItems { get; init; } = new();
     public List<Core.Entities.KnowledgeItem> SearchResults { get; init; } = new();
     public List<Core.Entities.KnowledgeItem> RelatedItems { get; init; } = new();
+
+    // Item editor state
+    public bool ShowItemEditor { get; init; }
+    public Guid? EditingItemId { get; init; }
 }

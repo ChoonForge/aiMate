@@ -43,8 +43,7 @@ public class ToolsApiController : ControllerBase
             _logger.LogInformation("Listing tools for workspace {WorkspaceId}", workspaceId);
 
             var tools = await _toolService.GetAvailableToolsAsync(
-                workspaceId,
-                userId.Value);
+                workspaceId);
 
             return Ok(new
             {
@@ -91,8 +90,7 @@ public class ToolsApiController : ControllerBase
             var result = await _toolService.ExecuteToolAsync(
                 request.ToolName,
                 request.Parameters,
-                request.WorkspaceId,
-                userId.Value);
+                request.WorkspaceId);
 
             if (!result.Success)
             {
@@ -135,9 +133,7 @@ public class ToolsApiController : ControllerBase
         try
         {
             var isAvailable = await _toolService.IsToolAvailableAsync(
-                toolName,
-                workspaceId,
-                userId.Value);
+                toolName);
 
             return Ok(new
             {
