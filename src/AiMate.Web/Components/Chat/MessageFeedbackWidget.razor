@@ -72,7 +72,7 @@
                         {
                             <div class="mb-2">
                                 <MudText Typo="Typo.caption">@template.Label</MudText>
-                                <MudChipSet T="string" SelectedValue="@(selectedChips.ContainsKey(template.Category) ? selectedChips[template.Category] : null)" SelectionMode="SelectionMode.SingleSelection">
+                                <MudChipSet T="string" SelectionMode="SelectionMode.None">
                                     @foreach (var option in template.Options.OrderBy(o => o.DisplayOrder))
                                     {
                                         <MudChip T="string"
@@ -156,7 +156,6 @@
     private int selectedRating = 5;
     private string? textFeedback;
     private List<FeedbackTagDto> selectedTags = new();
-    private Dictionary<string, string?> selectedChips = new();
 
     private int? CurrentRating =>
         FeedbackState.Value.FeedbackByMessageId.TryGetValue(MessageId, out var feedback)
