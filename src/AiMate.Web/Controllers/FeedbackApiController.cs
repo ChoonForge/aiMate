@@ -370,18 +370,3 @@ public class UpdateTagTemplateRequest
     public bool? IsRequired { get; set; }
     public int? DisplayOrder { get; set; }
 }
-
-// DTO for ChatApiController compatibility
-public class ChatCompletionRequest
-{
-    public string Model { get; set; } = string.Empty;
-    public List<ChatMessage> Messages { get; set; } = new();
-    public double? Temperature { get; set; }
-    public int? MaxTokens { get; set; }
-}
-
-public class ChatMessage
-{
-    public string Role { get; set; } = string.Empty;
-    public string Content { get; set; } = string.Empty;
-}
