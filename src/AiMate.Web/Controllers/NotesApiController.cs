@@ -131,28 +131,22 @@ public class NotesController : ControllerBase
                 return Forbid("You don't have permission to update this note");
             }
 
-            // Update fields
-            var updatedNote = note with
-            {
-                Title = request.Title ?? note.Title,
-                Content = request.Content ?? note.Content,
-                ContentType = request.ContentType ?? note.ContentType,
-                Tags = request.Tags ?? note.Tags,
-                Collection = request.Collection ?? note.Collection,
-                Category = request.Category ?? note.Category,
-                Color = request.Color ?? note.Color,
-                IsPinned = request.IsPinned ?? note.IsPinned,
-                IsFavorite = request.IsFavorite ?? note.IsFavorite,
-                IsArchived = request.IsArchived ?? note.IsArchived,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            var index = _notes.IndexOf(note);
-            _notes[index] = updatedNote;
+            // Update fields manually (NoteDto is a class, not a record)
+            note.Title = request.Title ?? note.Title;
+            note.Content = request.Content ?? note.Content;
+            note.ContentType = request.ContentType ?? note.ContentType;
+            note.Tags = request.Tags ?? note.Tags;
+            note.Collection = request.Collection ?? note.Collection;
+            note.Category = request.Category ?? note.Category;
+            note.Color = request.Color ?? note.Color;
+            note.IsPinned = request.IsPinned ?? note.IsPinned;
+            note.IsFavorite = request.IsFavorite ?? note.IsFavorite;
+            note.IsArchived = request.IsArchived ?? note.IsArchived;
+            note.UpdatedAt = DateTime.UtcNow;
 
             _logger.LogInformation("Updated note {NoteId}", id);
 
-            return Ok(updatedNote);
+            return Ok(note);
         }
         catch (Exception ex)
         {

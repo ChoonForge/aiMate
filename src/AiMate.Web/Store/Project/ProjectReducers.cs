@@ -73,11 +73,9 @@ public static class ProjectReducers
     {
         if (state.Projects.TryGetValue(action.ProjectId, out var project))
         {
-            var updatedProject = project with { IsArchived = true };
-            var projects = new Dictionary<Guid, Core.Entities.Project>(state.Projects)
-            {
-                [action.ProjectId] = updatedProject
-            };
+            // Update property manually (Project is a class, not a record)
+            project.IsArchived = true;
+            var projects = new Dictionary<Guid, Core.Entities.Project>(state.Projects);
             return state with { Projects = projects };
         }
         return state;

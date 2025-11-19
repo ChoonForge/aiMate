@@ -53,10 +53,11 @@ public class KnowledgeController : ControllerBase
         var article = _articles.FirstOrDefault(a => a.Id == id);
         if (article == null) return NotFound();
         if (article.OwnerId != userId && article.Visibility == "Private") return Forbid();
-        
-        var index = _articles.IndexOf(article);
-        _articles[index] = article with { ViewCount = article.ViewCount + 1, LastViewedAt = DateTime.UtcNow };
-        return Ok(_articles[index]);
+
+        // Update view count manually (KnowledgeArticleDto is a class, not a record)
+        article.ViewCount++;
+        article.LastViewedAt = DateTime.UtcNow;
+        return Ok(article);
     }
 
     [HttpPost]
@@ -90,20 +91,16 @@ public class KnowledgeController : ControllerBase
         if (article == null) return NotFound();
         if (article.OwnerId != userId) return Forbid();
 
-        var updated = article with
-        {
-            Title = request.Title ?? article.Title,
-            Content = request.Content ?? article.Content,
-            Summary = request.Summary ?? article.Summary,
-            Tags = request.Tags ?? article.Tags,
-            IsFeatured = request.IsFeatured ?? article.IsFeatured,
-            IsVerified = request.IsVerified ?? article.IsVerified,
-            UpdatedAt = DateTime.UtcNow
-        };
+        // Update fields manually (KnowledgeArticleDto is a class, not a record)
+        article.Title = request.Title ?? article.Title;
+        article.Content = request.Content ?? article.Content;
+        article.Summary = request.Summary ?? article.Summary;
+        article.Tags = request.Tags ?? article.Tags;
+        article.IsFeatured = request.IsFeatured ?? article.IsFeatured;
+        article.IsVerified = request.IsVerified ?? article.IsVerified;
+        article.UpdatedAt = DateTime.UtcNow;
 
-        var index = _articles.IndexOf(article);
-        _articles[index] = updated;
-        return Ok(updated);
+        return Ok(article);
     }
 
     [HttpDelete("{id}")]

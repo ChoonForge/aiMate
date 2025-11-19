@@ -2,6 +2,7 @@
 @using AiMate.Web.Store.Admin
 @using AiMate.Shared.Models
 @using AiMate.Core.Enums
+@using AiMate.Web.Components.Dialogs
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @inject IState<AdminState> AdminState
 @inject IDispatcher Dispatcher
@@ -104,7 +105,7 @@
             MaxWidth = MaxWidth.Large,
             FullWidth = true,
             CloseButton = true,
-            BackdropClick = BackdropClick.Disabled
+            BackdropClick = false
         };
 
         var dialog = await DialogService.ShowAsync<EditModelDialog>("Add New Model", parameters, options);
@@ -165,7 +166,7 @@
             MaxWidth = MaxWidth.Large,
             FullWidth = true,
             CloseButton = true,
-            BackdropClick = BackdropClick.Disabled
+            BackdropClick = false
         };
 
         var dialog = await DialogService.ShowAsync<EditModelDialog>("Edit Model", parameters, options);

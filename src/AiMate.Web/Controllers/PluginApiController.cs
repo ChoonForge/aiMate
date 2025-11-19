@@ -90,8 +90,8 @@ public class PluginApiController : ControllerBase
                 Category = plugin.Category,
                 IsEnabled = plugin.IsEnabled,
                 HasSettings = plugin is IUIExtension uiExt && uiExt.GetSettingsUI() != null,
-                ActionCount = plugin is IUIExtension ui ? ui.GetMessageActions(new Core.Entities.Message()).Count() : 0,
-                ToolCount = plugin is IToolProvider tp ? tp.GetAvailableTools().Count() : 0
+                ActionCount = plugin is IUIExtension ui ? ui.GetMessageActions(new Core.Entities.Message { Content = "" }).Count() : 0,
+                ToolCount = plugin is IToolProvider tp ? tp.GetTools().Count() : 0
             };
 
             return Ok(pluginInfo);
@@ -235,7 +235,7 @@ public class PluginApiController : ControllerBase
 
             var message = new Core.Entities.Message
             {
-                Id = request.MessageId,
+                Id = Guid.TryParse(request.MessageId, out var msgId) ? msgId : Guid.NewGuid(),
                 Role = request.Role,
                 Content = request.Content ?? string.Empty
             };
