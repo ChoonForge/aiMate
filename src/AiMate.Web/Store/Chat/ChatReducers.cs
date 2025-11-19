@@ -19,20 +19,12 @@ public static class ChatReducers
         var conversation = state.Conversations.GetValueOrDefault(action.ConversationId);
         if (conversation == null) return state;
 
-        var updatedConversation = conversation with
-        {
-            Messages = new List<Core.Entities.Message>(conversation.Messages)
-            {
-                action.UserMessage,
-                action.AssistantMessage
-            },
-            UpdatedAt = DateTime.UtcNow
-        };
+        // Manually update messages list since Conversation is a class
+        conversation.Messages.Add(action.UserMessage);
+        conversation.Messages.Add(action.AssistantMessage);
+        conversation.UpdatedAt = DateTime.UtcNow;
 
-        var newConversations = new Dictionary<Guid, Core.Entities.Conversation>(state.Conversations)
-        {
-            [action.ConversationId] = updatedConversation
-        };
+        var newConversations = new Dictionary<Guid, Core.Entities.Conversation>(state.Conversations);
 
         return state with
         {
@@ -65,23 +57,10 @@ public static class ChatReducers
         var message = conversation.Messages.FirstOrDefault(m => m.Id == action.MessageId);
         if (message == null) return state;
 
-        // Update message content
-        var updatedMessage = message with
-        {
-            Content = message.Content + action.Chunk
-        };
+        // Update message content directly since Message is a class
+        message.Content += action.Chunk;
 
-        var updatedMessages = conversation.Messages.Select(m =>
-            m.Id == action.MessageId ? updatedMessage : m).ToList();
-
-        var updatedConversation = conversation with { Messages = updatedMessages };
-
-        var newConversations = new Dictionary<Guid, Core.Entities.Conversation>(state.Conversations)
-        {
-            [state.ActiveConversationId.Value] = updatedConversation
-        };
-
-        return state with { Conversations = newConversations };
+        return state with { Conversations = state.Conversations };
     }
 
     [ReducerMethod]

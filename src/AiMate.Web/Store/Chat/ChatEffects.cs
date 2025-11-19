@@ -139,7 +139,7 @@ public class ChatEffects
             _logger.LogInformation("Creating new conversation: {Title}", action.Title);
 
             // Create workspace (simplified - in production, would use WorkspaceService)
-            var workspace = new Workspace
+            var workspace = new Core.Entities.Workspace
             {
                 Id = Guid.NewGuid(),
                 Name = "Default Workspace",
@@ -147,7 +147,7 @@ public class ChatEffects
                 CreatedAt = DateTime.UtcNow
             };
 
-            var conversation = new Conversation
+            var conversation = new Core.Entities.Conversation
             {
                 Id = Guid.NewGuid(),
                 WorkspaceId = workspace.Id,
