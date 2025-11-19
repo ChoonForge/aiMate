@@ -65,7 +65,7 @@
                         <MudChip
                                 Size="Size.Small"
                                 Color="@(string.IsNullOrEmpty(KnowledgeState.Value.SelectedType) ? Color.Default : Color.Primary)"
-                                OnClose="@(() => Dispatcher.Dispatch(new SetTypeFilterAction(null)))">
+                                OnClick="@(() => Dispatcher.Dispatch(new SetTypeFilterAction(null)))">
                             Type: @(KnowledgeState.Value.SelectedType ?? "All")
                         </MudChip>
                     </ActivatorContent>
@@ -87,7 +87,7 @@
                             <MudChip
                                     Size="Size.Small"
                                     Color="@(string.IsNullOrEmpty(KnowledgeState.Value.SelectedCollection) ? Color.Default : Color.Primary)"
-                                    OnClose="@(() => Dispatcher.Dispatch(new SetCollectionFilterAction(null)))">
+                                    OnClick="@(() => Dispatcher.Dispatch(new SetCollectionFilterAction(null)))">
                                 Collection: @(KnowledgeState.Value.SelectedCollection ?? "All")
                             </MudChip>
                         </ActivatorContent>

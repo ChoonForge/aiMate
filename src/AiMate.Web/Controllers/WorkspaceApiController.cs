@@ -254,7 +254,7 @@ public class WorkspaceApiController : ControllerBase
     /// Get all conversations in a workspace
     /// </summary>
     [HttpGet("{workspaceId}/conversations")]
-    public async Task<IActionResult> GetConversations(int workspaceId)
+    public Task<IActionResult> GetConversations(int workspaceId)
     {
         try
         {
@@ -263,12 +263,12 @@ public class WorkspaceApiController : ControllerBase
             // IMPLEMENTATION NEEDED: Get conversations from database
             var conversations = new List<ConversationDto>();
 
-            return Ok(conversations);
+            return Task.FromResult<IActionResult>(Ok(conversations));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching conversations");
-            return StatusCode(500, new { error = "Failed to fetch conversations", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to fetch conversations", message = ex.Message }));
         }
     }
 
@@ -276,7 +276,7 @@ public class WorkspaceApiController : ControllerBase
     /// Create a new conversation in a workspace
     /// </summary>
     [HttpPost("{workspaceId}/conversations")]
-    public async Task<IActionResult> CreateConversation(int workspaceId, [FromBody] CreateConversationRequest request)
+    public Task<IActionResult> CreateConversation(int workspaceId, [FromBody] CreateConversationRequest request)
     {
         try
         {
@@ -293,16 +293,16 @@ public class WorkspaceApiController : ControllerBase
                 MessageCount = 0
             };
 
-            return CreatedAtAction(
+            return Task.FromResult<IActionResult>(CreatedAtAction(
                 nameof(GetConversations),
                 new { workspaceId },
                 conversation
-            );
+            ));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating conversation");
-            return StatusCode(500, new { error = "Failed to create conversation", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to create conversation", message = ex.Message }));
         }
     }
 }

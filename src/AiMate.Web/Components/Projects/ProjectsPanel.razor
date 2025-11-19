@@ -58,7 +58,7 @@
                     <MudChip T="string"
                             Size="Size.Small"
                             Color="@(string.IsNullOrEmpty(_selectedStatus) ? Color.Default : Color.Primary)"
-                            OnClose="@(() => _selectedStatus = null)">
+                            OnClick="@(() => _selectedStatus = null)">
                         Status: @(_selectedStatus ?? "All")
                     </MudChip>
                 </ActivatorContent>
@@ -78,7 +78,7 @@
                     <MudChip T="string"
                             Size="Size.Small"
                             Color="@(string.IsNullOrEmpty(_selectedPriority) ? Color.Default : GetPriorityColor(_selectedPriority))"
-                            OnClose="@(() => _selectedPriority = null)">
+                            OnClick="@(() => _selectedPriority = null)">
                         Priority: @(_selectedPriority ?? "All")
                     </MudChip>
                 </ActivatorContent>

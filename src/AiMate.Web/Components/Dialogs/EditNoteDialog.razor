@@ -111,7 +111,7 @@
                     {
                         <MudChip T="string" Text="@tag"
                                 Size="Size.Small"
-                                OnClose="@(() => RemoveTag(tag))">
+                                CloseIconClicked="@(() => RemoveTag(tag))">
                             @tag
                         </MudChip>
                     }
