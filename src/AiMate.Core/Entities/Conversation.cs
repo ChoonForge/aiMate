@@ -5,7 +5,7 @@ namespace AiMate.Core.Entities;
 /// <summary>
 /// A conversation thread within a workspace
 /// </summary>
-public class Conversation
+public record Conversation
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 

@@ -3,7 +3,7 @@ namespace AiMate.Core.Entities;
 /// <summary>
 /// Projects organize multiple workspaces
 /// </summary>
-public class Project
+public record Project
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 

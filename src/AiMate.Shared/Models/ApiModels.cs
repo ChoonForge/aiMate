@@ -255,7 +255,7 @@ public class CreateConversationRequest
 /// <summary>
 /// Note DTO - for personal notes and knowledge capture
 /// </summary>
-public class NoteDto
+public record NoteDto
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string Title { get; set; } = string.Empty;
@@ -327,7 +327,7 @@ public class UpdateNoteRequest
 /// <summary>
 /// Knowledge article DTO - for reference materials and documentation
 /// </summary>
-public class KnowledgeArticleDto
+public record KnowledgeArticleDto
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string Title { get; set; } = string.Empty;
@@ -427,7 +427,7 @@ public class KnowledgeAnalyticsDto
 // PROJECTS DTOs
 // ============================================================================
 
-public class ProjectDto
+public record ProjectDto
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string Key { get; set; } = string.Empty;
@@ -442,6 +442,7 @@ public class ProjectDto
     public decimal? Budget { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? DueDate { get; set; }
+    public DateTime? CompletedDate { get; set; }
     public int ProgressPercent { get; set; } = 0;
     public List<string> Tags { get; set; } = new();
     public List<string> TeamMembers { get; set; } = new();
