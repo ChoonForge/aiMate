@@ -11,17 +11,15 @@
                       FilesChanged="@((IReadOnlyList<IBrowserFile> files) => HandleFilesChanged(files))"
                       Accept=".txt,.md,.pdf,.png,.jpg,.jpeg,.doc,.docx"
                       MaximumFileCount="5">
-            @* ReSharper disable once Razor.RenderTemplateNotResolved *@
-            @* ButtonTemplate is a valid MudBlazor RenderFragment - warning is false positive *@
-            <ButtonTemplate Context="fileContext">
+            <ActivatorContent>
                 <MudButton HtmlTag="label"
                           Variant="Variant.Filled"
                           Color="Color.Primary"
                           StartIcon="@Icons.Material.Filled.CloudUpload"
-                          for="@fileContext.Id">
+                          for="@context.Id">
                     Choose Files
                 </MudButton>
-            </ButtonTemplate>
+            </ActivatorContent>
         </MudFileUpload>
 
         @if (_selectedFiles.Any())
