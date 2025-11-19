@@ -13,7 +13,7 @@
 <div class="chat-messages">
     @if (ActiveConversation == null || !ActiveConversation.Messages.Any())
     {
-        {{!-- Welcome message when no conversation --}}
+        @* Welcome message when no conversation *@
         <div class="chat-message fade-in">
             <div class="chat-message-avatar assistant">AI</div>
             <div class="chat-message-content">

@@ -368,7 +368,7 @@
             MaxWidth = MaxWidth.Medium,
             FullWidth = true,
             CloseButton = true,
-            DisableBackdropClick = true
+            BackdropClick = false
         };
 
         var dialog = await DialogService.ShowAsync<EditNoteDialog>("Create Note", parameters, options);
@@ -382,9 +382,26 @@
 
     private async Task HandleEditNote(NoteDto note)
     {
+        // Create a copy manually since NoteDto is a class, not a record
+        var noteCopy = new NoteDto
+        {
+            Id = note.Id,
+            Title = note.Title,
+            Content = note.Content,
+            ContentType = note.ContentType,
+            Collection = note.Collection,
+            Tags = new List<string>(note.Tags),
+            Color = note.Color,
+            IsPinned = note.IsPinned,
+            IsFavorite = note.IsFavorite,
+            IsArchived = note.IsArchived,
+            CreatedAt = note.CreatedAt,
+            UpdatedAt = note.UpdatedAt
+        };
+
         var parameters = new DialogParameters
         {
-            ["Note"] = note with { }, // Create a copy
+            ["Note"] = noteCopy,
             ["IsNew"] = false,
             ["ExistingCollections"] = NotesState.Value.Collections,
             ["ExistingTags"] = NotesState.Value.AllTags
@@ -395,7 +412,7 @@
             MaxWidth = MaxWidth.Medium,
             FullWidth = true,
             CloseButton = true,
-            DisableBackdropClick = true
+            BackdropClick = false
         };
 
         var dialog = await DialogService.ShowAsync<EditNoteDialog>("Edit Note", parameters, options);
