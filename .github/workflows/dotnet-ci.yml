@@ -11,8 +11,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest ]
-        dotnet-version: [ '8.0.x', '7.0.x' ]
+        os: [ windows-latest ]
+        dotnet-version: [ '9.0.x' ]
 
     steps:
       - name: Check out code
@@ -32,19 +32,23 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore
+        working-directory: ./src
 
       - name: Build
         run: dotnet build --no-restore --configuration Release
+        working-directory: ./src
 
       - name: Test
         run: dotnet test --no-build --verbosity normal
+        working-directory: ./src
 
       - name: Publish (main branch only)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: dotnet publish -c Release -o ./publish
+        working-directory: ./src
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: published-app
-          path: ./publish
+          path: ./src/publish
