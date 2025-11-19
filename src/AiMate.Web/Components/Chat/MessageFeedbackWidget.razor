@@ -100,7 +100,7 @@
                                 <MudChip T="string"
                                     Text="@tag.Value"
                                     Color="@GetSentimentColor(tag.Sentiment)"
-                                    OnClose="@((MudChip<string> chip) => RemoveTag(tag.Key))">
+                                    OnClick="@(() => RemoveTag(tag.Key))">
                                     @tag.Key: @tag.Value
                                 </MudChip>
                             }
@@ -156,7 +156,7 @@
     private int selectedRating = 5;
     private string? textFeedback;
     private List<FeedbackTagDto> selectedTags = new();
-    private Dictionary<string, MudChip<string>> selectedChips = new();
+    private Dictionary<string, string?> selectedChips = new();
 
     private int? CurrentRating =>
         FeedbackState.Value.FeedbackByMessageId.TryGetValue(MessageId, out var feedback)

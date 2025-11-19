@@ -22,7 +22,7 @@ public class SettingsApiController : ControllerBase
     /// Get user settings
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetSettings()
+    public Task<IActionResult> GetSettings()
     {
         try
         {
@@ -45,7 +45,7 @@ public class SettingsApiController : ControllerBase
     /// Update user settings
     /// </summary>
     [HttpPost]
-    public async Task<IActionResult> UpdateSettings([FromBody] UserSettingsDto settings)
+    public Task<IActionResult> UpdateSettings([FromBody] UserSettingsDto settings)
     {
         try
         {
@@ -68,7 +68,7 @@ public class SettingsApiController : ControllerBase
     /// Reset settings to defaults
     /// </summary>
     [HttpPost("reset")]
-    public async Task<IActionResult> ResetSettings()
+    public Task<IActionResult> ResetSettings()
     {
         try
         {
@@ -90,7 +90,7 @@ public class SettingsApiController : ControllerBase
     /// Export settings as JSON
     /// </summary>
     [HttpGet("export")]
-    public async Task<IActionResult> ExportSettings()
+    public Task<IActionResult> ExportSettings()
     {
         try
         {
@@ -116,7 +116,7 @@ public class SettingsApiController : ControllerBase
     /// Import settings from JSON
     /// </summary>
     [HttpPost("import")]
-    public async Task<IActionResult> ImportSettings([FromBody] UserSettingsDto settings)
+    public Task<IActionResult> ImportSettings([FromBody] UserSettingsDto settings)
     {
         try
         {

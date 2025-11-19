@@ -144,7 +144,7 @@
             {
                 @* Results List *@
                 <MudPaper Style="max-height: 500px; overflow-y: auto;" Elevation="0">
-                    <MudList T="SearchResult" Clickable="true" Dense="true">
+                    <MudList T="SearchResult"  Dense="true">
                         @foreach (var result in GetAllFilteredResults().Take(50))
                         {
                             <MudListItem T="SearchResult"

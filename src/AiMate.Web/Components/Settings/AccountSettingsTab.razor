@@ -46,21 +46,21 @@
 
     <MudItem xs="12">
         <MudRadioGroup @bind-SelectedOption="@_userTier" T="string">
-            <MudRadio T="bool" Option="@("Free")" Color="Color.Primary" Dense="true">
+            <MudRadio T="string" Value="@("Free")" Color="Color.Primary" Dense="true">
                 <MudText Typo="Typo.body1">Free Tier</MudText>
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     Fair use limits, all features available
                 </MudText>
             </MudRadio>
 
-            <MudRadio T="bool" Option="@("BYOK")" Color="Color.Primary" Dense="true" Class="mt-2">
+            <MudRadio T="string" Value="@("BYOK")" Color="Color.Primary" Dense="true" Class="mt-2">
                 <MudText Typo="Typo.body1">BYOK - $10/month</MudText>
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     Bring Your Own Keys, unlimited usage with your API keys
                 </MudText>
             </MudRadio>
 
-            <MudRadio T="bool" Option="@("Developer")" Color="Color.Primary" Dense="true" Class="mt-2">
+            <MudRadio T="string" Value="@("Developer")" Color="Color.Primary" Dense="true" Class="mt-2">
                 <MudText Typo="Typo.body1">Developer - $30/month</MudText>
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     Blazor component generator, API access, priority support

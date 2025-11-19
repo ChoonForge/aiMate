@@ -51,12 +51,8 @@
                         Required="true"
                         Placeholder="https://api.openai.com/v1"
                         Adornment="Adornment.Start"
-                        AdornmentIcon="@Icons.Material.Filled.Link">
-                <MudIconButton Icon="@Icons.Material.Filled.Refresh"
-                             Size="Size.Small"
-                             OnClick="@(() => Connection.Url = string.Empty)"
-                             aria-label="clear url" />
-            </MudTextField>
+                        AdornmentIcon="@Icons.Material.Filled.Link"
+                        Clearable="true" />
 
             @* Provider Type *@
             <MudSelect T="string" @bind-Value="@Connection.ProviderType"
@@ -245,7 +241,7 @@
                     <MudText Typo="Typo.caption" Color="Color.Secondary">
                         Select groups that can access this connection
                     </MudText>
-                    <MudSelect T="string" Label="Groups" MultiSelection="true"
+                    <MudSelect T="string" Label="Groups" 
                              SelectedValues="@Connection.AllowedGroups"
                              SelectedValuesChanged="@((IEnumerable<string> values) => Connection.AllowedGroups = values.ToList())"
                              Variant="Variant.Outlined">
