@@ -94,9 +94,9 @@
                                     </MudStack>
                                 </CardHeaderContent>
                                 <CardHeaderActions>
-                                    <MudSwitch T="bool" Checked="@connection.IsEnabled"
+                                    <MudSwitch T="bool" Value="@connection.IsEnabled"
                                              Color="Color.Success"
-                                             CheckedChanged="@((bool val) => HandleToggleConnection(connection.Id, val))" />
+                                             ValueChanged="@((bool val) => HandleToggleConnection(connection.Id, val))" />
                                 </CardHeaderActions>
                             </MudCardHeader>
                             <MudCardContent>
@@ -195,10 +195,10 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch T="bool" Checked="@_useStreamingByDefault"
+        <MudSwitch T="bool" Value="@_useStreamingByDefault"
                   Label="Use Streaming by Default"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => { _useStreamingByDefault = value; Dispatcher.Dispatch(new UpdateStreamingDefaultAction(value)); })" />
+                  ValueChanged="@((bool value) => { _useStreamingByDefault = value; Dispatcher.Dispatch(new UpdateStreamingDefaultAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Stream responses token-by-token for faster perceived performance
         </MudText>

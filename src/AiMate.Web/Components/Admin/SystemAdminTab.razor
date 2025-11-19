@@ -18,40 +18,40 @@
     <MudPaper Class="pa-4" Elevation="2">
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudSwitch T="bool" Checked="@_enableAdminPanel"
+                <MudSwitch T="bool" Value="@_enableAdminPanel"
                           Label="Enable Admin Panel"
                           Color="Color.Primary"
-                          CheckedChanged="@((bool val) => { _enableAdminPanel = val; HandleToggleSetting("EnableAdminPanel", val); })" />
+                          ValueChanged="@((bool val) => { _enableAdminPanel = val; HandleToggleSetting("EnableAdminPanel", val); })" />
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     Allow access to the admin panel for users with Admin tier
                 </MudText>
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudSwitch T="bool" Checked="@_allowUserRegistration"
+                <MudSwitch T="bool" Value="@_allowUserRegistration"
                           Label="Allow User Registration"
                           Color="Color.Primary"
-                          CheckedChanged="@((bool val) => { _allowUserRegistration = val; HandleToggleSetting("AllowUserRegistration", val); })" />
+                          ValueChanged="@((bool val) => { _allowUserRegistration = val; HandleToggleSetting("AllowUserRegistration", val); })" />
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     Enable new user sign-up on the platform
                 </MudText>
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudSwitch T="bool" Checked="@_enableApiAccess"
+                <MudSwitch T="bool" Value="@_enableApiAccess"
                           Label="Enable API Access"
                           Color="Color.Primary"
-                          CheckedChanged="@((bool val) => { _enableApiAccess = val; HandleToggleSetting("EnableApiAccess", val); })" />
+                          ValueChanged="@((bool val) => { _enableApiAccess = val; HandleToggleSetting("EnableApiAccess", val); })" />
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     Allow external API access to aiMate services
                 </MudText>
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudSwitch T="bool" Checked="@_debugMode"
+                <MudSwitch T="bool" Value="@_debugMode"
                           Label="Debug Mode"
                           Color="Color.Warning"
-                          CheckedChanged="@((bool val) => { _debugMode = val; HandleToggleSetting("DebugMode", val); })" />
+                          ValueChanged="@((bool val) => { _debugMode = val; HandleToggleSetting("DebugMode", val); })" />
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     Enable verbose logging and debugging features
                 </MudText>
@@ -75,9 +75,9 @@
                             <MudIcon Icon="@Icons.Material.Filled.CardMembership" Color="Color.Secondary" />
                             <MudText Typo="Typo.subtitle2">Free Tier</MudText>
                         </MudStack>
-                        <MudSwitch T="bool" Checked="@_byokFreeTier"
+                        <MudSwitch T="bool" Value="@_byokFreeTier"
                                   Color="Color.Success"
-                                  CheckedChanged="@((bool val) => HandleBYOKToggle(UserTier.Free, val))" />
+                                  ValueChanged="@((bool val) => HandleBYOKToggle(UserTier.Free, val))" />
                     </MudStack>
                     <MudText Typo="Typo.caption" Color="Color.Secondary">
                         Max 3 connections • Ideal for individual users bringing own keys
@@ -92,9 +92,9 @@
                             <MudIcon Icon="@Icons.Material.Filled.Key" Color="Color.Primary" />
                             <MudText Typo="Typo.subtitle2">BYOK Tier ($10/mo)</MudText>
                         </MudStack>
-                        <MudSwitch T="bool" Checked="@_byokBYOKTier"
+                        <MudSwitch T="bool" Value="@_byokBYOKTier"
                                   Color="Color.Success"
-                                  CheckedChanged="@((bool val) => HandleBYOKToggle(UserTier.BYOK, val))" />
+                                  ValueChanged="@((bool val) => HandleBYOKToggle(UserTier.BYOK, val))" />
                     </MudStack>
                     <MudText Typo="Typo.caption" Color="Color.Secondary">
                         Max 10 connections • Enhanced limits for BYOK users
@@ -109,9 +109,9 @@
                             <MudIcon Icon="@Icons.Material.Filled.Code" Color="Color.Info" />
                             <MudText Typo="Typo.subtitle2">Developer Tier ($30/mo)</MudText>
                         </MudStack>
-                        <MudSwitch T="bool" Checked="@_byokDeveloperTier"
+                        <MudSwitch T="bool" Value="@_byokDeveloperTier"
                                   Color="Color.Success"
-                                  CheckedChanged="@((bool val) => HandleBYOKToggle(UserTier.Developer, val))" />
+                                  ValueChanged="@((bool val) => HandleBYOKToggle(UserTier.Developer, val))" />
                     </MudStack>
                     <MudText Typo="Typo.caption" Color="Color.Secondary">
                         Max 50 connections • Platform keys + BYOK + custom endpoints
@@ -126,9 +126,9 @@
                             <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Error" />
                             <MudText Typo="Typo.subtitle2">Admin Tier</MudText>
                         </MudStack>
-                        <MudSwitch T="bool" Checked="@_byokAdminTier"
+                        <MudSwitch T="bool" Value="@_byokAdminTier"
                                   Color="Color.Success"
-                                  CheckedChanged="@((bool val) => HandleBYOKToggle(UserTier.Admin, val))" />
+                                  ValueChanged="@((bool val) => HandleBYOKToggle(UserTier.Admin, val))" />
                     </MudStack>
                     <MudText Typo="Typo.caption" Color="Color.Secondary">
                         Unlimited connections • Full system access
@@ -155,7 +155,7 @@
             <MudPaper Class="pa-4" Elevation="2">
                 <MudStack Spacing="2">
                     <MudText Typo="Typo.subtitle2">LocalStorage</MudText>
-                    <MudProgressLinear T="double"
+                    <MudProgressLinear
                                       Value="@((AdminState.Value.LocalStorageUsedMB / AdminState.Value.LocalStorageLimitMB) * 100)"
                                       Color="Color.Primary"
                                       Size="Size.Medium" />
@@ -175,7 +175,7 @@
             <MudPaper Class="pa-4" Elevation="2">
                 <MudStack Spacing="2">
                     <MudText Typo="Typo.subtitle2">IndexedDB</MudText>
-                    <MudProgressLinear T="double"
+                    <MudProgressLinear
                                       Value="@((AdminState.Value.IndexedDBUsedMB / AdminState.Value.IndexedDBLimitMB) * 100)"
                                       Color="Color.Secondary"
                                       Size="Size.Medium" />

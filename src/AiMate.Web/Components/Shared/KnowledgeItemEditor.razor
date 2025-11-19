@@ -4,7 +4,7 @@
 @inject IState<KnowledgeState> KnowledgeState
 @inject IDispatcher Dispatcher
 
-<MudDialog IsVisible="@KnowledgeState.Value.ShowItemEditor" Options="@_dialogOptions">
+<MudDialog @Visible="@KnowledgeState.Value.ShowItemEditor" Options="@_dialogOptions">
     <TitleContent>
         <MudText Typo="Typo.h6">
             @(IsEditMode ? "Edit Knowledge Item" : "New Knowledge Item")

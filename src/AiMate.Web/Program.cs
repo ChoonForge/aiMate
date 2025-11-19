@@ -91,15 +91,33 @@ builder.Services.AddFluxor(options =>
     // For debugging, use browser developer tools with Fluxor DevTools extension
 });
 
-// Database
-var connectionString = builder.Configuration.GetConnectionString("PostgreSQL");
-if (!string.IsNullOrEmpty(connectionString))
+// Database configuration
+var databaseProvider = builder.Configuration.GetValue<string>("DatabaseProvider") ?? "InMemory";
+
+if (databaseProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
 {
+    var connectionString = builder.Configuration.GetConnectionString("PostgreSQL");
+    if (string.IsNullOrEmpty(connectionString))
+    {
+        Log.Warning("PostgreSQL provider selected but no connection string found. Falling back to InMemory database.");
+        builder.Services.AddDbContext<AiMateDbContext>(options =>
+            options.UseInMemoryDatabase("AiMateDb"));
+    }
+    else
+    {
+        Log.Information("Using PostgreSQL database provider");
+        builder.Services.AddDbContext<AiMateDbContext>(options =>
+            options.UseNpgsql(connectionString, npgsqlOptions =>
+            {
+                npgsqlOptions.UseVector();
+            }));
+    }
+}
+else
+{
+    Log.Information("Using InMemory database provider");
     builder.Services.AddDbContext<AiMateDbContext>(options =>
-        options.UseNpgsql(connectionString, npgsqlOptions =>
-        {
-            npgsqlOptions.UseVector();
-        }));
+        options.UseInMemoryDatabase("AiMateDb"));
 }
 
 // Add HTTP client

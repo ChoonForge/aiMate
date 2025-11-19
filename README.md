@@ -39,7 +39,11 @@ aiMate is not just another chat interface. It's a complete **AI workspace platfo
 - **🔌 MCP Tools** - Web search, file reading, knowledge search, Guardian dataset generator
 - **📊 Feedback System** - Rate AI responses (1-10), customizable tags, analytics
 - **🚀 REST API** - OpenAI-compatible endpoints with streaming support
-- **🐳 Docker Deployment** - Full production stack with PostgreSQL, Redis, LiteLLM, Nginx
+- **🐳 Docker Deployment** - Flexible deployment options:
+  - **Quick Start:** InMemory database (no persistence, instant setup)
+  - **Production:** PostgreSQL + pgvector (full persistence)
+  - **Pulls from GitHub:** No local build required for public repos
+  - **Optional Services:** Nginx reverse proxy, Redis caching, LiteLLM gateway
 
 ### 🎨 UI/UX
 
@@ -64,49 +68,81 @@ aiMate is not just another chat interface. It's a complete **AI workspace platfo
 
 ### Prerequisites
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+**For Docker (Recommended):**
 - [Docker](https://docs.docker.com/get-docker/) & Docker Compose
-- [PostgreSQL 16+](https://www.postgresql.org/download/) with pgvector (or use Docker)
+- That's it! Database is handled by Docker (InMemory by default, PostgreSQL optional)
+
+**For Local Development:**
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- [PostgreSQL 16+](https://www.postgresql.org/download/) with pgvector (optional - can use InMemory)
 
 ### Run with Docker (Recommended)
+
+**Option 1: Quick Start with InMemory Database (No Persistence)**
+
+Perfect for testing - data is stored in memory and lost on restart.
 
 ```bash
 # Clone the repository
 git clone https://github.com/ChoonForge/aiMate.git
-cd aiMate/src-v2
+cd aiMate/src
 
 # Copy environment template
 cp .env.example .env
 
-# Edit .env with your API keys and secrets
+# Edit .env with your API keys (LITELLM_MASTER_KEY, OPENAI_API_KEY, etc.)
 nano .env
 
-# Start all services
-docker-compose up -d
-
-# Run database migrations
-docker-compose exec aimate-web dotnet ef database update
+# Start all services (defaults to InMemory database)
+docker-compose -f docker-compose.production.yml up -d
 
 # Open browser
 open http://localhost:5000
 ```
+
+**Option 2: Production with PostgreSQL (Persistent Storage)**
+
+For production use with full data persistence.
+
+```bash
+# Clone the repository
+git clone https://github.com/ChoonForge/aiMate.git
+cd aiMate/src
+
+# Copy environment template
+cp .env.example .env
+
+# Edit .env - set DATABASE_PROVIDER=PostgreSQL and configure connection
+nano .env
+
+# Start all services including PostgreSQL
+docker-compose -f docker-compose.production.yml --profile with-postgres up -d
+
+# Open browser
+open http://localhost:5000
+```
+
+**See [DOCKER_DEPLOYMENT.md](src/DOCKER_DEPLOYMENT.md) for complete deployment guide including private repo setup, SSL, and troubleshooting.**
 
 ### Run Locally (Development)
 
 ```bash
 # Clone the repository
 git clone https://github.com/ChoonForge/aiMate.git
-cd aiMate/src-v2
+cd aiMate/src
 
 # Restore dependencies
 dotnet restore
 
+# Option 1: Use InMemory database (quick start)
+# No additional setup needed - just run!
+dotnet run --project AiMate.Web
+
+# Option 2: Use PostgreSQL (for production-like environment)
 # Update connection string in appsettings.json
 # Point to your PostgreSQL instance
-
 # Run migrations
 dotnet ef database update --project AiMate.Infrastructure
-
 # Start the application
 dotnet run --project AiMate.Web
 
@@ -114,23 +150,26 @@ dotnet run --project AiMate.Web
 open https://localhost:5001
 ```
 
-**See [DEPLOYMENT.md](src-v2/DEPLOYMENT.md) for production deployment guide.**
-
 ---
 
 ## 📁 Project Structure
 
 ```
 aiMate/
-├── src-v2/                        # Main application (v2 rewrite)
+├── src/                           # Main application
 │   ├── AiMate.Web/               # Blazor Server UI
 │   ├── AiMate.Core/              # Domain entities and business logic
 │   ├── AiMate.Infrastructure/    # Data access and external services
-│   └── AiMate.Shared/            # Shared DTOs and models
+│   ├── AiMate.Shared/            # Shared DTOs and models
+│   ├── docker-compose.yml        # Development Docker setup
+│   ├── docker-compose.production.yml  # Production Docker setup
+│   ├── .env.example              # Environment configuration template
+│   └── DOCKER_DEPLOYMENT.md      # Comprehensive deployment guide
 │
 ├── docs/                          # Documentation
 │   ├── aiMate-Master-Plan.md     # Product vision and strategy
 │   ├── COMPLETE_FEATURE_SET.md   # Full feature list
+│   ├── CODING_GUIDELINES.md      # Development standards
 │   └── ...
 │
 ├── LICENSE                        # MIT License
@@ -315,10 +354,10 @@ We welcome contributions! This is **truly open source** - no gatekeeping.
 
 ## 📖 Documentation
 
-- **[Getting Started](docs/getting-started/)** - Quick start guides and tutorials
-- **[API Documentation](docs/api/)** - REST API reference
-- **[Architecture](docs/architecture/)** - System design and patterns
-- **[Deployment](src-v2/DEPLOYMENT.md)** - Production deployment guide
+- **[Docker Deployment Guide](src/DOCKER_DEPLOYMENT.md)** - Complete Docker deployment guide with InMemory/PostgreSQL options
+- **[Coding Guidelines](docs/CODING_GUIDELINES.md)** - Development standards and architecture patterns
+- **[Complete Feature Set](docs/COMPLETE_FEATURE_SET.md)** - Full feature documentation
+- **[Master Plan](docs/aiMate-Master-Plan.md)** - Product vision and roadmap
 - **[Contributing](CONTRIBUTING.md)** - How to contribute
 - **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
 

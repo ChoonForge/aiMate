@@ -87,13 +87,20 @@ Documentation is just as important as code! You can help by:
 
 ### Prerequisites
 
+**Minimum (for InMemory database):**
 - **.NET 10 SDK** - [Download here](https://dotnet.microsoft.com/download/dotnet/10.0)
-- **PostgreSQL 16+** with pgvector extension
-- **Docker & Docker Compose** (for full stack)
 - **Git**
 - **Your favorite IDE** (Visual Studio, Rider, VS Code)
 
+**Recommended (for full stack):**
+- **Docker & Docker Compose** - [Download here](https://docs.docker.com/get-docker/)
+- **PostgreSQL 16+** with pgvector extension (optional - only if not using Docker or InMemory)
+
 ### Quick Start
+
+**Option 1: Local Development with InMemory Database (Fastest)**
+
+Perfect for quick feature development and testing.
 
 ```bash
 # 1. Fork the repository on GitHub
@@ -107,23 +114,39 @@ git remote add upstream https://github.com/ChoonForge/aiMate.git
 # 4. Create a branch
 git checkout -b feature/your-feature-name
 
-# 5. Navigate to src-v2
-cd src-v2
+# 5. Navigate to src
+cd src
+
+# 6. Restore dependencies
+dotnet restore
+
+# 7. Run the application (uses InMemory database by default)
+dotnet run --project AiMate.Web
+
+# 8. Open browser
+# https://localhost:5001
+```
+
+**Option 2: Docker with PostgreSQL (Production-like)**
+
+For testing with persistent storage and full services.
+
+```bash
+# 1-4. Same as above (fork, clone, add upstream, create branch)
+
+# 5. Navigate to src
+cd src
 
 # 6. Copy environment template
 cp .env.example .env
 
-# 7. Start services with Docker
-docker-compose up -d
+# 7. Edit .env and set DATABASE_PROVIDER=PostgreSQL
+nano .env
 
-# 8. Run database migrations
-dotnet ef database update --project AiMate.Infrastructure
+# 8. Start all services with Docker
+docker-compose -f docker-compose.production.yml --profile with-postgres up -d
 
-# 9. Run the application
-dotnet run --project AiMate.Web
-
-# 10. Open browser
-# https://localhost:5001
+# 9. Application is now running at http://localhost:5000
 ```
 
 ### Development Tips

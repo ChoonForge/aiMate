@@ -33,7 +33,7 @@
     <!-- Error message -->
     @if (!string.IsNullOrEmpty(FeedbackState.Value.Error))
     {
-        <MudAlert Severity="Severity.Error" CloseIcon="true" OnClose="@(() => {})">
+        <MudAlert Severity="Severity.Error" CloseIcon="true" CloseIconClicked="@(() => {})">
             @FeedbackState.Value.Error
         </MudAlert>
     }
@@ -131,7 +131,7 @@
 </MudStack>
 
 <!-- Create/Edit Dialog -->
-<MudDialog @bind-IsVisible="showDialog" Options="dialogOptions">
+<MudDialog @bind-Visible="showDialog" Options="dialogOptions">
     <TitleContent>
         <MudText Typo="Typo.h6">
             @(isEditMode ? "Edit Tag Template" : "Create Tag Template")

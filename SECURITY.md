@@ -177,7 +177,7 @@ We don't currently have a bug bounty program, but we deeply value your contribut
 **We publish security advisories:**
 
 - Via [GitHub Security Advisories](https://github.com/ChoonForge/aiMate/security/advisories)
-- In our [CHANGELOG.md](src-v2/CHANGELOG.md)
+- In our release notes and documentation
 - On our website (when available)
 
 **To stay informed:**

@@ -1,28 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL with pgvector
-  postgres:
-    image: ankane/pgvector:latest
-    container_name: aimate-postgres
-    environment:
-      POSTGRES_DB: aimate
-      POSTGRES_USER: aimate
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
-    ports:
-      - "5432:5432"
-    networks:
-      - aimate-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U aimate"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # Redis for caching
   redis:
     image: redis:7-alpine
@@ -46,7 +24,6 @@ services:
     container_name: aimate-litellm
     environment:
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
-      DATABASE_URL: postgresql://aimate:${POSTGRES_PASSWORD}@postgres:5432/litellm
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
@@ -58,9 +35,6 @@ services:
     networks:
       - aimate-network
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
       interval: 30s
@@ -70,7 +44,9 @@ services:
   # aiMate Web Application
   aimate-web:
     build:
-      context: .
+      # For public repo: use GitHub URL directly
+      # For private repo: clone locally first or provide GitHub token via build secrets
+      context: https://github.com/ChoonForge/aiMate.git#main:src
       dockerfile: Dockerfile.production
       args:
         BUILD_CONFIGURATION: Release
@@ -78,8 +54,11 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5000
-      ConnectionStrings__PostgreSQL: Host=postgres;Database=aimate;Username=aimate;Password=${POSTGRES_PASSWORD}
-      Jwt__Secret: ${JWT_SECRET}
+      # Database provider: InMemory (default) or PostgreSQL
+      DatabaseProvider: ${DATABASE_PROVIDER:-InMemory}
+      # Only needed if using PostgreSQL provider
+      ConnectionStrings__PostgreSQL: ${POSTGRES_CONNECTION_STRING:-}
+      Jwt__Secret: ${JWT_SECRET:-your-secret-key-change-in-production}
       OpenAI__ApiKey: ${OPENAI_API_KEY:-}
       OpenAI__BaseUrl: http://litellm:4000/v1/
       FileUpload__Path: /app/uploads
@@ -94,8 +73,6 @@ services:
       - aimate-network
     restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
       litellm:
@@ -106,7 +83,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # Nginx Reverse Proxy
+  # Nginx Reverse Proxy (optional - comment out if not needed)
   nginx:
     image: nginx:alpine
     container_name: aimate-nginx
@@ -127,6 +104,31 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    profiles:
+      - with-nginx
+
+  # PostgreSQL with pgvector (optional - only needed if using PostgreSQL provider)
+  postgres:
+    image: ankane/pgvector:latest
+    container_name: aimate-postgres
+    environment:
+      POSTGRES_DB: aimate
+      POSTGRES_USER: aimate
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - aimate-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aimate"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - with-postgres
 
 networks:
   aimate-network:

@@ -53,35 +53,73 @@ LiteLLM Gateway (multi-model support)
 
 ### Prerequisites
 
+**Minimum:**
 - .NET 10 SDK ([download here](https://dotnet.microsoft.com/download/dotnet/10.0))
-- PostgreSQL 16+ with pgvector extension
-- LiteLLM running on localhost:4000 (see docker-compose.yml)
 
-### Run Locally
+**For full stack:**
+- Docker & Docker Compose ([download here](https://docs.docker.com/get-docker/))
+- PostgreSQL 16+ with pgvector extension (optional - can use InMemory)
+
+### Run Locally (Development)
+
+**Option 1: InMemory Database (Fastest)**
 
 ```bash
 # Clone the repo
-git clone https://github.com/yourusername/aiMate.git
-cd aiMate/src-v2
+git clone https://github.com/ChoonForge/aiMate.git
+cd aiMate/src
 
-# Update connection string in appsettings.json
-# Then restore and run
+# Restore and run
 dotnet restore
 dotnet run --project AiMate.Web
 
 # Open browser to https://localhost:5001
 ```
 
-### Docker (Coming Soon)
+**Option 2: With PostgreSQL**
 
 ```bash
-docker-compose up -d
+# Clone the repo
+git clone https://github.com/ChoonForge/aiMate.git
+cd aiMate/src
+
+# Update connection string in appsettings.json
+# Then restore and run
+dotnet restore
+dotnet ef database update --project AiMate.Infrastructure
+dotnet run --project AiMate.Web
+
+# Open browser to https://localhost:5001
 ```
+
+### Docker Deployment
+
+**Quick Start (InMemory)**
+
+```bash
+cd aiMate/src
+cp .env.example .env
+# Edit .env with your API keys
+docker-compose -f docker-compose.production.yml up -d
+# Open browser to http://localhost:5000
+```
+
+**Production (PostgreSQL)**
+
+```bash
+cd aiMate/src
+cp .env.example .env
+# Edit .env: Set DATABASE_PROVIDER=PostgreSQL
+docker-compose -f docker-compose.production.yml --profile with-postgres up -d
+# Open browser to http://localhost:5000
+```
+
+**See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for complete deployment guide.**
 
 ## 📁 Project Structure
 
 ```
-src-v2/
+src/
 ├── AiMate.Web/                 # Blazor Server app
 │   ├── Components/
 │   │   ├── Layout/            # MainLayout, Sidebar, TopBar
@@ -102,7 +140,12 @@ src-v2/
 │   ├── Data/                  # EF Core DbContext
 │   └── Services/              # API clients, file storage
 │
-└── AiMate.Shared/              # Shared DTOs and models
+├── AiMate.Shared/              # Shared DTOs and models
+│
+├── docker-compose.yml          # Development Docker setup
+├── docker-compose.production.yml  # Production Docker setup
+├── .env.example                # Environment configuration template
+└── DOCKER_DEPLOYMENT.md        # Complete deployment guide
 ```
 
 ## 🌏 Localization
