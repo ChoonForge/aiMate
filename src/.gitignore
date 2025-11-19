@@ -274,3 +274,7 @@ appsettings.Local.json
 *.db
 *.db-shm
 *.db-wal
+
+# Environment and config files
+.env
+litellm-config.yaml

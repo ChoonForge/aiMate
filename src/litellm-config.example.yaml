@@ -1,0 +1,90 @@
+# LiteLLM Configuration Example for aiMate
+# Copy this file to litellm-config.yaml and configure your API keys
+# Documentation: https://docs.litellm.ai/docs/
+
+# General Settings
+general_settings:
+  master_key: ${LITELLM_MASTER_KEY}  # Set this in your .env file
+  database_type: "redis"
+  redis_host: "redis"
+  redis_port: 6379
+
+  # Logging
+  set_verbose: false  # Set to true for debugging
+  json_logs: true
+
+  # Caching (optional - improves performance)
+  cache: true
+  cache_params:
+    type: "redis"
+    host: "redis"
+    port: 6379
+    ttl: 600  # Cache TTL in seconds (10 minutes)
+
+# Model List
+# Add only the models you plan to use and have API keys for
+model_list:
+  # ============================================================================
+  # OpenAI Models
+  # Uncomment and configure if you have an OpenAI API key
+  # ============================================================================
+  - model_name: gpt-4
+    litellm_params:
+      model: openai/gpt-4
+      api_key: ${OPENAI_API_KEY}
+      max_tokens: 8192
+
+  - model_name: gpt-3.5-turbo
+    litellm_params:
+      model: openai/gpt-3.5-turbo
+      api_key: ${OPENAI_API_KEY}
+      max_tokens: 4096
+
+  # ============================================================================
+  # Anthropic Models (Claude)
+  # Uncomment and configure if you have an Anthropic API key
+  # ============================================================================
+  - model_name: claude-3-5-sonnet-20241022
+    litellm_params:
+      model: anthropic/claude-3-5-sonnet-20241022
+      api_key: ${ANTHROPIC_API_KEY}
+      max_tokens: 8192
+
+  # ============================================================================
+  # Google Models (Gemini)
+  # Uncomment and configure if you have a Google API key
+  # ============================================================================
+  # - model_name: gemini-1.5-pro
+  #   litellm_params:
+  #     model: gemini/gemini-1.5-pro
+  #     api_key: ${GOOGLE_API_KEY}
+  #     max_tokens: 1048576
+
+  # ============================================================================
+  # Local Models (Ollama)
+  # Uncomment if running Ollama locally
+  # ============================================================================
+  # - model_name: llama2
+  #   litellm_params:
+  #     model: ollama/llama2
+  #     api_base: http://host.docker.internal:11434
+
+# Router Settings
+router_settings:
+  routing_strategy: simple-shuffle  # Options: simple-shuffle, least-busy, usage-based-routing
+
+# Litellm Settings
+litellm_settings:
+  request_timeout: 600  # Request timeout in seconds
+  num_retries: 3  # Number of retries on failure
+
+  # Optional: Rate limiting
+  # rpm: 100  # requests per minute
+  # tpm: 10000  # tokens per minute
+
+# Optional: Success/Failure callbacks
+# Uncomment if using observability tools
+# success_callback:
+#   - langfuse
+# failure_callback:
+#   - sentry

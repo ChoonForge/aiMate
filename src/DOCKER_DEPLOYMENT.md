@@ -27,13 +27,19 @@ This is the fastest way to get started. Data is stored in memory and **will be l
 # 1. Copy the example environment file
 cp .env.example .env
 
-# 2. Edit .env and configure your API keys
+# 2. Copy the example LiteLLM configuration
+cp litellm-config.example.yaml litellm-config.yaml
+
+# 3. Edit .env and configure your API keys
 nano .env
 
-# 3. Start the services
+# 4. (Optional) Edit litellm-config.yaml to enable specific models
+nano litellm-config.yaml
+
+# 5. Start the services
 docker-compose -f docker-compose.production.yml up -d
 
-# 4. Access aiMate
+# 6. Access aiMate
 # Open your browser to http://localhost:5000
 ```
 
@@ -193,15 +199,47 @@ GOOGLE_API_KEY=...
 
 ### LiteLLM Configuration
 
-If you need to customize LiteLLM (the AI gateway), edit `litellm-config.yaml`:
+LiteLLM acts as a unified gateway to multiple AI providers (OpenAI, Anthropic, Google, etc.).
 
+**Setup:**
+```bash
+# 1. Copy the example configuration
+cp litellm-config.example.yaml litellm-config.yaml
+
+# 2. Edit the config to enable only the models you plan to use
+nano litellm-config.yaml
+```
+
+**Example configuration:**
 ```yaml
 model_list:
+  # OpenAI Models
   - model_name: gpt-4
     litellm_params:
       model: openai/gpt-4
       api_key: ${OPENAI_API_KEY}
+      max_tokens: 8192
+
+  # Anthropic Models
+  - model_name: claude-3-5-sonnet-20241022
+    litellm_params:
+      model: anthropic/claude-3-5-sonnet-20241022
+      api_key: ${ANTHROPIC_API_KEY}
+      max_tokens: 8192
+
+  # Google Models
+  - model_name: gemini-1.5-pro
+    litellm_params:
+      model: gemini/gemini-1.5-pro
+      api_key: ${GOOGLE_API_KEY}
+      max_tokens: 1048576
 ```
+
+**Notes:**
+- API keys are referenced via environment variables from `.env`
+- Only configure models you have API keys for
+- The config file is mounted into the LiteLLM container
+- See [LiteLLM docs](https://docs.litellm.ai/docs/) for advanced options
 
 ## Deployment Scenarios
 
