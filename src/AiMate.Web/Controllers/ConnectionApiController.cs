@@ -322,7 +322,7 @@ public class ConnectionApiController : ControllerBase
     /// Get connection limits for user's tier
     /// </summary>
     [HttpGet("limits")]
-    public async Task<IActionResult> GetLimits([FromQuery] string tierStr = "Free")
+    public Task<IActionResult> GetLimits([FromQuery] string tierStr = "Free")
     {
         try
         {
@@ -335,7 +335,7 @@ public class ConnectionApiController : ControllerBase
             var byokEnabled = _permissionService.IsBYOKEnabledForTier(tier);
             var permissions = _permissionService.GetPermissionsForTier(tier);
 
-            return Ok(new
+            return Task.FromResult<IActionResult>(Ok(new
             {
                 tier = tier.ToString(),
                 maxConnections,
@@ -344,12 +344,12 @@ public class ConnectionApiController : ControllerBase
                 canAddCustomEndpoints = _permissionService.HasPermission(tier, UserPermission.AddCustomEndpoints),
                 canShareConnections = _permissionService.HasPermission(tier, UserPermission.ShareConnections),
                 canUsePlatformKeys = _permissionService.HasPermission(tier, UserPermission.UsePlatformKeys)
-            });
+            }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get connection limits");
-            return StatusCode(500, new { error = "Failed to get limits", details = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to get limits", details = ex.Message }));
         }
     }
 }

@@ -26,7 +26,7 @@ public class AdminApiController : ControllerBase
     /// Get all admin data (overview, models, MCP servers, logs)
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetAdminData()
+    public Task<IActionResult> GetAdminData()
     {
         try
         {
@@ -77,12 +77,12 @@ public class AdminApiController : ControllerBase
                 AdminLiteLLMUrl = "http://localhost:4000"
             };
 
-            return Ok(adminData);
+            return Task.FromResult<IActionResult>(Ok(adminData));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching admin data");
-            return StatusCode(500, new { error = "Failed to fetch admin data", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to fetch admin data", message = ex.Message }));
         }
     }
 
@@ -94,7 +94,7 @@ public class AdminApiController : ControllerBase
     /// Get all models
     /// </summary>
     [HttpGet("models")]
-    public async Task<IActionResult> GetModels()
+    public Task<IActionResult> GetModels()
     {
         try
         {
@@ -107,12 +107,12 @@ public class AdminApiController : ControllerBase
                 new() { Id = "claude-3-5-sonnet-20241022", Name = "Claude 3.5 Sonnet", Provider = "Anthropic", IsEnabled = true, MaxTokens = 8192 }
             };
 
-            return Ok(models);
+            return Task.FromResult<IActionResult>(Ok(models));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching models");
-            return StatusCode(500, new { error = "Failed to fetch models", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to fetch models", message = ex.Message }));
         }
     }
 
@@ -120,19 +120,19 @@ public class AdminApiController : ControllerBase
     /// Add a new model
     /// </summary>
     [HttpPost("models")]
-    public async Task<IActionResult> AddModel([FromBody] AIModelDto model)
+    public Task<IActionResult> AddModel([FromBody] AIModelDto model)
     {
         try
         {
             _logger.LogInformation("Adding model: {ModelId}", model.Id);
 
             // IMPLEMENTATION NEEDED: Save to configuration
-            return Ok(new { success = true, model });
+            return Task.FromResult<IActionResult>(Ok(new { success = true, model }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error adding model");
-            return StatusCode(500, new { error = "Failed to add model", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to add model", message = ex.Message }));
         }
     }
 
@@ -140,19 +140,19 @@ public class AdminApiController : ControllerBase
     /// Update a model
     /// </summary>
     [HttpPut("models/{id}")]
-    public async Task<IActionResult> UpdateModel(string id, [FromBody] AIModelDto model)
+    public Task<IActionResult> UpdateModel(string id, [FromBody] AIModelDto model)
     {
         try
         {
             _logger.LogInformation("Updating model: {ModelId}", id);
 
             // IMPLEMENTATION NEEDED: Update configuration
-            return Ok(new { success = true, model });
+            return Task.FromResult<IActionResult>(Ok(new { success = true, model }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating model");
-            return StatusCode(500, new { error = "Failed to update model", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to update model", message = ex.Message }));
         }
     }
 
@@ -160,19 +160,19 @@ public class AdminApiController : ControllerBase
     /// Delete a model
     /// </summary>
     [HttpDelete("models/{id}")]
-    public async Task<IActionResult> DeleteModel(string id)
+    public Task<IActionResult> DeleteModel(string id)
     {
         try
         {
             _logger.LogInformation("Deleting model: {ModelId}", id);
 
             // IMPLEMENTATION NEEDED: Remove from configuration
-            return Ok(new { success = true, message = "Model deleted" });
+            return Task.FromResult<IActionResult>(Ok(new { success = true, message = "Model deleted" }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting model");
-            return StatusCode(500, new { error = "Failed to delete model", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to delete model", message = ex.Message }));
         }
     }
 
@@ -180,19 +180,19 @@ public class AdminApiController : ControllerBase
     /// Toggle model enabled status
     /// </summary>
     [HttpPost("models/{id}/toggle")]
-    public async Task<IActionResult> ToggleModel(string id)
+    public Task<IActionResult> ToggleModel(string id)
     {
         try
         {
             _logger.LogInformation("Toggling model: {ModelId}", id);
 
             // IMPLEMENTATION NEEDED: Toggle in configuration
-            return Ok(new { success = true, message = "Model toggled" });
+            return Task.FromResult<IActionResult>(Ok(new { success = true, message = "Model toggled" }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error toggling model");
-            return StatusCode(500, new { error = "Failed to toggle model", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to toggle model", message = ex.Message }));
         }
     }
 
@@ -204,7 +204,7 @@ public class AdminApiController : ControllerBase
     /// Get all MCP servers
     /// </summary>
     [HttpGet("mcp")]
-    public async Task<IActionResult> GetMcpServers()
+    public Task<IActionResult> GetMcpServers()
     {
         try
         {
@@ -216,12 +216,12 @@ public class AdminApiController : ControllerBase
                 new() { Id = "fs-1", Name = "Filesystem", Type = "stdio", Connected = true, ToolCount = 8 }
             };
 
-            return Ok(servers);
+            return Task.FromResult<IActionResult>(Ok(servers));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching MCP servers");
-            return StatusCode(500, new { error = "Failed to fetch MCP servers", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to fetch MCP servers", message = ex.Message }));
         }
     }
 
@@ -229,19 +229,19 @@ public class AdminApiController : ControllerBase
     /// Add a new MCP server
     /// </summary>
     [HttpPost("mcp")]
-    public async Task<IActionResult> AddMcpServer([FromBody] MCPServerDto server)
+    public Task<IActionResult> AddMcpServer([FromBody] MCPServerDto server)
     {
         try
         {
             _logger.LogInformation("Adding MCP server: {ServerName}", server.Name);
 
             // IMPLEMENTATION NEEDED: Add to MCP service
-            return Ok(new { success = true, server });
+            return Task.FromResult<IActionResult>(Ok(new { success = true, server }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error adding MCP server");
-            return StatusCode(500, new { error = "Failed to add MCP server", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to add MCP server", message = ex.Message }));
         }
     }
 
@@ -249,19 +249,19 @@ public class AdminApiController : ControllerBase
     /// Update an MCP server
     /// </summary>
     [HttpPut("mcp/{id}")]
-    public async Task<IActionResult> UpdateMcpServer(string id, [FromBody] MCPServerDto server)
+    public Task<IActionResult> UpdateMcpServer(string id, [FromBody] MCPServerDto server)
     {
         try
         {
             _logger.LogInformation("Updating MCP server: {ServerId}", id);
 
             // IMPLEMENTATION NEEDED: Update MCP service
-            return Ok(new { success = true, server });
+            return Task.FromResult<IActionResult>(Ok(new { success = true, server }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating MCP server");
-            return StatusCode(500, new { error = "Failed to update MCP server", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to update MCP server", message = ex.Message }));
         }
     }
 
@@ -269,19 +269,19 @@ public class AdminApiController : ControllerBase
     /// Delete an MCP server
     /// </summary>
     [HttpDelete("mcp/{id}")]
-    public async Task<IActionResult> DeleteMcpServer(string id)
+    public Task<IActionResult> DeleteMcpServer(string id)
     {
         try
         {
             _logger.LogInformation("Deleting MCP server: {ServerId}", id);
 
             // IMPLEMENTATION NEEDED: Remove from MCP service
-            return Ok(new { success = true, message = "MCP server deleted" });
+            return Task.FromResult<IActionResult>(Ok(new { success = true, message = "MCP server deleted" }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting MCP server");
-            return StatusCode(500, new { error = "Failed to delete MCP server", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to delete MCP server", message = ex.Message }));
         }
     }
 
@@ -289,19 +289,19 @@ public class AdminApiController : ControllerBase
     /// Reconnect to an MCP server
     /// </summary>
     [HttpPost("mcp/{id}/reconnect")]
-    public async Task<IActionResult> ReconnectMcpServer(string id)
+    public Task<IActionResult> ReconnectMcpServer(string id)
     {
         try
         {
             _logger.LogInformation("Reconnecting MCP server: {ServerId}", id);
 
             // IMPLEMENTATION NEEDED: Reconnect via MCP service
-            return Ok(new { success = true, message = "Reconnection initiated" });
+            return Task.FromResult<IActionResult>(Ok(new { success = true, message = "Reconnection initiated" }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error reconnecting MCP server");
-            return StatusCode(500, new { error = "Failed to reconnect MCP server", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to reconnect MCP server", message = ex.Message }));
         }
     }
 
@@ -313,7 +313,7 @@ public class AdminApiController : ControllerBase
     /// Get system logs
     /// </summary>
     [HttpGet("logs")]
-    public async Task<IActionResult> GetLogs([FromQuery] int limit = 50)
+    public Task<IActionResult> GetLogs([FromQuery] int limit = 50)
     {
         try
         {
@@ -325,12 +325,12 @@ public class AdminApiController : ControllerBase
                 new() { Timestamp = DateTime.Now, Level = "INFO", Message = "Test log", Source = "System" }
             };
 
-            return Ok(logs.Take(limit));
+            return Task.FromResult<IActionResult>(Ok(logs.Take(limit)));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching logs");
-            return StatusCode(500, new { error = "Failed to fetch logs", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to fetch logs", message = ex.Message }));
         }
     }
 
@@ -338,19 +338,19 @@ public class AdminApiController : ControllerBase
     /// Clear system logs
     /// </summary>
     [HttpDelete("logs")]
-    public async Task<IActionResult> ClearLogs()
+    public Task<IActionResult> ClearLogs()
     {
         try
         {
             _logger.LogInformation("Clearing system logs");
 
             // IMPLEMENTATION NEEDED: Clear logs
-            return Ok(new { success = true, message = "Logs cleared" });
+            return Task.FromResult<IActionResult>(Ok(new { success = true, message = "Logs cleared" }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error clearing logs");
-            return StatusCode(500, new { error = "Failed to clear logs", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to clear logs", message = ex.Message }));
         }
     }
 
@@ -372,7 +372,7 @@ public class AdminApiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error testing connection");
-            return StatusCode(500, new { error = "Connection failed", message = ex.Message });
+            return StatusCode(500, new { error = "Connection failed", message = ex.Message }));
         }
     }
 
@@ -380,7 +380,7 @@ public class AdminApiController : ControllerBase
     /// Export system configuration
     /// </summary>
     [HttpGet("export")]
-    public async Task<IActionResult> ExportConfig()
+    public Task<IActionResult> ExportConfig()
     {
         try
         {
@@ -395,16 +395,16 @@ public class AdminApiController : ControllerBase
 
             var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
 
-            return File(
+            return Task.FromResult<IActionResult>(File(
                 System.Text.Encoding.UTF8.GetBytes(json),
                 "application/json",
                 "aiMate-admin-config.json"
-            );
+            ));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error exporting config");
-            return StatusCode(500, new { error = "Failed to export config", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to export config", message = ex.Message }));
         }
     }
 }
