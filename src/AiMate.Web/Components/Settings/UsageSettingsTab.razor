@@ -8,30 +8,30 @@
 
 <MudGrid>
     <MudItem xs="12">
-        <MudSwitch T="bool" Checked="@_trackUsage"
+        <MudSwitch T="bool" Value="@_trackUsage"
                   Label="Track Usage"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => { _trackUsage = value; Dispatcher.Dispatch(new UpdateTrackUsageAction(value)); })" />
+                  ValueChanged="@((bool value) => { _trackUsage = value; Dispatcher.Dispatch(new UpdateTrackUsageAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Track tokens used and estimated costs
         </MudText>
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch T="bool" Checked="@_showCostEstimates"
+        <MudSwitch T="bool" Value="@_showCostEstimates"
                   Label="Show Cost Estimates"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => { _showCostEstimates = value; Dispatcher.Dispatch(new UpdateShowCostEstimatesAction(value)); })" />
+                  ValueChanged="@((bool value) => { _showCostEstimates = value; Dispatcher.Dispatch(new UpdateShowCostEstimatesAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Display estimated cost for each message
         </MudText>
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch T="bool" Checked="@_enableUsageAlerts"
+        <MudSwitch T="bool" Value="@_enableUsageAlerts"
                   Label="Enable Usage Alerts"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => { _enableUsageAlerts = value; Dispatcher.Dispatch(new UpdateUsageAlertsAction(value)); })" />
+                  ValueChanged="@((bool value) => { _enableUsageAlerts = value; Dispatcher.Dispatch(new UpdateUsageAlertsAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Get notified when approaching monthly budget
         </MudText>

@@ -30,7 +30,7 @@
 
     @if (PluginState.Value.IsLoading)
     {
-        <MudProgressLinear T="double" Indeterminate="true" Color="Color.Primary" />
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
     }
     else if (PluginState.Value.LoadedPlugins.Any())
     {
@@ -111,9 +111,9 @@
                     <MudText Typo="Typo.caption">@context.Author</MudText>
                 </MudTd>
                 <MudTd DataLabel="Status">
-                    <MudSwitch T="bool" Checked="@context.IsEnabled"
+                    <MudSwitch T="bool" Value="@context.IsEnabled"
                               Color="Color.Success"
-                              CheckedChanged="@((bool val) => HandleToggle(context.Id))" />
+                              ValueChanged="@((bool val) => HandleToggle(context.Id))" />
                 </MudTd>
                 <MudTd DataLabel="Actions">
                     <MudStack Row="true" Spacing="1">

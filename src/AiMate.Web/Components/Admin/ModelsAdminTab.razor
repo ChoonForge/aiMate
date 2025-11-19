@@ -45,9 +45,9 @@
                     <MudChip T="string" Size="Size.Small">@context.Provider</MudChip>
                 </MudTd>
                 <MudTd DataLabel="Status">
-                    <MudSwitch T="bool" Checked="@context.IsEnabled"
+                    <MudSwitch T="bool" Value="@context.IsEnabled"
                               Color="Color.Success"
-                              CheckedChanged="@((bool val) => HandleToggleModel(context.Id))" />
+                              ValueChanged="@((bool val) => HandleToggleModel(context.Id))" />
                 </MudTd>
                 <MudTd DataLabel="Max Tokens">@context.MaxTokens</MudTd>
                 <MudTd DataLabel="Actions">

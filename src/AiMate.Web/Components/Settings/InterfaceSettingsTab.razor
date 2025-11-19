@@ -47,30 +47,30 @@
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch T="bool" Checked="@_compactMode"
+        <MudSwitch T="bool" Value="@_compactMode"
                   Label="Compact Mode"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => { _compactMode = value; Dispatcher.Dispatch(new UpdateCompactModeAction(value)); })" />
+                  ValueChanged="@((bool value) => { _compactMode = value; Dispatcher.Dispatch(new UpdateCompactModeAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Reduce spacing and padding for more content density
         </MudText>
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch T="bool" Checked="@_showLineNumbers"
+        <MudSwitch T="bool" Value="@_showLineNumbers"
                   Label="Show Line Numbers"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => { _showLineNumbers = value; Dispatcher.Dispatch(new UpdateShowLineNumbersAction(value)); })" />
+                  ValueChanged="@((bool value) => { _showLineNumbers = value; Dispatcher.Dispatch(new UpdateShowLineNumbersAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Display line numbers in code blocks
         </MudText>
     </MudItem>
 
     <MudItem xs="12">
-        <MudSwitch T="bool" Checked="@_enableMarkdownPreview"
+        <MudSwitch T="bool" Value="@_enableMarkdownPreview"
                   Label="Enable Markdown Preview"
                   Color="Color.Primary"
-                  CheckedChanged="@((bool value) => { _enableMarkdownPreview = value; Dispatcher.Dispatch(new UpdateMarkdownPreviewAction(value)); })" />
+                  ValueChanged="@((bool value) => { _enableMarkdownPreview = value; Dispatcher.Dispatch(new UpdateMarkdownPreviewAction(value)); })" />
         <MudText Typo="Typo.caption" Color="Color.Secondary">
             Show live preview while typing messages
         </MudText>

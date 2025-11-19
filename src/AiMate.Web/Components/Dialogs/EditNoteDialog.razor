@@ -133,15 +133,15 @@
 
             @* Toggles *@
             <MudStack Row="true" Spacing="3">
-                <MudSwitch T="bool" @bind-Checked="@Note.IsPinned"
+                <MudSwitch T="bool" @bind-Value="@Note.IsPinned"
                           Label="Pin Note"
                           Color="Color.Primary" />
-                <MudSwitch T="bool" @bind-Checked="@Note.IsFavorite"
+                <MudSwitch T="bool" @bind-Value="@Note.IsFavorite"
                           Label="Favorite"
                           Color="Color.Warning" />
                 @if (!IsNew)
                 {
-                    <MudSwitch T="bool" @bind-Checked="@Note.IsArchived"
+                    <MudSwitch T="bool" @bind-Value="@Note.IsArchived"
                               Label="Archived"
                               Color="Color.Secondary" />
                 }

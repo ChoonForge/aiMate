@@ -109,7 +109,7 @@
         <MudPaper Class="pa-4" Elevation="2">
             <MudStack Spacing="2">
                 <MudText Typo="Typo.subtitle2">LocalStorage</MudText>
-                <MudProgressLinear T="double"
+                <MudProgressLinear
                                   Value="@((AdminState.Value.LocalStorageUsedMB / AdminState.Value.LocalStorageLimitMB) * 100)"
                                   Color="Color.Primary"
                                   Size="Size.Medium" />
@@ -124,7 +124,7 @@
         <MudPaper Class="pa-4" Elevation="2">
             <MudStack Spacing="2">
                 <MudText Typo="Typo.subtitle2">IndexedDB</MudText>
-                <MudProgressLinear T="double"
+                <MudProgressLinear
                                   Value="@((AdminState.Value.IndexedDBUsedMB / AdminState.Value.IndexedDBLimitMB) * 100)"
                                   Color="Color.Secondary"
                                   Size="Size.Medium" />
