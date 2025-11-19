@@ -372,7 +372,7 @@ public class AdminApiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error testing connection");
-            return StatusCode(500, new { error = "Connection failed", message = ex.Message }));
+            return StatusCode(500, new { error = "Connection failed", message = ex.Message });
         }
     }
 

@@ -59,7 +59,7 @@ public class PluginApiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to fetch plugins");
-            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to fetch plugins", details = ex.Message }));
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to fetch plugins", details = ex.Message });
         }
     }
 
@@ -99,7 +99,7 @@ public class PluginApiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to fetch plugin {PluginId}", id);
-            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to fetch plugin", details = ex.Message }));
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to fetch plugin", details = ex.Message });
         }
     }
 
@@ -128,7 +128,7 @@ public class PluginApiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to toggle plugin {PluginId}", id);
-            return StatusCode(500, new { error = "Failed to toggle plugin", details = ex.Message }));
+            return StatusCode(500, new { error = "Failed to toggle plugin", details = ex.Message });
         }
     }
 
@@ -164,7 +164,7 @@ public class PluginApiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to fetch settings for plugin {PluginId}", id);
-            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to fetch plugin settings", details = ex.Message }));
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to fetch plugin settings", details = ex.Message });
         }
     }
 
@@ -193,7 +193,7 @@ public class PluginApiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to update settings for plugin {PluginId}", id);
-            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to update plugin settings", details = ex.Message }));
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to update plugin settings", details = ex.Message });
         }
     }
 
@@ -215,7 +215,7 @@ public class PluginApiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to reload plugins");
-            return StatusCode(500, new { error = "Failed to reload plugins", details = ex.Message }));
+            return StatusCode(500, new { error = "Failed to reload plugins", details = ex.Message });
         }
     }
 
@@ -249,7 +249,7 @@ public class PluginApiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get message actions");
-            return StatusCode(500, new { error = "Failed to get message actions", details = ex.Message }));
+            return StatusCode(500, new { error = "Failed to get message actions", details = ex.Message });
         }
     }
 
@@ -270,7 +270,7 @@ public class PluginApiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to fetch plugin tools");
-            return StatusCode(500, new { error = "Failed to fetch tools", details = ex.Message }));
+            return StatusCode(500, new { error = "Failed to fetch tools", details = ex.Message });
         }
     }
 }
