@@ -32,8 +32,9 @@ public class FeedbackApiController : ControllerBase
     {
         try
         {
-            // TODO: Get userId from authentication context
-            // For now, using the userId from the request
+            // IMPLEMENTATION NEEDED: Enable authentication and use HttpContext.User.FindFirst("sub")?.Value
+            // Add [Authorize] attribute and extract userId from JWT claims
+            // For development/testing, accepts userId from request body
             var userId = request.UserId;
 
             var tags = request.Tags?.Select(t => new FeedbackTag
@@ -189,7 +190,8 @@ public class FeedbackApiController : ControllerBase
     {
         try
         {
-            // TODO: Add admin authorization check
+            // IMPLEMENTATION NEEDED: Add [Authorize(Roles = "Admin")] attribute to this method
+            // Or check HttpContext.User.IsInRole("Admin") and return Forbid() if unauthorized
 
             var options = request.Options.Select(o => new FeedbackTagOption
             {
@@ -227,7 +229,8 @@ public class FeedbackApiController : ControllerBase
     {
         try
         {
-            // TODO: Add admin authorization check
+            // IMPLEMENTATION NEEDED: Add [Authorize(Roles = "Admin")] attribute to this method
+            // Or check HttpContext.User.IsInRole("Admin") and return Forbid() if unauthorized
 
             var template = await _feedbackService.UpdateTagTemplateAsync(
                 templateId,
@@ -260,7 +263,8 @@ public class FeedbackApiController : ControllerBase
     {
         try
         {
-            // TODO: Add admin authorization check
+            // IMPLEMENTATION NEEDED: Add [Authorize(Roles = "Admin")] attribute to this method
+            // Or check HttpContext.User.IsInRole("Admin") and return Forbid() if unauthorized
 
             var success = await _feedbackService.DeleteTagTemplateAsync(templateId);
             if (!success)

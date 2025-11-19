@@ -21,7 +21,7 @@ public class ConnectionEffects
     {
         try
         {
-            // TODO: Get userId and tier from auth/state
+            // IMPLEMENTATION NEEDED: Inject IState<AuthState> to get userId and tier from authenticated user
             var userId = "user-1";
             var tier = "Free";
 
@@ -45,7 +45,7 @@ public class ConnectionEffects
     {
         try
         {
-            var tier = "Free"; // TODO: Get from auth/state
+            var tier = "Free"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Tier
 
             var response = await _httpClient.GetFromJsonAsync<ConnectionLimitsResponse>(
                 $"/api/v1/connections/limits?tierStr={tier}");
@@ -72,7 +72,7 @@ public class ConnectionEffects
     {
         try
         {
-            var userId = "user-1"; // TODO: Get from auth
+            var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             var tier = "Free";
 
             var response = await _httpClient.PostAsJsonAsync(
@@ -105,7 +105,7 @@ public class ConnectionEffects
     {
         try
         {
-            var userId = "user-1"; // TODO: Get from auth
+            var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             var tier = "Free";
 
             var response = await _httpClient.PutAsJsonAsync(
@@ -138,7 +138,7 @@ public class ConnectionEffects
     {
         try
         {
-            var userId = "user-1"; // TODO: Get from auth
+            var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             var tier = "Free";
 
             var response = await _httpClient.DeleteAsync(
@@ -166,7 +166,7 @@ public class ConnectionEffects
     {
         try
         {
-            var userId = "user-1"; // TODO: Get from auth
+            var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
 
             var response = await _httpClient.PostAsync(
                 $"/api/v1/connections/{action.Id}/test?userId={userId}", null);

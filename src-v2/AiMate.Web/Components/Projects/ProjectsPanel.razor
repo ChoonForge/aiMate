@@ -372,7 +372,7 @@
         _isLoading = true;
         try
         {
-            var userId = "user-1"; // TODO: Get from auth
+            var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             _projects = await Http.GetFromJsonAsync<List<ProjectDto>>($"/api/v1/Projects?userId={userId}") ?? new();
         }
         catch (Exception ex)
@@ -490,26 +490,31 @@
 
     private void OpenProject(ProjectDto project)
     {
-        // TODO: Navigate to project details or open dialog
+        // IMPLEMENTATION NEEDED: Navigate to project detail page
+        // Example: Navigation.NavigateTo($"/projects/{project.Id}");
         Console.WriteLine($"Opening project: {project.Name}");
     }
 
-    private void EditProject(ProjectDto project)
+    private async Task EditProject(ProjectDto project)
     {
-        // TODO: Open edit dialog
+        // IMPLEMENTATION NEEDED: Show EditProjectDialog
+        // Example: await DialogService.ShowAsync<EditProjectDialog>("Edit Project", new DialogParameters { ["Project"] = project });
         Console.WriteLine($"Editing project: {project.Name}");
     }
 
     private async Task DeleteProject(ProjectDto project)
     {
-        // TODO: Show confirmation dialog then delete
+        // IMPLEMENTATION NEEDED: Show confirmation then call DELETE API
+        // var confirmed = await DialogService.ShowMessageBox("Delete Project", $"Delete '{project.Name}'?", yesText: "Delete", cancelText: "Cancel");
+        // if (confirmed == true) await Http.DeleteAsync($"/api/v1/Projects/{project.Id}");
         Console.WriteLine($"Deleting project: {project.Name}");
         await LoadProjects();
     }
 
-    private void OpenCreateDialog()
+    private async Task OpenCreateDialog()
     {
-        // TODO: Open create dialog
+        // IMPLEMENTATION NEEDED: Show EditProjectDialog for new project
+        // Example: await DialogService.ShowAsync<EditProjectDialog>("Create Project", new DialogParameters { ["IsNew"] = true });
         Console.WriteLine("Opening create project dialog");
     }
 }

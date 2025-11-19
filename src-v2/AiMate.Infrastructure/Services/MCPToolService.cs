@@ -436,9 +436,11 @@ public class MCPToolService : IMCPToolService
 
         try
         {
-            // NOTE: We need userId from context - for now use a placeholder
-            // In production, pass userId through parameters or context
-            var userId = Guid.Empty; // TODO: Get from authenticated user context
+            // IMPLEMENTATION NEEDED: Add userId parameter to ExecuteToolAsync signature
+            // Then pass it through to tool executors via parameters dictionary
+            // Example: var userId = parameters.ContainsKey("user_id") ? (Guid)parameters["user_id"] : Guid.Empty;
+            // For now, using Empty to search all knowledge items
+            var userId = Guid.Empty;
 
             var items = await _knowledgeService.SearchAsync(query, userId, limit);
 

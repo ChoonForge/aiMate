@@ -186,7 +186,7 @@
     private void GenerateShareLink()
     {
         // Generate a shareable URL
-        var baseUrl = "https://aimate.app/share"; // TODO: Get from config
+        var baseUrl = "https://aimate.app/share"; // IMPLEMENTATION NEEDED: Get from IConfiguration["AppSettings:BaseUrl"]
         var shareToken = Guid.NewGuid().ToString("N")[..12]; // Short token
         _shareUrl = $"{baseUrl}/{shareToken}";
 

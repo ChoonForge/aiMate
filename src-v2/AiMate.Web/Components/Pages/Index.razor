@@ -146,28 +146,32 @@ What can I help you with today, mate?";
 
     private void EditMessage(Guid messageId)
     {
-        // TODO: Implement edit message
+        // IMPLEMENTATION NEEDED: Dispatch EditMessageAction to enable editing mode
+        // Example: Dispatcher.Dispatch(new EditMessageAction(messageId));
     }
 
     private async Task CopyMessage(string content)
     {
-        // TODO: Implement copy to clipboard
+        // IMPLEMENTATION NEEDED: Use Clipboard API via JS interop
         // await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", content);
     }
 
     private void RateMessage(Guid messageId, bool isPositive)
     {
-        // TODO: Implement message rating
+        // IMPLEMENTATION NEEDED: Dispatch RateMessageAction to save rating
+        // Example: Dispatcher.Dispatch(new RateMessageAction(messageId, isPositive ? 1 : -1));
     }
 
     private void ContinueGeneration(Guid messageId)
     {
-        // TODO: Implement continue generation
+        // IMPLEMENTATION NEEDED: Dispatch ContinueGenerationAction to extend response
+        // Example: Dispatcher.Dispatch(new ContinueGenerationAction(messageId));
     }
 
     private void RegenerateMessage(Guid messageId)
     {
-        // TODO: Implement regenerate message
+        // IMPLEMENTATION NEEDED: Dispatch RegenerateMessageAction to regenerate response
+        // Example: Dispatcher.Dispatch(new RegenerateMessageAction(messageId));
     }
 
     private void HandlePluginAction(MessageActionButton action)
@@ -176,27 +180,33 @@ What can I help you with today, mate?";
         switch (action.OnClickHandler)
         {
             case "handleEditMessage":
-                // TODO: Extract message ID from action context
+                // IMPLEMENTATION NEEDED: Extract messageId from action.Context and call EditMessage
+                // Example: if (action.Context.TryGetValue("messageId", out var id)) EditMessage(Guid.Parse(id));
                 break;
 
             case "handleRegenerateMessage":
-                // TODO: Implement regenerate via Fluxor
+                // IMPLEMENTATION NEEDED: Extract messageId and call RegenerateMessage
+                // Example: if (action.Context.TryGetValue("messageId", out var id)) RegenerateMessage(Guid.Parse(id));
                 break;
 
             case "handleShareMessage":
-                // TODO: Implement share functionality
+                // IMPLEMENTATION NEEDED: Show ShareConversationDialog
+                // Example: await DialogService.ShowAsync<ShareConversationDialog>("Share Message");
                 break;
 
             case "handleDeleteMessage":
-                // TODO: Implement delete via Fluxor
+                // IMPLEMENTATION NEEDED: Dispatch DeleteMessageAction after confirmation
+                // Example: Dispatcher.Dispatch(new DeleteMessageAction(messageId));
                 break;
 
             case "handleThumbsUp":
-                // TODO: Rate message positive via Fluxor
+                // IMPLEMENTATION NEEDED: Extract messageId and call RateMessage(messageId, true)
+                // Example: if (action.Context.TryGetValue("messageId", out var id)) RateMessage(Guid.Parse(id), true);
                 break;
 
             case "handleThumbsDown":
-                // TODO: Rate message negative via Fluxor
+                // IMPLEMENTATION NEEDED: Extract messageId and call RateMessage(messageId, false)
+                // Example: if (action.Context.TryGetValue("messageId", out var id)) RateMessage(Guid.Parse(id), false);
                 break;
 
             default:
