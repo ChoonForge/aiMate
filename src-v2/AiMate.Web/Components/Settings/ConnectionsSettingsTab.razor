@@ -260,7 +260,7 @@
         var parameters = new DialogParameters
         {
             ["Connection"] = new ProviderConnectionDto { Type = "Cloud", ProviderType = "OpenAI" },
-            ["UserTier"] = UserTier.Free, // TODO: Get from auth service
+            ["UserTier"] = UserTier.Free, // IMPLEMENTATION NEEDED: Inject IState<AuthState> and use authState.Value.CurrentUser?.Tier ?? UserTier.Free
             ["IsNew"] = true
         };
 
@@ -286,7 +286,7 @@
         var parameters = new DialogParameters
         {
             ["Connection"] = connection,
-            ["UserTier"] = UserTier.Free, // TODO: Get from auth service
+            ["UserTier"] = UserTier.Free, // IMPLEMENTATION NEEDED: Inject IState<AuthState> and use authState.Value.CurrentUser?.Tier ?? UserTier.Free
             ["IsNew"] = false
         };
 

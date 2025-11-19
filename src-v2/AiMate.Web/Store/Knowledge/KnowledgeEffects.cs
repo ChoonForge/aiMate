@@ -22,7 +22,7 @@ public class KnowledgeEffects
     {
         try
         {
-            var userId = "user-1"; // TODO: Get from auth
+            var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             var articles = await _httpClient.GetFromJsonAsync<List<KnowledgeArticleDto>>(
                 $"/api/v1/knowledge?userId={userId}");
 
@@ -50,7 +50,7 @@ public class KnowledgeEffects
     {
         try
         {
-            var userId = "user-1"; // TODO: Get from auth
+            var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             var analytics = await _httpClient.GetFromJsonAsync<KnowledgeAnalyticsDto>(
                 $"/api/v1/knowledge/analytics?userId={userId}");
 

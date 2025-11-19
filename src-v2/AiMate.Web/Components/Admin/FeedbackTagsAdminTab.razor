@@ -4,6 +4,7 @@
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @inject IState<FeedbackState> FeedbackState
 @inject IDispatcher Dispatcher
+@inject IDialogService DialogService
 
 <MudStack Spacing="4">
     <!-- Header -->
@@ -382,8 +383,19 @@
 
     private async void DeleteTemplate(Guid templateId)
     {
-        // TODO: Add confirmation dialog
-        Dispatcher.Dispatch(new DeleteTagTemplateAction(templateId));
+        var template = FeedbackState.Value.TagTemplates.FirstOrDefault(t => t.Id == templateId);
+        if (template == null) return;
+
+        var confirmed = await DialogService.ShowMessageBox(
+            "Delete Template",
+            $"Are you sure you want to delete the '{template.Label}' template? This action cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (confirmed == true)
+        {
+            Dispatcher.Dispatch(new DeleteTagTemplateAction(templateId));
+        }
     }
 
     private string GetIcon(string? iconName) => iconName switch

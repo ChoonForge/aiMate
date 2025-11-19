@@ -155,26 +155,28 @@
 
     private async Task HandleAttachFiles()
     {
-        // TODO: Open file picker
+        // IMPLEMENTATION NEEDED: Use IJSRuntime to trigger file input click
+        // Example: await JSRuntime.InvokeVoidAsync("triggerFileInput", "fileInput");
         Snackbar.Add("File upload dialog would open here", Severity.Info);
-        // Trigger file upload dialog via JS interop
     }
 
     private async Task HandleCaptureScreenshot()
     {
-        // TODO: Implement screenshot capture
+        // IMPLEMENTATION NEEDED: Use browser Screen Capture API via JS interop
+        // Example: await JSRuntime.InvokeAsync<string>("captureScreenshot");
         Snackbar.Add("Screenshot capture would start here", Severity.Info);
     }
 
     private async Task HandleCapturePhoto()
     {
-        // TODO: Implement webcam capture
+        // IMPLEMENTATION NEEDED: Use MediaDevices.getUserMedia() via JS interop for webcam
+        // Example: await JSRuntime.InvokeVoidAsync("capturePhoto");
         Snackbar.Add("Webcam capture would open here", Severity.Info);
     }
 
     private async Task HandleAttachWebpage()
     {
-        // TODO: Show URL input dialog
+        // IMPLEMENTATION NEEDED: Show TextInputDialog and fetch webpage content
         var parameters = new DialogParameters
         {
             ["Title"] = "Attach Webpage",
@@ -188,43 +190,50 @@
         if (!result.Canceled && result.Data is string url)
         {
             Snackbar.Add($"Fetching webpage: {url}", Severity.Info);
-            // TODO: Fetch and process webpage
+            // IMPLEMENTATION NEEDED: Call API endpoint to fetch and parse webpage
+            // Example: await HttpClient.PostAsync("/api/v1/files/fetch-webpage", new { url });
         }
     }
 
     private async Task HandleAttachNote()
     {
-        // TODO: Show notes picker dialog
+        // IMPLEMENTATION NEEDED: Create NotesPickerDialog component and show it
+        // Example: await DialogService.ShowAsync<NotesPickerDialog>("Select Notes");
         Snackbar.Add("Notes picker would open here", Severity.Info);
     }
 
     private async Task HandleAttachKnowledge()
     {
-        // TODO: Show knowledge base picker
+        // IMPLEMENTATION NEEDED: Create KnowledgePickerDialog component and show it
+        // Example: await DialogService.ShowAsync<KnowledgePickerDialog>("Select Knowledge");
         Snackbar.Add("Knowledge base picker would open here", Severity.Info);
     }
 
     private async Task HandleReferenceChat()
     {
-        // TODO: Show conversation picker
+        // IMPLEMENTATION NEEDED: Create ConversationPickerDialog component and show it
+        // Example: await DialogService.ShowAsync<ConversationPickerDialog>("Reference Chat");
         Snackbar.Add("Conversation picker would open here", Severity.Info);
     }
 
     private async Task HandlePasteFromClipboard()
     {
-        // TODO: Read from clipboard via JS interop
+        // IMPLEMENTATION NEEDED: Use Clipboard API via JS interop
+        // Example: var text = await JSRuntime.InvokeAsync<string>("navigator.clipboard.readText");
         Snackbar.Add("Reading from clipboard...", Severity.Info);
     }
 
     private async Task HandleAttachCodeSnippet()
     {
-        // TODO: Show code input dialog with language selector
+        // IMPLEMENTATION NEEDED: Create CodeSnippetDialog with language selector
+        // Example: await DialogService.ShowAsync<CodeSnippetDialog>("Add Code Snippet");
         Snackbar.Add("Code snippet editor would open here", Severity.Info);
     }
 
     private async Task HandleRecordAudio()
     {
-        // TODO: Start audio recording
+        // IMPLEMENTATION NEEDED: Use MediaRecorder API via JS interop
+        // Example: await JSRuntime.InvokeVoidAsync("startAudioRecording");
         Snackbar.Add("Audio recording would start here", Severity.Info);
     }
 

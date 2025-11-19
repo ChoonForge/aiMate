@@ -22,7 +22,7 @@ public class NotesEffects
     {
         try
         {
-            var userId = "user-1"; // TODO: Get from auth service
+            var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             var notes = await _httpClient.GetFromJsonAsync<List<NoteDto>>($"/api/v1/notes?userId={userId}");
 
             if (notes != null)

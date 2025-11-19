@@ -309,7 +309,7 @@
 
         try
         {
-            var userId = "user-1"; // TODO: Get from auth
+            var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             _project.OwnerId = userId;
             _project.UpdatedAt = DateTime.UtcNow;
 

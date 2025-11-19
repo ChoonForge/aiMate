@@ -11,7 +11,10 @@ namespace AiMate.Web.Controllers;
 public class NotesController : ControllerBase
 {
     private readonly ILogger<NotesController> _logger;
-    private static readonly List<NoteDto> _notes = new(); // In-memory store for demo
+    // MOCK IMPLEMENTATION: In-memory store for demonstration only
+    // IMPLEMENTATION NEEDED: Replace with INotesService that uses database (Notes table)
+    // Inject INotesService in constructor and use it for CRUD operations
+    private static readonly List<NoteDto> _notes = new();
 
     public NotesController(ILogger<NotesController> logger)
     {

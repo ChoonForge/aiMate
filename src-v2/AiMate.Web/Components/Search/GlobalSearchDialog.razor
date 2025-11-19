@@ -210,13 +210,15 @@
     private bool _includeNotes = true;
     private bool _includeKnowledge = true;
 
-    // Mock data - TODO: Replace with actual search service
+    // IMPLEMENTATION NEEDED: Create ISearchService with methods:
+    // - Task<List<SearchResult>> SearchAsync(string query, SearchFilters filters)
+    // Inject service in constructor and populate _allResults from actual data
     private List<SearchResult> _allResults = new();
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        // Initialize with mock data
+        // IMPLEMENTATION NEEDED: Remove GenerateMockResults() and load from ISearchService
         GenerateMockResults();
     }
 
@@ -229,8 +231,8 @@
         // Simulate search delay
         await Task.Delay(300);
 
-        // TODO: Call actual search service
-        // _allResults = await SearchService.SearchAsync(query);
+        // IMPLEMENTATION NEEDED: Replace with actual search service call
+        // Example: _allResults = await _searchService.SearchAsync(query, BuildSearchFilters());
 
         _isSearching = false;
         _selectedIndex = 0;
@@ -376,7 +378,7 @@
 
     private void GenerateMockResults()
     {
-        // Mock data for demonstration
+        // MOCK IMPLEMENTATION: For demonstration only - replace with ISearchService
         _allResults = new List<SearchResult>
         {
             // Chats
