@@ -1,7 +1,6 @@
 @page "/files"
 @using AiMate.Shared.Models
 @using Microsoft.AspNetCore.Components.Forms
-@inject HttpClient Http
 @inject ISnackbar Snackbar
 @rendermode InteractiveServer
 
@@ -161,27 +160,11 @@
     private string _searchQuery = string.Empty;
     private string _fileTypeFilter = "All";
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        await LoadFiles();
-    }
-
-    private async Task LoadFiles()
-    {
-        _isLoading = true;
-        try
-        {
-            _files = await Http.GetFromJsonAsync<List<FileDto>>("/api/v1/Files") ?? new();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Error loading files: {ex.Message}", Severity.Error);
-            _files = new();
-        }
-        finally
-        {
-            _isLoading = false;
-        }
+        // File API not implemented yet - showing empty state
+        _isLoading = false;
+        _files = new();
     }
 
     private List<FileDto> FilteredFiles
@@ -229,41 +212,13 @@
         return $"{len:0.##} {sizes[order]}";
     }
 
-    private async Task HandleFileUpload(IReadOnlyList<IBrowserFile> files)
+    private Task HandleFileUpload(IReadOnlyList<IBrowserFile> files)
     {
         if (files == null || !files.Any())
-            return;
+            return Task.CompletedTask;
 
-        _isLoading = true;
-        try
-        {
-            foreach (var file in files)
-            {
-                var content = new MultipartFormDataContent();
-                var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 10485760)); // 10MB limit
-                content.Add(fileContent, "file", file.Name);
-
-                var response = await Http.PostAsync("/api/v1/Files", content);
-                if (response.IsSuccessStatusCode)
-                {
-                    Snackbar.Add($"Uploaded {file.Name}", Severity.Success);
-                }
-                else
-                {
-                    Snackbar.Add($"Failed to upload {file.Name}", Severity.Error);
-                }
-            }
-
-            await LoadFiles();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Error uploading files: {ex.Message}", Severity.Error);
-        }
-        finally
-        {
-            _isLoading = false;
-        }
+        Snackbar.Add("File upload API not implemented yet", Severity.Info);
+        return Task.CompletedTask;
     }
 
     private void OpenFile(FileDto file)
@@ -272,46 +227,14 @@
         Snackbar.Add($"Opening {file.Name}...", Severity.Info);
     }
 
-    private async Task DownloadFile(FileDto file)
+    private void DownloadFile(FileDto file)
     {
-        try
-        {
-            var response = await Http.GetAsync($"/api/v1/Files/{file.Id}/download");
-            if (response.IsSuccessStatusCode)
-            {
-                Snackbar.Add($"Downloading {file.Name}...", Severity.Success);
-                // TODO: Trigger browser download
-            }
-            else
-            {
-                Snackbar.Add($"Failed to download {file.Name}", Severity.Error);
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Error downloading file: {ex.Message}", Severity.Error);
-        }
+        Snackbar.Add($"Download API not implemented yet", Severity.Info);
     }
 
-    private async Task DeleteFile(FileDto file)
+    private void DeleteFile(FileDto file)
     {
-        try
-        {
-            var response = await Http.DeleteAsync($"/api/v1/Files/{file.Id}");
-            if (response.IsSuccessStatusCode)
-            {
-                Snackbar.Add($"Deleted {file.Name}", Severity.Success);
-                await LoadFiles();
-            }
-            else
-            {
-                Snackbar.Add($"Failed to delete {file.Name}", Severity.Error);
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Error deleting file: {ex.Message}", Severity.Error);
-        }
+        Snackbar.Add($"Delete API not implemented yet", Severity.Info);
     }
 
     // DTO for file representation

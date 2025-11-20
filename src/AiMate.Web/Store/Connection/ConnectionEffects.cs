@@ -21,6 +21,14 @@ public class ConnectionEffects
     {
         try
         {
+            // Check if HttpClient has BaseAddress configured
+            if (_httpClient.BaseAddress == null)
+            {
+                _logger.LogWarning("Connections API not available, loading empty state");
+                dispatcher.Dispatch(new LoadConnectionsSuccessAction(new List<ProviderConnectionDto>()));
+                return;
+            }
+
             // IMPLEMENTATION NEEDED: Inject IState<AuthState> to get userId and tier from authenticated user
             var userId = "user-1";
             var tier = "Free";
@@ -45,6 +53,21 @@ public class ConnectionEffects
     {
         try
         {
+            // Check if HttpClient has BaseAddress configured
+            if (_httpClient.BaseAddress == null)
+            {
+                _logger.LogWarning("Connections API not available, using default limits");
+                // Provide default limits for Free tier
+                dispatcher.Dispatch(new LoadConnectionLimitsSuccessAction(
+                    maxConnections: 3,
+                    byokEnabled: false,
+                    canAddOwnKeys: false,
+                    canAddCustomEndpoints: false,
+                    canShareConnections: false
+                ));
+                return;
+            }
+
             var tier = "Free"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Tier
 
             var response = await _httpClient.GetFromJsonAsync<ConnectionLimitsResponse>(
@@ -72,6 +95,15 @@ public class ConnectionEffects
     {
         try
         {
+            // Check if HttpClient has BaseAddress configured
+            if (_httpClient.BaseAddress == null)
+            {
+                var errorMsg = "API not available - connection creation requires backend implementation";
+                _logger.LogWarning(errorMsg);
+                dispatcher.Dispatch(new CreateConnectionFailureAction(errorMsg));
+                return;
+            }
+
             var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             var tier = "Free";
 
@@ -105,6 +137,15 @@ public class ConnectionEffects
     {
         try
         {
+            // Check if HttpClient has BaseAddress configured
+            if (_httpClient.BaseAddress == null)
+            {
+                var errorMsg = "API not available - connection update requires backend implementation";
+                _logger.LogWarning(errorMsg);
+                dispatcher.Dispatch(new UpdateConnectionFailureAction(errorMsg));
+                return;
+            }
+
             var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             var tier = "Free";
 
@@ -138,6 +179,15 @@ public class ConnectionEffects
     {
         try
         {
+            // Check if HttpClient has BaseAddress configured
+            if (_httpClient.BaseAddress == null)
+            {
+                var errorMsg = "API not available - connection deletion requires backend implementation";
+                _logger.LogWarning(errorMsg);
+                dispatcher.Dispatch(new DeleteConnectionFailureAction(errorMsg));
+                return;
+            }
+
             var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             var tier = "Free";
 
@@ -166,6 +216,15 @@ public class ConnectionEffects
     {
         try
         {
+            // Check if HttpClient has BaseAddress configured
+            if (_httpClient.BaseAddress == null)
+            {
+                var errorMsg = "API not available - connection testing requires backend implementation";
+                _logger.LogWarning(errorMsg);
+                dispatcher.Dispatch(new TestConnectionFailureAction(errorMsg));
+                return;
+            }
+
             var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
 
             var response = await _httpClient.PostAsync(

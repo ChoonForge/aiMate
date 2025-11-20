@@ -30,27 +30,34 @@ public class SettingsEffects
     {
         try
         {
-            // Try loading from API first
-            try
+            // Try loading from API first if available
+            if (_httpClient.BaseAddress != null)
             {
-                var settingsDto = await _httpClient.GetFromJsonAsync<UserSettingsDto>(ApiEndpoint);
-
-                if (settingsDto != null)
+                try
                 {
-                    var settings = MapDtoToState(settingsDto);
+                    var settingsDto = await _httpClient.GetFromJsonAsync<UserSettingsDto>(ApiEndpoint);
 
-                    // Also cache in localStorage
-                    var settingsJson = JsonSerializer.Serialize(settings);
-                    await _jsRuntime.InvokeVoidAsync("localStorage.setItem", StorageKey, settingsJson);
+                    if (settingsDto != null)
+                    {
+                        var settings = MapDtoToState(settingsDto);
 
-                    dispatcher.Dispatch(new LoadSettingsSuccessAction(settings));
-                    _logger.LogInformation("Settings loaded from API");
-                    return;
+                        // Also cache in localStorage
+                        var settingsJson = JsonSerializer.Serialize(settings);
+                        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", StorageKey, settingsJson);
+
+                        dispatcher.Dispatch(new LoadSettingsSuccessAction(settings));
+                        _logger.LogInformation("Settings loaded from API");
+                        return;
+                    }
+                }
+                catch (Exception apiEx)
+                {
+                    _logger.LogWarning(apiEx, "Failed to load from API, falling back to localStorage");
                 }
             }
-            catch (Exception apiEx)
+            else
             {
-                _logger.LogWarning(apiEx, "Failed to load from API, falling back to localStorage");
+                _logger.LogInformation("Settings API not available, falling back to localStorage");
             }
 
             // Fallback to localStorage

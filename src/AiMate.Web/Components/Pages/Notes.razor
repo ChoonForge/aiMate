@@ -1,6 +1,7 @@
 @page "/notes"
 @using AiMate.Shared.Models
 @using AiMate.Web.Store.Notes
+@using AiMate.Web.Components.Dialogs
 @using Fluxor
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @rendermode InteractiveServer
@@ -219,14 +220,50 @@
 
     private async Task CreateNote()
     {
-        // TODO: Show dialog to create note
-        Snackbar.Add("Note creation dialog not implemented yet", Severity.Info);
+        var newNote = new NoteDto
+        {
+            Id = Guid.NewGuid().ToString(),
+            Title = "",
+            Content = "",
+            ContentType = "markdown",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var parameters = new DialogParameters
+        {
+            ["Note"] = newNote,
+            ["IsNew"] = true,
+            ["ExistingCollections"] = NotesState.Value.Collections,
+            ["ExistingTags"] = NotesState.Value.AllTags
+        };
+
+        var dialog = await DialogService.ShowAsync<EditNoteDialog>("Create Note", parameters, new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is NoteDto createdNote)
+        {
+            Dispatcher.Dispatch(new CreateNoteAction(createdNote));
+        }
     }
 
     private async Task EditNote(NoteDto note)
     {
-        // TODO: Show dialog to edit note
-        Snackbar.Add($"Note editing for '{note.Title}' not implemented yet", Severity.Info);
+        var parameters = new DialogParameters
+        {
+            ["Note"] = note,
+            ["IsNew"] = false,
+            ["ExistingCollections"] = NotesState.Value.Collections,
+            ["ExistingTags"] = NotesState.Value.AllTags
+        };
+
+        var dialog = await DialogService.ShowAsync<EditNoteDialog>("Edit Note", parameters, new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is NoteDto updatedNote)
+        {
+            Dispatcher.Dispatch(new UpdateNoteAction(updatedNote.Id, updatedNote));
+        }
     }
 
     private void TogglePin(NoteDto note)
