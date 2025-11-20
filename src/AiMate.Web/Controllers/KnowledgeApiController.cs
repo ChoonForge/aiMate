@@ -1,3 +1,5 @@
+using AiMate.Core.Entities;
+using AiMate.Core.Services;
 using AiMate.Shared.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -5,155 +7,291 @@ using Microsoft.AspNetCore.Mvc;
 namespace AiMate.Web.Controllers;
 
 [ApiController]
-[Route("api/v1/[controller]")]
+[Route("api/v1/knowledge")]
 [Authorize] // Requires authentication
-public class KnowledgeController : ControllerBase
+public class KnowledgeApiController : ControllerBase
 {
-    private readonly ILogger<KnowledgeController> _logger;
-    private static readonly List<KnowledgeArticleDto> _articles = new();
+    private readonly IKnowledgeService _knowledgeService;
+    private readonly ILogger<KnowledgeApiController> _logger;
 
-    public KnowledgeController(ILogger<KnowledgeController> logger)
+    public KnowledgeApiController(
+        IKnowledgeService knowledgeService,
+        ILogger<KnowledgeApiController> logger)
     {
+        _knowledgeService = knowledgeService;
         _logger = logger;
-        if (!_articles.Any()) InitializeSampleData();
     }
 
     [HttpGet]
-    public ActionResult<List<KnowledgeArticleDto>> GetArticles([FromQuery] string userId)
+    public async Task<ActionResult<List<KnowledgeArticleDto>>> GetArticles([FromQuery] string userId)
     {
-        var articles = _articles
-            .Where(a => a.OwnerId == userId || a.Visibility == "Public")
-            .Where(a => a.IsPublished)
-            .OrderByDescending(a => a.IsFeatured)
-            .ThenByDescending(a => a.UpdatedAt)
-            .ToList();
-        return Ok(articles);
+        try
+        {
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return BadRequest("Invalid user ID");
+            }
+
+            var items = await _knowledgeService.GetUserKnowledgeItemsAsync(userGuid);
+
+            // Filter to published items and map to DTOs
+            var articles = items
+                .Where(k => k.IsPublished)
+                .Select(MapToDto)
+                .OrderByDescending(a => a.IsFeatured)
+                .ThenByDescending(a => a.UpdatedAt)
+                .ToList();
+
+            return Ok(articles);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting knowledge articles for user {UserId}", userId);
+            return StatusCode(500, "Error retrieving knowledge articles");
+        }
     }
 
     [HttpGet("analytics")]
-    public ActionResult<KnowledgeAnalyticsDto> GetAnalytics([FromQuery] string userId)
+    public async Task<ActionResult<KnowledgeAnalyticsDto>> GetAnalytics([FromQuery] string userId)
     {
-        var userArticles = _articles.Where(a => a.OwnerId == userId || a.Visibility == "Public").ToList();
-        var analytics = new KnowledgeAnalyticsDto
+        try
         {
-            TotalArticles = userArticles.Count,
-            TotalViews = userArticles.Sum(a => a.ViewCount),
-            TotalReferences = userArticles.Sum(a => a.ReferenceCount),
-            MostViewed = userArticles.OrderByDescending(a => a.ViewCount).Take(5).ToList(),
-            MostReferenced = userArticles.OrderByDescending(a => a.ReferenceCount).Take(5).ToList(),
-            RecentlyAdded = userArticles.OrderByDescending(a => a.CreatedAt).Take(5).ToList(),
-            TagCounts = userArticles.SelectMany(a => a.Tags).GroupBy(t => t).ToDictionary(g => g.Key, g => g.Count()),
-            TypeCounts = userArticles.GroupBy(a => a.Type).ToDictionary(g => g.Key, g => g.Count()),
-            CategoryCounts = userArticles.Where(a => !string.IsNullOrEmpty(a.Category)).GroupBy(a => a.Category!).ToDictionary(g => g.Key, g => g.Count())
-        };
-        return Ok(analytics);
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return BadRequest("Invalid user ID");
+            }
+
+            var items = await _knowledgeService.GetUserKnowledgeItemsAsync(userGuid);
+            var articleDtos = items.Select(MapToDto).ToList();
+
+            var analytics = new KnowledgeAnalyticsDto
+            {
+                TotalArticles = articleDtos.Count,
+                TotalViews = articleDtos.Sum(a => a.ViewCount),
+                TotalReferences = articleDtos.Sum(a => a.ReferenceCount),
+                MostViewed = articleDtos.OrderByDescending(a => a.ViewCount).Take(5).ToList(),
+                MostReferenced = articleDtos.OrderByDescending(a => a.ReferenceCount).Take(5).ToList(),
+                RecentlyAdded = articleDtos.OrderByDescending(a => a.CreatedAt).Take(5).ToList(),
+                TagCounts = articleDtos.SelectMany(a => a.Tags).GroupBy(t => t).ToDictionary(g => g.Key, g => g.Count()),
+                TypeCounts = articleDtos.GroupBy(a => a.Type).ToDictionary(g => g.Key, g => g.Count()),
+                CategoryCounts = articleDtos.Where(a => !string.IsNullOrEmpty(a.Category)).GroupBy(a => a.Category!).ToDictionary(g => g.Key, g => g.Count())
+            };
+
+            return Ok(analytics);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting knowledge analytics for user {UserId}", userId);
+            return StatusCode(500, "Error retrieving knowledge analytics");
+        }
     }
 
     [HttpGet("{id}")]
-    public ActionResult<KnowledgeArticleDto> GetArticle(string id, [FromQuery] string userId)
+    public async Task<ActionResult<KnowledgeArticleDto>> GetArticle(string id, [FromQuery] string userId)
     {
-        var article = _articles.FirstOrDefault(a => a.Id == id);
-        if (article == null) return NotFound();
-        if (article.OwnerId != userId && article.Visibility == "Private") return Forbid();
+        try
+        {
+            if (!Guid.TryParse(id, out var itemGuid))
+            {
+                return BadRequest("Invalid article ID");
+            }
 
-        // Update view count manually (KnowledgeArticleDto is a class, not a record)
-        article.ViewCount++;
-        article.LastViewedAt = DateTime.UtcNow;
-        return Ok(article);
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return BadRequest("Invalid user ID");
+            }
+
+            var item = await _knowledgeService.GetKnowledgeItemByIdAsync(itemGuid);
+
+            if (item == null)
+            {
+                return NotFound();
+            }
+
+            // Check permissions
+            if (item.UserId != userGuid && item.Visibility == "Private")
+            {
+                return Forbid();
+            }
+
+            // Increment view count
+            item.ViewCount++;
+            item.LastViewedAt = DateTime.UtcNow;
+            await _knowledgeService.UpdateKnowledgeItemAsync(item);
+
+            return Ok(MapToDto(item));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting knowledge article {ArticleId}", id);
+            return StatusCode(500, "Error retrieving knowledge article");
+        }
     }
 
     [HttpPost]
-    public ActionResult<KnowledgeArticleDto> CreateArticle([FromBody] CreateKnowledgeArticleRequest request, [FromQuery] string userId)
+    public async Task<ActionResult<KnowledgeArticleDto>> CreateArticle(
+        [FromBody] CreateKnowledgeArticleRequest request,
+        [FromQuery] string userId)
     {
-        var article = new KnowledgeArticleDto
+        try
         {
-            Id = Guid.NewGuid().ToString(),
-            Title = request.Title,
-            Content = request.Content,
-            ContentType = request.ContentType,
-            Summary = request.Summary,
-            Type = request.Type,
-            Tags = request.Tags ?? new(),
-            Collection = request.Collection,
-            Category = request.Category,
-            Source = request.Source,
-            OwnerId = userId,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-            PublishedAt = DateTime.UtcNow
-        };
-        _articles.Add(article);
-        return CreatedAtAction(nameof(GetArticle), new { id = article.Id, userId }, article);
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return BadRequest("Invalid user ID");
+            }
+
+            var item = new KnowledgeItem
+            {
+                UserId = userGuid,
+                Title = request.Title,
+                Content = request.Content,
+                Summary = request.Summary,
+                ContentType = request.ContentType,
+                Type = request.Type,
+                Tags = request.Tags ?? new List<string>(),
+                Collection = request.Collection,
+                Category = request.Category,
+                Source = request.Source,
+                PublishedAt = DateTime.UtcNow
+            };
+
+            var created = await _knowledgeService.CreateKnowledgeItemAsync(item);
+
+            _logger.LogInformation("Created knowledge article {ArticleId} for user {UserId}", created.Id, userId);
+
+            return CreatedAtAction(nameof(GetArticle), new { id = created.Id.ToString(), userId }, MapToDto(created));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating knowledge article");
+            return StatusCode(500, "Error creating knowledge article");
+        }
     }
 
     [HttpPut("{id}")]
-    public ActionResult<KnowledgeArticleDto> UpdateArticle(string id, [FromBody] UpdateKnowledgeArticleRequest request, [FromQuery] string userId)
+    public async Task<ActionResult<KnowledgeArticleDto>> UpdateArticle(
+        string id,
+        [FromBody] UpdateKnowledgeArticleRequest request,
+        [FromQuery] string userId)
     {
-        var article = _articles.FirstOrDefault(a => a.Id == id);
-        if (article == null) return NotFound();
-        if (article.OwnerId != userId) return Forbid();
+        try
+        {
+            if (!Guid.TryParse(id, out var itemGuid))
+            {
+                return BadRequest("Invalid article ID");
+            }
 
-        // Update fields manually (KnowledgeArticleDto is a class, not a record)
-        article.Title = request.Title ?? article.Title;
-        article.Content = request.Content ?? article.Content;
-        article.Summary = request.Summary ?? article.Summary;
-        article.Tags = request.Tags ?? article.Tags;
-        article.IsFeatured = request.IsFeatured ?? article.IsFeatured;
-        article.IsVerified = request.IsVerified ?? article.IsVerified;
-        article.UpdatedAt = DateTime.UtcNow;
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return BadRequest("Invalid user ID");
+            }
 
-        return Ok(article);
+            var item = await _knowledgeService.GetKnowledgeItemByIdAsync(itemGuid);
+
+            if (item == null)
+            {
+                return NotFound();
+            }
+
+            // Check ownership
+            if (item.UserId != userGuid)
+            {
+                return Forbid();
+            }
+
+            // Update fields
+            item.Title = request.Title ?? item.Title;
+            item.Content = request.Content ?? item.Content;
+            item.Summary = request.Summary ?? item.Summary;
+            item.Tags = request.Tags ?? item.Tags;
+            item.IsFeatured = request.IsFeatured ?? item.IsFeatured;
+            item.IsVerified = request.IsVerified ?? item.IsVerified;
+
+            var updated = await _knowledgeService.UpdateKnowledgeItemAsync(item);
+
+            _logger.LogInformation("Updated knowledge article {ArticleId}", id);
+
+            return Ok(MapToDto(updated));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating knowledge article {ArticleId}", id);
+            return StatusCode(500, "Error updating knowledge article");
+        }
     }
 
     [HttpDelete("{id}")]
-    public IActionResult DeleteArticle(string id, [FromQuery] string userId)
+    public async Task<IActionResult> DeleteArticle(string id, [FromQuery] string userId)
     {
-        var article = _articles.FirstOrDefault(a => a.Id == id);
-        if (article == null) return NotFound();
-        if (article.OwnerId != userId) return Forbid();
-        _articles.Remove(article);
-        return NoContent();
+        try
+        {
+            if (!Guid.TryParse(id, out var itemGuid))
+            {
+                return BadRequest("Invalid article ID");
+            }
+
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return BadRequest("Invalid user ID");
+            }
+
+            var item = await _knowledgeService.GetKnowledgeItemByIdAsync(itemGuid);
+
+            if (item == null)
+            {
+                return NotFound();
+            }
+
+            // Check ownership
+            if (item.UserId != userGuid)
+            {
+                return Forbid();
+            }
+
+            await _knowledgeService.DeleteKnowledgeItemAsync(itemGuid);
+
+            _logger.LogInformation("Deleted knowledge article {ArticleId}", id);
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting knowledge article {ArticleId}", id);
+            return StatusCode(500, "Error deleting knowledge article");
+        }
     }
 
-    private void InitializeSampleData()
+    // Helper method to map KnowledgeItem entity to KnowledgeArticleDto
+    private static KnowledgeArticleDto MapToDto(KnowledgeItem item)
     {
-        _articles.AddRange(new[]
+        return new KnowledgeArticleDto
         {
-            new KnowledgeArticleDto
-            {
-                Id = Guid.NewGuid().ToString(),
-                Title = "Getting Started with Blazor",
-                Content = "# Blazor Basics\n\nBlazor is a framework for building interactive web UIs...",
-                Summary = "Learn the fundamentals of Blazor development",
-                Type = "Tutorial",
-                Tags = new List<string> { "blazor", "csharp", "web" },
-                Collection = "Development",
-                Category = "Web Development",
-                OwnerId = "user-1",
-                Visibility = "Public",
-                IsFeatured = true,
-                IsVerified = true,
-                ViewCount = 245,
-                ReferenceCount = 12,
-                UpvoteCount = 34,
-                CreatedAt = DateTime.UtcNow.AddDays(-30)
-            },
-            new KnowledgeArticleDto
-            {
-                Id = Guid.NewGuid().ToString(),
-                Title = "C# Best Practices",
-                Content = "# Coding Standards\n\n1. Use meaningful names...",
-                Summary = "Essential coding standards for C# development",
-                Type = "Reference",
-                Tags = new List<string> { "csharp", "best-practices" },
-                Collection = "Development",
-                OwnerId = "user-1",
-                Visibility = "Public",
-                IsVerified = true,
-                ViewCount = 189,
-                ReferenceCount = 28,
-                CreatedAt = DateTime.UtcNow.AddDays(-60)
-            }
-        });
+            Id = item.Id.ToString(),
+            Title = item.Title,
+            Content = item.Content,
+            ContentType = item.ContentType,
+            Summary = item.Summary,
+            Type = item.Type,
+            Tags = item.Tags,
+            Collection = item.Collection,
+            Category = item.Category,
+            Source = item.Source,
+            OwnerId = item.UserId.ToString(),
+            Visibility = item.Visibility,
+            IsFeatured = item.IsFeatured,
+            IsVerified = item.IsVerified,
+            IsPublished = item.IsPublished,
+            ViewCount = item.ViewCount,
+            ReferenceCount = item.ReferenceCount,
+            UpvoteCount = item.UpvoteCount,
+            DownvoteCount = item.DownvoteCount,
+            AverageRating = item.UpvoteCount + item.DownvoteCount > 0
+                ? (double)item.UpvoteCount / (item.UpvoteCount + item.DownvoteCount) * 5.0
+                : 0.0,
+            CreatedAt = item.CreatedAt,
+            UpdatedAt = item.UpdatedAt,
+            PublishedAt = item.PublishedAt,
+            LastViewedAt = item.LastViewedAt
+        };
     }
 }
