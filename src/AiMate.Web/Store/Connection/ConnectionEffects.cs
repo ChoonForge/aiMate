@@ -79,11 +79,11 @@ public class ConnectionEffects
             _logger.LogError(ex, "Failed to load connection limits");
             // Provide default Free tier limits on API failure
             dispatcher.Dispatch(new LoadConnectionLimitsSuccessAction(
-                maxConnections: 3,
-                byokEnabled: false,
-                canAddOwnKeys: false,
-                canAddCustomEndpoints: false,
-                canShareConnections: false
+                MaxConnections: 3,
+                BYOKEnabled: false,
+                CanAddOwnKeys: false,
+                CanAddCustomEndpoints: false,
+                CanShareConnections: false
             ));
         }
     }

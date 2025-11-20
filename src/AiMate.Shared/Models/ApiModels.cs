@@ -237,6 +237,9 @@ public class ConversationDto
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public int MessageCount { get; set; }
+    public string? ModelId { get; set; }
+    public bool IsPinned { get; set; }
+    public bool IsArchived { get; set; }
 }
 
 /// <summary>

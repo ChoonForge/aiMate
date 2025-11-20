@@ -57,18 +57,18 @@ public class AdminApiController : ControllerBase
                     IndexedDBUsedMB = 3.4,
                     IndexedDBLimitMB = 500.0
                 },
-                Models = new List<AIModelDto>
-                {
+                Models =
+                [
                     new() { Id = "gpt-4", Name = "GPT-4", Provider = "OpenAI", IsEnabled = true, MaxTokens = 8192 },
                     new() { Id = "claude-3-5-sonnet-20241022", Name = "Claude 3.5 Sonnet", Provider = "Anthropic", IsEnabled = true, MaxTokens = 8192 },
                     new() { Id = "gpt-3.5-turbo", Name = "GPT-3.5 Turbo", Provider = "OpenAI", IsEnabled = true, MaxTokens = 4096 }
-                },
-                McpServers = new List<MCPServerDto>
+                ],
+                McpServers = 
                 {
                     new() { Id = "fs-1", Name = "Filesystem", Type = "stdio", Connected = true, ToolCount = 8 },
                     new() { Id = "web-1", Name = "Web Search", Type = "http", Connected = false, ToolCount = 3 }
                 },
-                SystemLogs = new List<SystemLogDto>
+                SystemLogs = 
                 {
                     new() { Timestamp = DateTime.Now.AddMinutes(-5), Level = "INFO", Message = "Application started", Source = "System" },
                     new() { Timestamp = DateTime.Now.AddMinutes(-4), Level = "INFO", Message = "Connected to LiteLLM", Source = "LiteLLM" },

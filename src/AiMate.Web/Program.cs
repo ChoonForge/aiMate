@@ -7,6 +7,7 @@ using Serilog;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -117,48 +118,48 @@ Log.Information("JWT authentication and authorization configured");
 
 // Swagger/OpenAPI for API documentation (requires Swashbuckle.AspNetCore package)
 // Commented out until package is added to avoid build errors
-/*
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-        Title = "aiMate API",
-        Version = "v1",
-        Description = "REST API for aiMate - Developer tier access",
-        Contact = new Microsoft.OpenApi.Models.OpenApiContact
-        {
-            Name = "aiMate",
-            Email = "support@aimate.co.nz"
-        }
-    });
 
-    // Add API Key authentication
-    c.AddSecurityDefinition("ApiKey", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-    {
-        Description = "API Key authentication. Use format: Bearer {your-api-key}",
-        Name = "Authorization",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
+//builder.Services.AddEndpointsApiExplorer();
+//builder.Services.AddSwaggerGen(c =>
+//{
+//    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+//    {
+//        Title = "aiMate API",
+//        Version = "v1",
+//        Description = "REST API for aiMate - Developer tier access",
+//        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+//        {
+//            Name = "aiMate",
+//            Email = "support@aimate.co.nz"
+//        }
+//    });
 
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-    {
-        {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id = "ApiKey"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
-*/
+//    // Add API Key authentication
+//    c.AddSecurityDefinition("ApiKey", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+//    {
+//        Description = "API Key authentication. Use format: Bearer {your-api-key}",
+//        Name = "Authorization",
+//        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+//        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+//        Scheme = "Bearer"
+//    });
+
+//    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+//    {
+//        {
+//            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+//            {
+//                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+//                {
+//                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+//                    Id = "ApiKey"
+//                }
+//            },
+//            Array.Empty<string>()
+//        }
+//    });
+//});
+
 
 // CORS for API access
 builder.Services.AddCors(options =>

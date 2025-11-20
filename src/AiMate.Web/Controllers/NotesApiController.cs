@@ -12,7 +12,7 @@ namespace AiMate.Web.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize] // Requires authentication
-public class NotesController : ControllerBase
+public class NotesApiController : ControllerBase
 {
     private readonly INotesService _notesService;
     private readonly ILogger<NotesApiController> _logger;
@@ -110,7 +110,7 @@ public class NotesController : ControllerBase
                 Title = request.Title,
                 Content = request.Content,
                 ContentType = request.ContentType,
-                Tags = request.Tags ?? new List<string>(),
+                Tags = request.Tags ?? [],
                 Collection = request.Collection,
                 Category = request.Category,
                 Color = request.Color,

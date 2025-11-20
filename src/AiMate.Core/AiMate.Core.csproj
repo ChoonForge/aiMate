@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.OpenApi" Version="3.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\AiMate.Shared\AiMate.Shared.csproj" />
   </ItemGroup>
 

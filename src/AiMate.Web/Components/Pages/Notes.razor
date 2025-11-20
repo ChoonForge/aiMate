@@ -177,6 +177,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await base.OnInitializedAsync();
+
         if (!NotesState.Value.Notes.Any())
         {
             Dispatcher.Dispatch(new LoadNotesAction());

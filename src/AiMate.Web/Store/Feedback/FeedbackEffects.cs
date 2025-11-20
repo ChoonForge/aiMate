@@ -66,8 +66,6 @@ public class FeedbackEffects
                 responseTimeMs = action.ResponseTimeMs
             };
 
-            var httpClient = _httpClientFactory.CreateClient("ApiClient");
-
             var response = await httpClient.PostAsJsonAsync(
                 $"/api/v1/feedback/messages/{action.MessageId}",
                 request);
