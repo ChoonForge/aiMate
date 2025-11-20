@@ -142,6 +142,11 @@ public class AiMateDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.WorkspaceId);
+            entity.HasIndex(e => e.Type);
+            entity.HasIndex(e => e.IsPublished);
+            entity.HasIndex(e => e.IsFeatured);
+            entity.HasIndex(e => new { e.UserId, e.IsPublished });
+            entity.HasIndex(e => new { e.UserId, e.Visibility });
 
             // Vector column for pgvector semantic search
             entity.Property(e => e.Embedding)
