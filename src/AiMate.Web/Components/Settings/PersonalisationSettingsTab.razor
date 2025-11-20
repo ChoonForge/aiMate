@@ -9,10 +9,10 @@
 
 <MudGrid>
     <MudItem xs="12" md="6">
-        <MudSelect T="string" @bind-Value="@_defaultPersonality"
+        <MudSelect T="string" Value="@_defaultPersonality"
                   Label="Default Personality"
                   Variant="Variant.Outlined"
-                  ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateDefaultPersonalityAction(value)))">
+                  ValueChanged="@((string value) => { _defaultPersonality = value; Dispatcher.Dispatch(new UpdateDefaultPersonalityAction(value)); })">
             <MudSelectItem T="string" Value="@(PersonalityMode.KiwiMate.ToString())">Kiwi Mate (Casual & Friendly)</MudSelectItem>
             <MudSelectItem T="string" Value="@(PersonalityMode.KiwiProfessional.ToString())">Kiwi Professional</MudSelectItem>
             <MudSelectItem T="string" Value="@(PersonalityMode.KiwiDev.ToString())">Kiwi Dev (Technical)</MudSelectItem>
@@ -23,10 +23,10 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudSelect T="string" @bind-Value="@_defaultModel"
+        <MudSelect T="string" Value="@_defaultModel"
                   Label="Default Model"
                   Variant="Variant.Outlined"
-                  ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateDefaultModelAction(value)))">
+                  ValueChanged="@((string value) => { _defaultModel = value; Dispatcher.Dispatch(new UpdateDefaultModelAction(value)); })">
             <MudSelectItem T="string" Value="@("gpt-4")">GPT-4</MudSelectItem>
             <MudSelectItem T="string" Value="@("gpt-3.5-turbo")">GPT-3.5 Turbo</MudSelectItem>
             <MudSelectItem T="string" Value="@("claude-3-5-sonnet-20241022")">Claude 3.5 Sonnet</MudSelectItem>

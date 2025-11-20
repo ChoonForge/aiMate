@@ -240,7 +240,7 @@
                                                 <MudText Typo="Typo.body2">@article.Title</MudText>
                                                 <MudText Typo="Typo.caption" Color="Color.Secondary">@article.Type</MudText>
                                             </div>
-                                            <MudChip Size="Size.Small" Color="Color.Info">
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Info">
                                                 @article.ViewCount.ToString("N0") views
                                             </MudChip>
                                         </div>
@@ -273,7 +273,7 @@
                                                 <MudText Typo="Typo.body2">@article.Title</MudText>
                                                 <MudText Typo="Typo.caption" Color="Color.Secondary">@article.Type</MudText>
                                             </div>
-                                            <MudChip Size="Size.Small" Color="Color.Success">
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Success">
                                                 @article.ReferenceCount.ToString("N0") refs
                                             </MudChip>
                                         </div>
@@ -300,7 +300,7 @@
                             <div class="d-flex flex-wrap gap-2">
                                 @foreach (var tag in KnowledgeState.Value.Analytics.TagCounts.OrderByDescending(t => t.Value).Take(15))
                                 {
-                                    <MudChip Size="Size.Small">
+                                    <MudChip T="string" Size="Size.Small">
                                         @tag.Key (@tag.Value)
                                     </MudChip>
                                 }
@@ -359,7 +359,7 @@
                             <div class="d-flex flex-wrap gap-2">
                                 @foreach (var category in KnowledgeState.Value.Analytics.CategoryCounts.OrderByDescending(c => c.Value))
                                 {
-                                    <MudChip Size="Size.Medium" Color="Color.Primary" Variant="Variant.Outlined">
+                                    <MudChip T="string" Size="Size.Medium" Color="Color.Primary" Variant="Variant.Outlined">
                                         @category.Key (@category.Value)
                                     </MudChip>
                                 }

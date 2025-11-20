@@ -72,7 +72,7 @@
                         {
                             <div class="mb-2">
                                 <MudText Typo="Typo.caption">@template.Label</MudText>
-                                <MudChipSet T="string" SelectionMode="SelectionMode.None">
+                                <MudChipSet T="string">
                                     @foreach (var option in template.Options.OrderBy(o => o.DisplayOrder))
                                     {
                                         <MudChip T="string"

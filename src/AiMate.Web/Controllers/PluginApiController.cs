@@ -249,7 +249,7 @@ public class PluginApiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to get message actions");
-            return StatusCode(500, new { error = "Failed to get message actions", details = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to get message actions", details = ex.Message }));
         }
     }
 
@@ -270,7 +270,7 @@ public class PluginApiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to fetch plugin tools");
-            return StatusCode(500, new { error = "Failed to fetch tools", details = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to fetch tools", details = ex.Message }));
         }
     }
 }
