@@ -1,0 +1,340 @@
+@page "/search"
+@using Fluxor
+@using AiMate.Web.Store.Chat
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@rendermode InteractiveServer
+@inject IState<ChatState> ChatState
+@inject IDispatcher Dispatcher
+@inject NavigationManager Navigation
+
+<PageTitle>Search - aiMate</PageTitle>
+
+<MudPaper Elevation="0" Class="pa-6">
+    <div class="d-flex justify-space-between align-center mb-6">
+        <div>
+            <MudText Typo="Typo.h5" Class="mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.Search" Class="mr-2" />
+                Search
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Search across conversations, messages, and knowledge
+            </MudText>
+        </div>
+    </div>
+
+    <MudTextField T="string"
+                 @bind-Value="_searchQuery"
+                 Placeholder="Search conversations, messages, knowledge..."
+                 Adornment="Adornment.Start"
+                 AdornmentIcon="@Icons.Material.Filled.Search"
+                 Immediate="true"
+                 DebounceInterval="300"
+                 OnKeyDown="@HandleKeyDown"
+                 Class="mb-4" />
+
+    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="mb-4">
+        <MudTabPanel Text="All" Icon="@Icons.Material.Filled.Search">
+            @RenderSearchResults(GetAllResults())
+        </MudTabPanel>
+        <MudTabPanel Text="Conversations" Icon="@Icons.Material.Filled.Chat" BadgeData="@GetConversationCount()">
+            @RenderConversationResults()
+        </MudTabPanel>
+        <MudTabPanel Text="Messages" Icon="@Icons.Material.Filled.Message" BadgeData="@GetMessageCount()">
+            @RenderMessageResults()
+        </MudTabPanel>
+    </MudTabs>
+</MudPaper>
+
+@code {
+    private string _searchQuery = string.Empty;
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            _searchQuery = string.Empty;
+        }
+    }
+
+    private List<object> GetAllResults()
+    {
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+            return new List<object>();
+
+        var results = new List<object>();
+        results.AddRange(GetConversationResults());
+        results.AddRange(GetMessageSearchResults());
+        return results;
+    }
+
+    private List<Core.Entities.Conversation> GetConversationResults()
+    {
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+            return new List<Core.Entities.Conversation>();
+
+        var query = _searchQuery.ToLower();
+        return ChatState.Value.Conversations.Values
+            .Where(c => c.Title.ToLower().Contains(query))
+            .OrderByDescending(c => c.UpdatedAt)
+            .ToList();
+    }
+
+    private List<Core.Entities.Message> GetMessageSearchResults()
+    {
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+            return new List<Core.Entities.Message>();
+
+        var query = _searchQuery.ToLower();
+        return ChatState.Value.Conversations.Values
+            .SelectMany(c => c.Messages)
+            .Where(m => m.Content.ToLower().Contains(query))
+            .OrderByDescending(m => m.CreatedAt)
+            .ToList();
+    }
+
+    private int GetConversationCount() => GetConversationResults().Count;
+    private int GetMessageCount() => GetMessageSearchResults().Count;
+
+    private RenderFragment RenderSearchResults(List<object> results) => builder =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "d-flex flex-column align-center justify-center pa-8");
+            builder.OpenComponent<MudIcon>(2);
+            builder.AddAttribute(3, "Icon", Icons.Material.Filled.Search);
+            builder.AddAttribute(4, "Size", Size.Large);
+            builder.AddAttribute(5, "Color", Color.Secondary);
+            builder.AddAttribute(6, "Class", "mb-4");
+            builder.CloseComponent();
+            builder.OpenComponent<MudText>(7);
+            builder.AddAttribute(8, "Typo", Typo.h6);
+            builder.AddAttribute(9, "Color", Color.Secondary);
+            builder.AddAttribute(10, "ChildContent", (RenderFragment)(b => b.AddContent(0, "Start typing to search")));
+            builder.CloseComponent();
+            builder.CloseElement();
+            return;
+        }
+
+        if (!results.Any())
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "d-flex flex-column align-center justify-center pa-8");
+            builder.OpenComponent<MudIcon>(2);
+            builder.AddAttribute(3, "Icon", Icons.Material.Filled.SearchOff);
+            builder.AddAttribute(4, "Size", Size.Large);
+            builder.AddAttribute(5, "Color", Color.Secondary);
+            builder.AddAttribute(6, "Class", "mb-4");
+            builder.CloseComponent();
+            builder.OpenComponent<MudText>(7);
+            builder.AddAttribute(8, "Typo", Typo.h6);
+            builder.AddAttribute(9, "Color", Color.Secondary);
+            builder.AddAttribute(10, "ChildContent", (RenderFragment)(b => b.AddContent(0, "No results found")));
+            builder.CloseComponent();
+            builder.CloseElement();
+            return;
+        }
+
+        builder.OpenComponent<MudPaper>(0);
+        builder.AddAttribute(1, "Elevation", 1);
+        builder.AddAttribute(2, "ChildContent", (RenderFragment)(paperBuilder =>
+        {
+            paperBuilder.OpenComponent<MudList<string>>(0);
+            paperBuilder.AddAttribute(1, "Clickable", true);
+            paperBuilder.AddAttribute(2, "Dense", true);
+            paperBuilder.AddAttribute(3, "ChildContent", (RenderFragment)(listBuilder =>
+            {
+                int index = 0;
+                foreach (var result in results.Take(50))
+                {
+                    if (result is Core.Entities.Conversation conv)
+                    {
+                        listBuilder.OpenComponent<MudListItem<string>>(index++);
+                        listBuilder.AddAttribute(index++, "OnClick", EventCallback.Factory.Create(this, () => Navigation.NavigateTo($"/chat/{conv.Id}")));
+                        listBuilder.AddAttribute(index++, "ChildContent", (RenderFragment)(itemBuilder =>
+                        {
+                            itemBuilder.OpenElement(0, "div");
+                            itemBuilder.AddAttribute(1, "class", "d-flex align-center gap-3");
+                            itemBuilder.OpenComponent<MudIcon>(2);
+                            itemBuilder.AddAttribute(3, "Icon", Icons.Material.Filled.Chat);
+                            itemBuilder.AddAttribute(4, "Size", Size.Small);
+                            itemBuilder.CloseComponent();
+                            itemBuilder.OpenElement(5, "div");
+                            itemBuilder.OpenComponent<MudText>(6);
+                            itemBuilder.AddAttribute(7, "Typo", Typo.body1);
+                            itemBuilder.AddAttribute(8, "ChildContent", (RenderFragment)(b => b.AddContent(0, conv.Title)));
+                            itemBuilder.CloseComponent();
+                            itemBuilder.OpenComponent<MudText>(9);
+                            itemBuilder.AddAttribute(10, "Typo", Typo.caption);
+                            itemBuilder.AddAttribute(11, "Color", Color.Secondary);
+                            itemBuilder.AddAttribute(12, "ChildContent", (RenderFragment)(b => b.AddContent(0, $"{conv.Messages.Count} messages • {conv.UpdatedAt:MMM dd, yyyy}")));
+                            itemBuilder.CloseComponent();
+                            itemBuilder.CloseElement();
+                            itemBuilder.CloseElement();
+                        }));
+                        listBuilder.CloseComponent();
+                    }
+                    else if (result is Core.Entities.Message msg)
+                    {
+                        listBuilder.OpenComponent<MudListItem<string>>(index++);
+                        listBuilder.AddAttribute(index++, "ChildContent", (RenderFragment)(itemBuilder =>
+                        {
+                            itemBuilder.OpenElement(0, "div");
+                            itemBuilder.AddAttribute(1, "class", "d-flex align-center gap-3");
+                            itemBuilder.OpenComponent<MudIcon>(2);
+                            itemBuilder.AddAttribute(3, "Icon", Icons.Material.Filled.Message);
+                            itemBuilder.AddAttribute(4, "Size", Size.Small);
+                            itemBuilder.CloseComponent();
+                            itemBuilder.OpenElement(5, "div");
+                            itemBuilder.OpenComponent<MudText>(6);
+                            itemBuilder.AddAttribute(7, "Typo", Typo.body2);
+                            itemBuilder.AddAttribute(8, "ChildContent", (RenderFragment)(b => b.AddContent(0, msg.Content.Length > 100 ? msg.Content.Substring(0, 100) + "..." : msg.Content)));
+                            itemBuilder.CloseComponent();
+                            itemBuilder.OpenComponent<MudText>(9);
+                            itemBuilder.AddAttribute(10, "Typo", Typo.caption);
+                            itemBuilder.AddAttribute(11, "Color", Color.Secondary);
+                            itemBuilder.AddAttribute(12, "ChildContent", (RenderFragment)(b => b.AddContent(0, $"{msg.Role} • {msg.CreatedAt:MMM dd, yyyy HH:mm}")));
+                            itemBuilder.CloseComponent();
+                            itemBuilder.CloseElement();
+                            itemBuilder.CloseElement();
+                        }));
+                        listBuilder.CloseComponent();
+                    }
+                }
+            }));
+            paperBuilder.CloseComponent();
+        }));
+        builder.CloseComponent();
+    };
+
+    private RenderFragment RenderConversationResults() => builder =>
+    {
+        var conversations = GetConversationResults();
+        if (!conversations.Any())
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "d-flex flex-column align-center justify-center pa-8");
+            builder.OpenComponent<MudIcon>(2);
+            builder.AddAttribute(3, "Icon", Icons.Material.Filled.SearchOff);
+            builder.AddAttribute(4, "Size", Size.Large);
+            builder.AddAttribute(5, "Color", Color.Secondary);
+            builder.AddAttribute(6, "Class", "mb-4");
+            builder.CloseComponent();
+            builder.OpenComponent<MudText>(7);
+            builder.AddAttribute(8, "Typo", Typo.body2);
+            builder.AddAttribute(9, "Color", Color.Secondary);
+            builder.AddAttribute(10, "ChildContent", (RenderFragment)(b => b.AddContent(0, "No conversations found")));
+            builder.CloseComponent();
+            builder.CloseElement();
+            return;
+        }
+
+        builder.OpenComponent<MudPaper>(0);
+        builder.AddAttribute(1, "Elevation", 1);
+        builder.AddAttribute(2, "ChildContent", (RenderFragment)(paperBuilder =>
+        {
+            paperBuilder.OpenComponent<MudList<string>>(0);
+            paperBuilder.AddAttribute(1, "Clickable", true);
+            paperBuilder.AddAttribute(2, "ChildContent", (RenderFragment)(listBuilder =>
+            {
+                int index = 0;
+                foreach (var conv in conversations)
+                {
+                    listBuilder.OpenComponent<MudListItem<string>>(index * 100);
+                    listBuilder.AddAttribute(index * 100 + 1, "OnClick", EventCallback.Factory.Create(this, () => Navigation.NavigateTo($"/chat/{conv.Id}")));
+                    listBuilder.AddAttribute(index * 100 + 2, "ChildContent", (RenderFragment)(itemBuilder =>
+                    {
+                        itemBuilder.OpenElement(0, "div");
+                        itemBuilder.AddAttribute(1, "class", "d-flex justify-space-between align-center py-2");
+                        itemBuilder.OpenElement(2, "div");
+                        itemBuilder.OpenComponent<MudText>(3);
+                        itemBuilder.AddAttribute(4, "Typo", Typo.body1);
+                        itemBuilder.AddAttribute(5, "ChildContent", (RenderFragment)(b => b.AddContent(0, conv.Title)));
+                        itemBuilder.CloseComponent();
+                        itemBuilder.OpenComponent<MudText>(6);
+                        itemBuilder.AddAttribute(7, "Typo", Typo.caption);
+                        itemBuilder.AddAttribute(8, "Color", Color.Secondary);
+                        itemBuilder.AddAttribute(9, "ChildContent", (RenderFragment)(b => b.AddContent(0, $"{conv.Messages.Count} messages")));
+                        itemBuilder.CloseComponent();
+                        itemBuilder.CloseElement();
+                        itemBuilder.OpenComponent<MudText>(10);
+                        itemBuilder.AddAttribute(11, "Typo", Typo.caption);
+                        itemBuilder.AddAttribute(12, "Color", Color.Secondary);
+                        itemBuilder.AddAttribute(13, "ChildContent", (RenderFragment)(b => b.AddContent(0, conv.UpdatedAt.ToString("MMM dd, yyyy HH:mm"))));
+                        itemBuilder.CloseComponent();
+                        itemBuilder.CloseElement();
+                    }));
+                    listBuilder.CloseComponent();
+                    index++;
+                }
+            }));
+            paperBuilder.CloseComponent();
+        }));
+        builder.CloseComponent();
+    };
+
+    private RenderFragment RenderMessageResults() => builder =>
+    {
+        var messages = GetMessageSearchResults();
+        if (!messages.Any())
+        {
+            builder.OpenElement(0, "div");
+            builder.AddAttribute(1, "class", "d-flex flex-column align-center justify-center pa-8");
+            builder.OpenComponent<MudIcon>(2);
+            builder.AddAttribute(3, "Icon", Icons.Material.Filled.SearchOff);
+            builder.AddAttribute(4, "Size", Size.Large);
+            builder.AddAttribute(5, "Color", Color.Secondary);
+            builder.AddAttribute(6, "Class", "mb-4");
+            builder.CloseComponent();
+            builder.OpenComponent<MudText>(7);
+            builder.AddAttribute(8, "Typo", Typo.body2);
+            builder.AddAttribute(9, "Color", Color.Secondary);
+            builder.AddAttribute(10, "ChildContent", (RenderFragment)(b => b.AddContent(0, "No messages found")));
+            builder.CloseComponent();
+            builder.CloseElement();
+            return;
+        }
+
+        builder.OpenComponent<MudPaper>(0);
+        builder.AddAttribute(1, "Elevation", 1);
+        builder.AddAttribute(2, "ChildContent", (RenderFragment)(paperBuilder =>
+        {
+            paperBuilder.OpenComponent<MudList<string>>(0);
+            paperBuilder.AddAttribute(1, "ChildContent", (RenderFragment)(listBuilder =>
+            {
+                int index = 0;
+                foreach (var msg in messages.Take(50))
+                {
+                    listBuilder.OpenComponent<MudListItem<string>>(index * 100);
+                    listBuilder.AddAttribute(index * 100 + 1, "ChildContent", (RenderFragment)(itemBuilder =>
+                    {
+                        itemBuilder.OpenElement(0, "div");
+                        itemBuilder.AddAttribute(1, "class", "py-2");
+                        itemBuilder.OpenElement(2, "div");
+                        itemBuilder.AddAttribute(3, "class", "d-flex justify-space-between mb-1");
+                        itemBuilder.OpenComponent<MudChip<string>>(4);
+                        itemBuilder.AddAttribute(5, "T", typeof(string));
+                        itemBuilder.AddAttribute(6, "Size", Size.Small);
+                        itemBuilder.AddAttribute(7, "ChildContent", (RenderFragment)(b => b.AddContent(0, msg.Role.ToString())));
+                        itemBuilder.CloseComponent();
+                        itemBuilder.OpenComponent<MudText>(8);
+                        itemBuilder.AddAttribute(9, "Typo", Typo.caption);
+                        itemBuilder.AddAttribute(10, "Color", Color.Secondary);
+                        itemBuilder.AddAttribute(11, "ChildContent", (RenderFragment)(b => b.AddContent(0, msg.CreatedAt.ToString("MMM dd, yyyy HH:mm"))));
+                        itemBuilder.CloseComponent();
+                        itemBuilder.CloseElement();
+                        itemBuilder.OpenComponent<MudText>(12);
+                        itemBuilder.AddAttribute(13, "Typo", Typo.body2);
+                        itemBuilder.AddAttribute(14, "ChildContent", (RenderFragment)(b => b.AddContent(0, msg.Content.Length > 200 ? msg.Content.Substring(0, 200) + "..." : msg.Content)));
+                        itemBuilder.CloseComponent();
+                        itemBuilder.CloseElement();
+                    }));
+                    listBuilder.CloseComponent();
+                    index++;
+                }
+            }));
+            paperBuilder.CloseComponent();
+        }));
+        builder.CloseComponent();
+    };
+}

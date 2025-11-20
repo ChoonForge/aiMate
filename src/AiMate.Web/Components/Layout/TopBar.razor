@@ -1,4 +1,10 @@
 @* Top bar with model selector and new chat button *@
+@using Fluxor
+@using AiMate.Web.Store.Chat
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<ChatState> ChatState
+@inject IDispatcher Dispatcher
+@inject NavigationManager Navigation
 
 <MudAppBar Elevation="0" Dense="true" Style="background-color: #1A1A1A; border-bottom: 1px solid #2A2A2A;">
     <MudIconButton Icon="@Icons.Material.Filled.Menu"
@@ -16,7 +22,7 @@
                           StartIcon="@Icons.Material.Filled.SmartToy"
                           EndIcon="@Icons.Material.Filled.KeyboardArrowDown"
                           Style="text-transform: none;">
-                    @_selectedModel
+                    @SelectedModel
                 </MudButton>
             </ActivatorContent>
             <ChildContent>
@@ -49,16 +55,18 @@
 </MudAppBar>
 
 @code {
-    private string _selectedModel = "GPT-4";
+    private string SelectedModel => ChatState.Value.SelectedModel ?? "GPT-4";
 
     private void SelectModel(string model)
     {
-        _selectedModel = model;
-        // IMPLEMENTATION NEEDED: Dispatcher.Dispatch(new UpdateSelectedModelAction(model))
+        Dispatcher.Dispatch(new SelectModelAction(model));
     }
 
     private void OnNewChat()
     {
-        // IMPLEMENTATION NEEDED: Dispatcher.Dispatch(new CreateNewConversationAction())
+        var action = new CreateConversationAction("New Chat");
+        Dispatcher.Dispatch(action);
+        // Navigate to home to show the new conversation
+        Navigation.NavigateTo("/");
     }
 }

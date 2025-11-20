@@ -1,0 +1,169 @@
+@page "/about"
+@rendermode InteractiveServer
+
+<PageTitle>About - aiMate</PageTitle>
+
+<MudPaper Elevation="0" Class="pa-6">
+    <div class="mb-6">
+        <MudText Typo="Typo.h4" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+            About aiMate
+        </MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">
+            Your AI mate from New Zealand. Free, open-source, and built for people - not corporates.
+        </MudText>
+    </div>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Home" Class="mr-2" />
+                    🇳🇿 Built in New Zealand
+                </MudText>
+                <MudText Typo="Typo.body2" Class="mb-2">
+                    aiMate is built by Kiwis, for the world. We believe AI should be:
+                </MudText>
+                <ul style="margin-left: 20px;">
+                    <li><MudText Typo="Typo.body2">Free and open, not locked behind paywalls</MudText></li>
+                    <li><MudText Typo="Typo.body2">Respectful of privacy and data sovereignty</MudText></li>
+                    <li><MudText Typo="Typo.body2">Reflective of local culture and values</MudText></li>
+                    <li><MudText Typo="Typo.body2">Empowering communities, not extracting from them</MudText></li>
+                    <li><MudText Typo="Typo.body2">Built transparently with community input</MudText></li>
+                </ul>
+            </MudPaper>
+
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Star" Class="mr-2" />
+                    What Makes Us Different
+                </MudText>
+                <MudList T="string" Dense="true">
+                    <MudListItem Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">
+                        <MudText Typo="Typo.body2">Truly free & open source (MIT license)</MudText>
+                    </MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">
+                        <MudText Typo="Typo.body2">Workspace-focused, not just chat</MudText>
+                    </MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">
+                        <MudText Typo="Typo.body2">AI personalities including Te Reo Māori support</MudText>
+                    </MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">
+                        <MudText Typo="Typo.body2">Mental health support mode</MudText>
+                    </MudListItem>
+                    <MudListItem Icon="@Icons.Material.Filled.Check" IconColor="Color.Success">
+                        <MudText Typo="Typo.body2">Self-hostable with data sovereignty</MudText>
+                    </MudListItem>
+                </MudList>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Code" Class="mr-2" />
+                    Technology Stack
+                </MudText>
+                <MudList T="string" Dense="true">
+                    <MudListItem>
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.body2">Frontend</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Blazor Server + MudBlazor</MudText>
+                        </div>
+                    </MudListItem>
+                    <MudListItem>
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.body2">Backend</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">.NET 10</MudText>
+                        </div>
+                    </MudListItem>
+                    <MudListItem>
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.body2">Database</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">PostgreSQL + pgvector</MudText>
+                        </div>
+                    </MudListItem>
+                    <MudListItem>
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.body2">State Management</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Fluxor (Redux pattern)</MudText>
+                        </div>
+                    </MudListItem>
+                    <MudListItem>
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.body2">AI Gateway</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">LiteLLM</MudText>
+                        </div>
+                    </MudListItem>
+                </MudList>
+            </MudPaper>
+
+            <MudPaper Elevation="2" Class="pa-4 mb-4">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
+                    Version Information
+                </MudText>
+                <MudList T="string" Dense="true">
+                    <MudListItem>
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.body2">Version</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">1.0.0</MudText>
+                        </div>
+                    </MudListItem>
+                    <MudListItem>
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.body2">Build</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Production</MudText>
+                        </div>
+                    </MudListItem>
+                    <MudListItem>
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.body2">License</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">MIT</MudText>
+                        </div>
+                    </MudListItem>
+                </MudList>
+            </MudPaper>
+
+            <MudPaper Elevation="2" Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Filled.Link" Class="mr-2" />
+                    Links
+                </MudText>
+                <div class="d-flex flex-column gap-2">
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Primary"
+                              StartIcon="@Icons.Material.Filled.Code"
+                              Href="https://github.com/ChoonForge/aiMate"
+                              Target="_blank">
+                        GitHub Repository
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Primary"
+                              StartIcon="@Icons.Material.Filled.Description"
+                              Href="https://github.com/ChoonForge/aiMate/blob/main/README.md"
+                              Target="_blank">
+                        Documentation
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                              Color="Color.Primary"
+                              StartIcon="@Icons.Material.Filled.BugReport"
+                              Href="https://github.com/ChoonForge/aiMate/issues"
+                              Target="_blank">
+                        Report an Issue
+                    </MudButton>
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudDivider Class="my-6" />
+
+    <div class="d-flex flex-column align-center">
+        <MudText Typo="Typo.h6" Class="mb-2">Built with ❤️ from New Zealand 🇳🇿</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">"Not a chat app. An AI workspace."</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            © 2025 aiMate. Open source under MIT License.
+        </MudText>
+    </div>
+</MudPaper>

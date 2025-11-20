@@ -1,0 +1,258 @@
+@page "/notes"
+@using AiMate.Shared.Models
+@using AiMate.Web.Store.Notes
+@using Fluxor
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@rendermode InteractiveServer
+@inject IState<NotesState> NotesState
+@inject IDispatcher Dispatcher
+@inject IDialogService DialogService
+
+<PageTitle>Notes - aiMate</PageTitle>
+
+<MudPaper Elevation="0" Class="pa-6">
+    <div class="d-flex justify-space-between align-center mb-6">
+        <div>
+            <MudText Typo="Typo.h5" Class="mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.Note" Class="mr-2" />
+                Notes
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Quick notes and ideas
+            </MudText>
+        </div>
+        <div class="d-flex gap-2">
+            <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
+                <MudIconButton Icon="@Icons.Material.Filled.GridView"
+                              Color="@(_viewMode == "Grid" ? Color.Primary : Color.Default)"
+                              OnClick="@(() => _viewMode = "Grid")"
+                              Title="Grid View" />
+                <MudIconButton Icon="@Icons.Material.Filled.ViewList"
+                              Color="@(_viewMode == "List" ? Color.Primary : Color.Default)"
+                              OnClick="@(() => _viewMode = "List")"
+                              Title="List View" />
+            </MudButtonGroup>
+            <MudButton Variant="Variant.Filled"
+                      Color="Color.Primary"
+                      StartIcon="@Icons.Material.Filled.Add"
+                      OnClick="CreateNote">
+                New Note
+            </MudButton>
+        </div>
+    </div>
+
+    <MudTextField T="string"
+                 @bind-Value="_searchQuery"
+                 Placeholder="Search notes by title or content..."
+                 Adornment="Adornment.Start"
+                 AdornmentIcon="@Icons.Material.Filled.Search"
+                 Immediate="true"
+                 DebounceInterval="300"
+                 Class="mb-4" />
+
+    @if (NotesState.Value.IsLoading)
+    {
+        <div class="d-flex justify-center pa-8">
+            <MudProgressCircular Indeterminate="true" />
+        </div>
+    }
+    else if (!FilteredNotes.Any())
+    {
+        <div class="d-flex flex-column align-center justify-center pa-8">
+            <MudIcon Icon="@Icons.Material.Filled.NoteAdd" Size="Size.Large" Color="Color.Secondary" Class="mb-4" />
+            <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mb-2">No notes yet</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Create your first note to get started</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateNote">
+                Create Note
+            </MudButton>
+        </div>
+    }
+    else if (_viewMode == "Grid")
+    {
+        <MudGrid>
+            @foreach (var note in FilteredNotes)
+            {
+                <MudItem xs="12" sm="6" md="4" lg="3">
+                    <MudCard Class="cursor-pointer" @onclick="@(() => EditNote(note))">
+                        <MudCardContent>
+                            <div class="d-flex justify-space-between align-center mb-2">
+                                <MudChip T="string" Size="Size.Small" Color="GetNoteColor(note)">
+                                    @note.Type
+                                </MudChip>
+                                @if (note.IsPinned)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.PushPin" Color="Color.Warning" Size="Size.Small" />
+                                }
+                            </div>
+                            <MudText Typo="Typo.h6" Class="mb-2">@note.Title</MudText>
+                            @if (!string.IsNullOrEmpty(note.Content))
+                            {
+                                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                                    @(note.Content.Length > 100 ? note.Content.Substring(0, 100) + "..." : note.Content)
+                                </MudText>
+                            }
+                            @if (note.Tags.Any())
+                            {
+                                <div class="d-flex flex-wrap gap-1 mb-2">
+                                    @foreach (var tag in note.Tags.Take(3))
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@tag</MudChip>
+                                    }
+                                </div>
+                            }
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @note.UpdatedAt.ToString("MMM dd, yyyy HH:mm")
+                            </MudText>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                         Size="Size.Small"
+                                         OnClick="@(() => EditNote(note))"
+                                         @onclick:stopPropagation="true" />
+                            <MudIconButton Icon="@(note.IsPinned ? Icons.Material.Filled.PushPin : Icons.Material.Outlined.PushPin)"
+                                         Size="Size.Small"
+                                         Color="@(note.IsPinned ? Color.Warning : Color.Default)"
+                                         OnClick="@(() => TogglePin(note))"
+                                         @onclick:stopPropagation="true" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                         Size="Size.Small"
+                                         Color="Color.Error"
+                                         OnClick="@(() => DeleteNote(note))"
+                                         @onclick:stopPropagation="true" />
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    else
+    {
+        <MudPaper Elevation="1">
+            <MudList T="string" Clickable="true" Dense="true">
+                @foreach (var note in FilteredNotes)
+                {
+                    <MudListItem T="string" OnClick="@(() => EditNote(note))">
+                        <div class="d-flex justify-space-between align-center py-2">
+                            <div class="d-flex align-center gap-3" style="flex: 1;">
+                                @if (note.IsPinned)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.PushPin" Color="Color.Warning" Size="Size.Small" />
+                                }
+                                <MudChip T="string" Size="Size.Small" Color="GetNoteColor(note)">@note.Type</MudChip>
+                                <div style="flex: 1;">
+                                    <MudText Typo="Typo.body1">@note.Title</MudText>
+                                    @if (!string.IsNullOrEmpty(note.Content))
+                                    {
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @(note.Content.Length > 150 ? note.Content.Substring(0, 150) + "..." : note.Content)
+                                        </MudText>
+                                    }
+                                </div>
+                            </div>
+                            <div class="d-flex align-center gap-2">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @note.UpdatedAt.ToString("MMM dd, yyyy")
+                                </MudText>
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                             Size="Size.Small"
+                                             OnClick="@(() => EditNote(note))"
+                                             @onclick:stopPropagation="true" />
+                            </div>
+                        </div>
+                    </MudListItem>
+                }
+            </MudList>
+        </MudPaper>
+    }
+</MudPaper>
+
+@code {
+    private string _viewMode = "Grid";
+    private string _searchQuery = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!NotesState.Value.Notes.Any())
+        {
+            Dispatcher.Dispatch(new LoadNotesAction());
+        }
+    }
+
+    private List<NoteDto> FilteredNotes
+    {
+        get
+        {
+            var notes = NotesState.Value.Notes.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                var query = _searchQuery.ToLower();
+                notes = notes.Where(n =>
+                    n.Title.ToLower().Contains(query) ||
+                    n.Content.ToLower().Contains(query) ||
+                    n.Tags.Any(t => t.ToLower().Contains(query)));
+            }
+
+            return notes.OrderByDescending(n => n.IsPinned)
+                       .ThenByDescending(n => n.UpdatedAt)
+                       .ToList();
+        }
+    }
+
+    private Color GetNoteColor(NoteDto note) => note.Type switch
+    {
+        "Personal" => Color.Primary,
+        "Work" => Color.Info,
+        "Idea" => Color.Warning,
+        "Todo" => Color.Success,
+        _ => Color.Default
+    };
+
+    private async Task CreateNote()
+    {
+        var parameters = new DialogParameters { ["IsNew"] = true };
+        var dialog = await DialogService.ShowAsync<EditNoteDialog>("New Note", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is NoteDto newNote)
+        {
+            Dispatcher.Dispatch(new CreateNoteAction(newNote));
+        }
+    }
+
+    private async Task EditNote(NoteDto note)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Note"] = note,
+            ["IsNew"] = false
+        };
+        var dialog = await DialogService.ShowAsync<EditNoteDialog>("Edit Note", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is NoteDto updatedNote)
+        {
+            Dispatcher.Dispatch(new UpdateNoteAction(updatedNote));
+        }
+    }
+
+    private void TogglePin(NoteDto note)
+    {
+        note.IsPinned = !note.IsPinned;
+        Dispatcher.Dispatch(new UpdateNoteAction(note));
+    }
+
+    private async Task DeleteNote(NoteDto note)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Delete Note",
+            $"Are you sure you want to delete '{note.Title}'?",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (result == true)
+        {
+            Dispatcher.Dispatch(new DeleteNoteAction(note.Id));
+        }
+    }
+}

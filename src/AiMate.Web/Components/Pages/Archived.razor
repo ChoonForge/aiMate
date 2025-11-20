@@ -1,0 +1,134 @@
+@page "/archived"
+@using Fluxor
+@using AiMate.Web.Store.Chat
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@rendermode InteractiveServer
+@inject IState<ChatState> ChatState
+@inject IDispatcher Dispatcher
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+
+<PageTitle>Archived - aiMate</PageTitle>
+
+<MudPaper Elevation="0" Class="pa-6">
+    <div class="d-flex justify-space-between align-center mb-6">
+        <div>
+            <MudText Typo="Typo.h5" Class="mb-1">
+                <MudIcon Icon="@Icons.Material.Filled.Archive" Class="mr-2" />
+                Archived Conversations
+            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                View and restore archived conversations
+            </MudText>
+        </div>
+    </div>
+
+    <MudTextField T="string"
+                 @bind-Value="_searchQuery"
+                 Placeholder="Search archived conversations..."
+                 Adornment="Adornment.Start"
+                 AdornmentIcon="@Icons.Material.Filled.Search"
+                 Immediate="true"
+                 DebounceInterval="300"
+                 Class="mb-4" />
+
+    @if (!FilteredArchivedConversations.Any())
+    {
+        <div class="d-flex flex-column align-center justify-center pa-8">
+            <MudIcon Icon="@Icons.Material.Filled.Archive" Size="Size.Large" Color="Color.Secondary" Class="mb-4" />
+            <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mb-2">No archived conversations</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Conversations you archive will appear here</MudText>
+        </div>
+    }
+    else
+    {
+        <MudPaper Elevation="1">
+            <MudList T="string" Clickable="true" Dense="true">
+                @foreach (var conversation in FilteredArchivedConversations)
+                {
+                    <MudListItem T="string" OnClick="@(() => OpenConversation(conversation))">
+                        <div class="d-flex justify-space-between align-center py-2">
+                            <div class="d-flex align-center gap-3" style="flex: 1;">
+                                <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Small" />
+                                <div style="flex: 1;">
+                                    <MudText Typo="Typo.body1">@conversation.Title</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @conversation.Messages.Count messages • Archived @conversation.UpdatedAt.ToString("MMM dd, yyyy")
+                                    </MudText>
+                                </div>
+                            </div>
+                            <div class="d-flex align-center gap-2">
+                                <MudIconButton Icon="@Icons.Material.Filled.Unarchive"
+                                             Size="Size.Small"
+                                             Title="Restore"
+                                             OnClick="@(() => RestoreConversation(conversation))"
+                                             @onclick:stopPropagation="true" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                             Size="Size.Small"
+                                             Color="Color.Error"
+                                             Title="Delete Permanently"
+                                             OnClick="@(() => DeleteConversation(conversation))"
+                                             @onclick:stopPropagation="true" />
+                            </div>
+                        </div>
+                    </MudListItem>
+                }
+            </MudList>
+        </MudPaper>
+    }
+</MudPaper>
+
+@code {
+    private string _searchQuery = string.Empty;
+
+    private List<Core.Entities.Conversation> FilteredArchivedConversations
+    {
+        get
+        {
+            var archived = ChatState.Value.Conversations.Values
+                .Where(c => c.IsArchived)
+                .AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                var query = _searchQuery.ToLower();
+                archived = archived.Where(c => c.Title.ToLower().Contains(query));
+            }
+
+            return archived.OrderByDescending(c => c.UpdatedAt).ToList();
+        }
+    }
+
+    private void OpenConversation(Core.Entities.Conversation conversation)
+    {
+        Navigation.NavigateTo($"/chat/{conversation.Id}");
+    }
+
+    private async Task RestoreConversation(Core.Entities.Conversation conversation)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Restore Conversation",
+            $"Restore '{conversation.Title}' to active conversations?",
+            yesText: "Restore",
+            cancelText: "Cancel");
+
+        if (result == true)
+        {
+            Dispatcher.Dispatch(new UnarchiveConversationAction(conversation.Id));
+        }
+    }
+
+    private async Task DeleteConversation(Core.Entities.Conversation conversation)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Delete Permanently",
+            $"Are you sure you want to permanently delete '{conversation.Title}'? This cannot be undone.",
+            yesText: "Delete",
+            cancelText: "Cancel");
+
+        if (result == true)
+        {
+            Dispatcher.Dispatch(new DeleteConversationAction(conversation.Id));
+        }
+    }
+}

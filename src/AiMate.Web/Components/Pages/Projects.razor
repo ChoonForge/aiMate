@@ -1,0 +1,15 @@
+@page "/projects"
+@using AiMate.Shared.Models
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Projects - aiMate</PageTitle>
+
+<ProjectsPanel />
+
+@code {
+    // This page uses the ProjectsPanel component which already has all the functionality
+}
