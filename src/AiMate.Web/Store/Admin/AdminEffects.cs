@@ -9,17 +9,17 @@ namespace AiMate.Web.Store.Admin;
 public class AdminEffects
 {
     private readonly IJSRuntime _jsRuntime;
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AdminEffects> _logger;
     private const string ApiEndpoint = "/api/v1/admin";
 
     public AdminEffects(
         IJSRuntime jsRuntime,
-        HttpClient httpClient,
+        IHttpClientFactory httpClientFactory,
         ILogger<AdminEffects> logger)
     {
         _jsRuntime = jsRuntime;
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -33,13 +33,8 @@ public class AdminEffects
             // Try to load from API if available
             try
             {
-                // Check if HttpClient has BaseAddress configured
-                if (_httpClient.BaseAddress == null)
-                {
-                    throw new InvalidOperationException("HttpClient BaseAddress not configured - API not available");
-                }
-
-                var adminData = await _httpClient.GetFromJsonAsync<AdminDataDto>(ApiEndpoint);
+                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                var adminData = await httpClient.GetFromJsonAsync<AdminDataDto>(ApiEndpoint);
 
                 if (adminData != null)
                 {

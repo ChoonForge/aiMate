@@ -120,8 +120,30 @@ else
         options.UseInMemoryDatabase("AiMateDb"));
 }
 
-// Add HTTP client
+// Add HTTP client for general use
 builder.Services.AddHttpClient();
+
+// Add named HttpClient for API calls (Blazor frontend calling its own API)
+builder.Services.AddHttpClient("ApiClient", (serviceProvider, client) =>
+{
+    // Get the current HTTP context to determine the base URL
+    // In development, we know it's localhost:5001 (HTTPS) or localhost:5000 (HTTP)
+    // In production, this would be the deployed URL
+    var baseUrl = builder.Configuration["ApiBaseUrl"];
+
+    if (string.IsNullOrEmpty(baseUrl))
+    {
+        // Default to localhost in development
+        baseUrl = builder.Environment.IsDevelopment()
+            ? "https://localhost:5001"
+            : "https://localhost:5001"; // Should be configured in production
+    }
+
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(120); // Longer timeout for streaming
+
+    Log.Information("Configured ApiClient with BaseAddress: {BaseUrl}", baseUrl);
+});
 
 // Add localization
 builder.Services.AddLocalization();
