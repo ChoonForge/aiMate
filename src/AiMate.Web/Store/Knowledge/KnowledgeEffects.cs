@@ -94,7 +94,6 @@ public class KnowledgeEffects
         try
         {
             var httpClient = _httpClientFactory.CreateClient("ApiClient");
-
             var request = new CreateKnowledgeArticleRequest
             {
                 Title = action.Article.Title,

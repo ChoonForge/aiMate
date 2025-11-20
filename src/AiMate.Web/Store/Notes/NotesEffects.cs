@@ -60,7 +60,6 @@ public class NotesEffects
         try
         {
             var httpClient = _httpClientFactory.CreateClient("ApiClient");
-
             var request = new CreateNoteRequest
             {
                 Title = action.Note.Title,

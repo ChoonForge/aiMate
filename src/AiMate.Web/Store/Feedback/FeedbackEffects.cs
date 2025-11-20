@@ -49,6 +49,7 @@ public class FeedbackEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             var request = new
             {
                 userId = action.UserId,

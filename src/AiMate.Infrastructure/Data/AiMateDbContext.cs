@@ -26,6 +26,7 @@ public class AiMateDbContext : DbContext
     public DbSet<FeedbackTag> FeedbackTags => Set<FeedbackTag>();
     public DbSet<FeedbackTagTemplate> FeedbackTagTemplates => Set<FeedbackTagTemplate>();
     public DbSet<FeedbackTagOption> FeedbackTagOptions => Set<FeedbackTagOption>();
+    public DbSet<Note> Notes => Set<Note>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -222,6 +223,21 @@ public class AiMateDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.FeedbackTagTemplateId);
             entity.HasIndex(e => e.DisplayOrder);
+        });
+
+        // Note configuration
+        modelBuilder.Entity<Note>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.IsPinned);
+            entity.HasIndex(e => new { e.UserId, e.IsArchived });
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
