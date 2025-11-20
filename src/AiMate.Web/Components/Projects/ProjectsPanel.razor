@@ -122,8 +122,8 @@
                 @foreach (var project in FilteredProjects)
                 {
                     <MudItem xs="12" sm="6" md="4" lg="3">
-                        <MudCard Class="cursor-pointer" @onclick="@(() => OpenProject(project))">
-                            <MudCardContent>
+                        <MudCard>
+                            <MudCardContent Class="cursor-pointer" @onclick="@(() => OpenProject(project))">
                                 <!-- Header with Key and Status -->
                                 <div class="d-flex justify-space-between align-center mb-2">
                                     <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
@@ -187,13 +187,11 @@
                             <MudCardActions>
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                              Size="Size.Small"
-                                             @onclick="@(() => EditProject(project))"
-                                             @onclick:stopPropagation="true" />
+                                             OnClick="@(async () => { await EditProject(project); })" />
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                              Size="Size.Small"
                                              Color="Color.Error"
-                                             @onclick="@(() => DeleteProject(project))"
-                                             @onclick:stopPropagation="true" />
+                                             OnClick="@(async () => { await DeleteProject(project); })" />
                             </MudCardActions>
                         </MudCard>
                     </MudItem>
@@ -213,10 +211,10 @@
                 <MudList T="string"  Dense="true">
                     @foreach (var project in FilteredProjects)
                     {
-                        <MudListItem T="string" OnClick="@(() => OpenProject(project))">
+                        <MudListItem T="string">
                             <div class="d-flex justify-space-between align-center py-2">
                                 <!-- Left side -->
-                                <div class="d-flex align-center gap-3" style="flex: 1;">
+                                <div class="d-flex align-center gap-3 cursor-pointer" style="flex: 1;" @onclick="@(() => OpenProject(project))">
                                     <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
                                         @project.Key
                                     </MudChip>
@@ -250,8 +248,7 @@
                                     </MudChip>
                                     <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                                  Size="Size.Small"
-                                                 @onclick="@(() => EditProject(project))"
-                                                 @onclick:stopPropagation="true" />
+                                                 OnClick="@(async () => { await EditProject(project); })" />
                                 </div>
                             </div>
                         </MudListItem>
@@ -272,8 +269,7 @@
                      Items="@FilteredProjects"
                      Hover="true"
                      Striped="true"
-                     Dense="true"
-                     OnRowClick="@((TableRowClickEventArgs<ProjectDto> args) => OpenProject(args.Item))">
+                     Dense="true">
                 <HeaderContent>
                     <MudTh>Key</MudTh>
                     <MudTh>Name</MudTh>
@@ -290,7 +286,7 @@
                             @context.Key
                         </MudChip>
                     </MudTd>
-                    <MudTd DataLabel="Name">
+                    <MudTd DataLabel="Name" Class="cursor-pointer" @onclick="@(() => OpenProject(context))">
                         <MudText Typo="Typo.body2">@context.Name</MudText>
                     </MudTd>
                     <MudTd DataLabel="Status">
@@ -336,13 +332,11 @@
                     <MudTd DataLabel="Actions">
                         <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                      Size="Size.Small"
-                                     @onclick="@(() => EditProject(context))"
-                                     @onclick:stopPropagation="true" />
+                                     OnClick="@(async () => { await EditProject(context); })" />
                         <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                      Size="Size.Small"
                                      Color="Color.Error"
-                                     @onclick="@(() => DeleteProject(context))"
-                                     @onclick:stopPropagation="true" />
+                                     OnClick="@(async () => { await DeleteProject(context); })" />
                     </MudTd>
                 </RowTemplate>
             </MudTable>

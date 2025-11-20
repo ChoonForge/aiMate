@@ -62,7 +62,7 @@
                 <!-- Type Filter -->
                 <MudMenu Dense="true">
                     <ActivatorContent>
-                        <MudChip
+                        <MudChip T="string"
                                 Size="Size.Small"
                                 Color="@(string.IsNullOrEmpty(KnowledgeState.Value.SelectedType) ? Color.Default : Color.Primary)"
                                 OnClick="@(() => Dispatcher.Dispatch(new SetTypeFilterAction(null)))">
@@ -84,7 +84,7 @@
                 {
                     <MudMenu Dense="true">
                         <ActivatorContent>
-                            <MudChip
+                            <MudChip T="string"
                                     Size="Size.Small"
                                     Color="@(string.IsNullOrEmpty(KnowledgeState.Value.SelectedCollection) ? Color.Default : Color.Primary)"
                                     OnClick="@(() => Dispatcher.Dispatch(new SetCollectionFilterAction(null)))">
@@ -102,7 +102,7 @@
                 }
 
                 <!-- Featured Toggle -->
-                <MudChip
+                <MudChip T="string"
                         Size="Size.Small"
                         Icon="@Icons.Material.Filled.Star"
                         Color="@(KnowledgeState.Value.ShowFeaturedOnly ? Color.Warning : Color.Default)"
@@ -111,7 +111,7 @@
                 </MudChip>
 
                 <!-- Verified Toggle -->
-                <MudChip
+                <MudChip T="string"
                         Size="Size.Small"
                         Icon="@Icons.Material.Filled.Verified"
                         Color="@(KnowledgeState.Value.ShowVerifiedOnly ? Color.Success : Color.Default)"
@@ -126,7 +126,7 @@
                      KnowledgeState.Value.ShowFeaturedOnly ||
                      KnowledgeState.Value.ShowVerifiedOnly)
                 {
-                    <MudChip
+                    <MudChip T="string"
                             Size="Size.Small"
                             Icon="@Icons.Material.Filled.Clear"
                             Color="Color.Error"
