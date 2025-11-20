@@ -32,12 +32,12 @@ public class SettingsApiController : ControllerBase
             // For now, returning default settings
             var settings = new UserSettingsDto();
 
-            return Ok(settings);
+            return Task.FromResult<IActionResult>(Ok(settings));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error fetching settings");
-            return StatusCode(500, new { error = "Failed to fetch settings", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to fetch settings", message = ex.Message }));
         }
     }
 
@@ -55,12 +55,12 @@ public class SettingsApiController : ControllerBase
             // For now, just logging
             _logger.LogInformation("Settings updated: {Settings}", JsonSerializer.Serialize(settings));
 
-            return Ok(new { success = true, message = "Settings updated successfully" });
+            return Task.FromResult<IActionResult>(Ok(new { success = true, message = "Settings updated successfully" }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating settings");
-            return StatusCode(500, new { error = "Failed to update settings", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to update settings", message = ex.Message }));
         }
     }
 
@@ -77,12 +77,12 @@ public class SettingsApiController : ControllerBase
             // IMPLEMENTATION NEEDED: Reset settings in database
             var defaultSettings = new UserSettingsDto();
 
-            return Ok(defaultSettings);
+            return Task.FromResult<IActionResult>(Ok(defaultSettings));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error resetting settings");
-            return StatusCode(500, new { error = "Failed to reset settings", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to reset settings", message = ex.Message }));
         }
     }
 
@@ -99,16 +99,16 @@ public class SettingsApiController : ControllerBase
             var settings = new UserSettingsDto();
             var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
 
-            return File(
+            return Task.FromResult<IActionResult>(File(
                 System.Text.Encoding.UTF8.GetBytes(json),
                 "application/json",
                 "aiMate-settings.json"
-            );
+            ));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error exporting settings");
-            return StatusCode(500, new { error = "Failed to export settings", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to export settings", message = ex.Message }));
         }
     }
 
@@ -124,12 +124,12 @@ public class SettingsApiController : ControllerBase
 
             // IMPLEMENTATION NEEDED: Validate and save imported settings
 
-            return Ok(new { success = true, message = "Settings imported successfully", settings });
+            return Task.FromResult<IActionResult>(Ok(new { success = true, message = "Settings imported successfully", settings }));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error importing settings");
-            return StatusCode(500, new { error = "Failed to import settings", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to import settings", message = ex.Message }));
         }
     }
 }

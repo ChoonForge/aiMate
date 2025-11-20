@@ -173,7 +173,7 @@
             @* Tags *@
             <MudDivider />
             <MudText Typo="Typo.subtitle2">Tags</MudText>
-            <MudChipSet T="string" SelectionMode="SelectionMode.None">
+            <MudChipSet T="string">
                 @foreach (var (tag, index) in Connection.Tags.Select((t, i) => (t, i)))
                 {
                     <MudChip T="string" Text="@tag"

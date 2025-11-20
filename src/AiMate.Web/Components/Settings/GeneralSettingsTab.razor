@@ -8,10 +8,10 @@
 
 <MudGrid>
     <MudItem xs="12" md="6">
-        <MudSelect T="string" @bind-Value="@_language"
+        <MudSelect T="string" Value="@_language"
                   Label="Language"
                   Variant="Variant.Outlined"
-                  ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateLanguageAction(value)))">
+                  ValueChanged="@((string value) => { _language = value; Dispatcher.Dispatch(new UpdateLanguageAction(value)); })">
             <MudSelectItem T="string" Value="@("en-NZ")">English (New Zealand)</MudSelectItem>
             <MudSelectItem T="string" Value="@("mi-NZ")">Te Reo Māori</MudSelectItem>
             <MudSelectItem T="string" Value="@("en-US")">English (United States)</MudSelectItem>
@@ -20,10 +20,10 @@
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <MudSelect T="string" @bind-Value="@_timeZone"
+        <MudSelect T="string" Value="@_timeZone"
                   Label="Time Zone"
                   Variant="Variant.Outlined"
-                  ValueChanged="@((string value) => Dispatcher.Dispatch(new UpdateTimeZoneAction(value)))">
+                  ValueChanged="@((string value) => { _timeZone = value; Dispatcher.Dispatch(new UpdateTimeZoneAction(value)); })">
             <MudSelectItem T="string" Value="@("Pacific/Auckland")">Pacific/Auckland (NZ)</MudSelectItem>
             <MudSelectItem T="string" Value="@("Pacific/Chatham")">Pacific/Chatham (NZ)</MudSelectItem>
             <MudSelectItem T="string" Value="@("Australia/Sydney")">Australia/Sydney</MudSelectItem>

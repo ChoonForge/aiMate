@@ -5,7 +5,7 @@
 @inject IState<WorkspaceState> WorkspaceState
 @inject IDispatcher Dispatcher
 
-<MudDialog @bind-Visible="@WorkspaceState.Value.ShowWorkspaceEditor">
+<MudDialog Visible="@WorkspaceState.Value.ShowWorkspaceEditor" VisibleChanged="@((bool visible) => { if (!visible) HandleCancel(); })">
     <TitleContent>
         <MudText Typo="Typo.h6">
             @(IsEditMode ? "Edit Workspace" : "New Workspace")
