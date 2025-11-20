@@ -57,6 +57,26 @@ public class User
     /// </summary>
     public string? PreferencesJson { get; set; }
 
+    /// <summary>
+    /// Organization memberships
+    /// </summary>
+    public List<OrganizationMember> OrganizationMemberships { get; set; } = new();
+
+    /// <summary>
+    /// Group memberships
+    /// </summary>
+    public List<GroupMember> GroupMemberships { get; set; } = new();
+
+    /// <summary>
+    /// Connections owned by this user
+    /// </summary>
+    public List<Connection> OwnedConnections { get; set; } = new();
+
+    /// <summary>
+    /// Groups owned by this user
+    /// </summary>
+    public List<Group> OwnedGroups { get; set; } = new();
+
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
