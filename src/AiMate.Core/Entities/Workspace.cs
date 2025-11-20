@@ -1,4 +1,5 @@
 using AiMate.Core.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AiMate.Core.Entities;
 
@@ -45,8 +46,14 @@ public class Workspace
     public List<string> EnabledTools { get; set; } = new();
 
     /// <summary>
-    /// Workspace context (key-value pairs for persistent state)
+    /// Workspace context stored as JSON
     /// </summary>
+    public string? ContextJson { get; set; }
+
+    /// <summary>
+    /// Workspace context (key-value pairs for persistent state, not mapped to database)
+    /// </summary>
+    [NotMapped]
     public Dictionary<string, string> Context { get; set; } = new();
 
     public bool IsArchived { get; set; }
