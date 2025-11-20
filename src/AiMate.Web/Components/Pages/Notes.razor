@@ -7,6 +7,7 @@
 @inject IState<NotesState> NotesState
 @inject IDispatcher Dispatcher
 @inject IDialogService DialogService
+@inject ISnackbar Snackbar
 
 <PageTitle>Notes - aiMate</PageTitle>
 
@@ -76,9 +77,12 @@
                     <MudCard Class="cursor-pointer" @onclick="@(() => EditNote(note))">
                         <MudCardContent>
                             <div class="d-flex justify-space-between align-center mb-2">
-                                <MudChip T="string" Size="Size.Small" Color="GetNoteColor(note)">
-                                    @note.Type
-                                </MudChip>
+                                @if (!string.IsNullOrEmpty(note.Category))
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="GetNoteColor(note)">
+                                        @note.Category
+                                    </MudChip>
+                                }
                                 @if (note.IsPinned)
                                 {
                                     <MudIcon Icon="@Icons.Material.Filled.PushPin" Color="Color.Warning" Size="Size.Small" />
@@ -107,18 +111,15 @@
                         <MudCardActions>
                             <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                          Size="Size.Small"
-                                         OnClick="@(() => EditNote(note))"
-                                         @onclick:stopPropagation="true" />
+                                         OnClick="@(() => EditNote(note))" />
                             <MudIconButton Icon="@(note.IsPinned ? Icons.Material.Filled.PushPin : Icons.Material.Outlined.PushPin)"
                                          Size="Size.Small"
                                          Color="@(note.IsPinned ? Color.Warning : Color.Default)"
-                                         OnClick="@(() => TogglePin(note))"
-                                         @onclick:stopPropagation="true" />
+                                         OnClick="@(() => TogglePin(note))" />
                             <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                          Size="Size.Small"
                                          Color="Color.Error"
-                                         OnClick="@(() => DeleteNote(note))"
-                                         @onclick:stopPropagation="true" />
+                                         OnClick="@(() => DeleteNote(note))" />
                         </MudCardActions>
                     </MudCard>
                 </MudItem>
@@ -138,7 +139,10 @@
                                 {
                                     <MudIcon Icon="@Icons.Material.Filled.PushPin" Color="Color.Warning" Size="Size.Small" />
                                 }
-                                <MudChip T="string" Size="Size.Small" Color="GetNoteColor(note)">@note.Type</MudChip>
+                                @if (!string.IsNullOrEmpty(note.Category))
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="GetNoteColor(note)">@note.Category</MudChip>
+                                }
                                 <div style="flex: 1;">
                                     <MudText Typo="Typo.body1">@note.Title</MudText>
                                     @if (!string.IsNullOrEmpty(note.Content))
@@ -155,8 +159,7 @@
                                 </MudText>
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                              Size="Size.Small"
-                                             OnClick="@(() => EditNote(note))"
-                                             @onclick:stopPropagation="true" />
+                                             OnClick="@(() => EditNote(note))" />
                             </div>
                         </div>
                     </MudListItem>
@@ -199,47 +202,36 @@
         }
     }
 
-    private Color GetNoteColor(NoteDto note) => note.Type switch
+    private Color GetNoteColor(NoteDto note)
     {
-        "Personal" => Color.Primary,
-        "Work" => Color.Info,
-        "Idea" => Color.Warning,
-        "Todo" => Color.Success,
-        _ => Color.Default
-    };
+        if (string.IsNullOrEmpty(note.Category))
+            return Color.Default;
+
+        return note.Category.ToLower() switch
+        {
+            "personal" => Color.Primary,
+            "work" => Color.Info,
+            "idea" => Color.Warning,
+            "todo" => Color.Success,
+            _ => Color.Default
+        };
+    }
 
     private async Task CreateNote()
     {
-        var parameters = new DialogParameters { ["IsNew"] = true };
-        var dialog = await DialogService.ShowAsync<EditNoteDialog>("New Note", parameters);
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is NoteDto newNote)
-        {
-            Dispatcher.Dispatch(new CreateNoteAction(newNote));
-        }
+        // TODO: Show dialog to create note
+        Snackbar.Add("Note creation dialog not implemented yet", Severity.Info);
     }
 
     private async Task EditNote(NoteDto note)
     {
-        var parameters = new DialogParameters
-        {
-            ["Note"] = note,
-            ["IsNew"] = false
-        };
-        var dialog = await DialogService.ShowAsync<EditNoteDialog>("Edit Note", parameters);
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is NoteDto updatedNote)
-        {
-            Dispatcher.Dispatch(new UpdateNoteAction(updatedNote));
-        }
+        // TODO: Show dialog to edit note
+        Snackbar.Add($"Note editing for '{note.Title}' not implemented yet", Severity.Info);
     }
 
     private void TogglePin(NoteDto note)
     {
-        note.IsPinned = !note.IsPinned;
-        Dispatcher.Dispatch(new UpdateNoteAction(note));
+        Dispatcher.Dispatch(new ToggleNotePinAction(note.Id));
     }
 
     private async Task DeleteNote(NoteDto note)

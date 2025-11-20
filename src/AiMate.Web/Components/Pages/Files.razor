@@ -103,13 +103,11 @@
                         <MudCardActions>
                             <MudIconButton Icon="@Icons.Material.Filled.Download"
                                          Size="Size.Small"
-                                         OnClick="@(() => DownloadFile(file))"
-                                         @onclick:stopPropagation="true" />
+                                         OnClick="@(() => DownloadFile(file))" />
                             <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                          Size="Size.Small"
                                          Color="Color.Error"
-                                         OnClick="@(() => DeleteFile(file))"
-                                         @onclick:stopPropagation="true" />
+                                         OnClick="@(() => DeleteFile(file))" />
                         </MudCardActions>
                     </MudCard>
                 </MudItem>
@@ -145,13 +143,11 @@
                 <MudTd DataLabel="Actions">
                     <MudIconButton Icon="@Icons.Material.Filled.Download"
                                  Size="Size.Small"
-                                 OnClick="@(() => DownloadFile(context))"
-                                 @onclick:stopPropagation="true" />
+                                 OnClick="@(() => DownloadFile(context))" />
                     <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                  Size="Size.Small"
                                  Color="Color.Error"
-                                 OnClick="@(() => DeleteFile(context))"
-                                 @onclick:stopPropagation="true" />
+                                 OnClick="@(() => DeleteFile(context))" />
                 </MudTd>
             </RowTemplate>
         </MudTable>

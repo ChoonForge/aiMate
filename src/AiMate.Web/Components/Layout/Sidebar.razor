@@ -75,7 +75,7 @@
                 <span>View All Projects</span>
             </a>
 
-            @foreach (var project in ProjectState.Value.Projects.Take(5))
+            @foreach (var project in ProjectState.Value.Projects.Values.Take(5))
             {
                 <a href="@($"/projects/{project.Id}")" class="sidebar-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
