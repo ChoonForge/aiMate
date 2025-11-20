@@ -30,78 +30,103 @@ public class AdminEffects
         {
             _logger.LogInformation("Loading admin data from API");
 
-            // Load from API
-            var adminData = await _httpClient.GetFromJsonAsync<AdminDataDto>(ApiEndpoint);
-
-            if (adminData != null)
+            // Try to load from API if available
+            try
             {
-                // Map DTO to State
-                var adminState = new AdminState
+                // Check if HttpClient has BaseAddress configured
+                if (_httpClient.BaseAddress == null)
                 {
-                    // Overview statistics
-                    TotalUsers = adminData.Overview.TotalUsers,
-                    TotalConversations = adminData.Overview.TotalConversations,
-                    ConversationsToday = adminData.Overview.ConversationsToday,
-                    ActiveModels = adminData.Overview.ActiveModels,
-                    TotalModels = adminData.Overview.TotalModels,
-                    ConnectedMcpServers = adminData.Overview.ConnectedMcpServers,
-                    TotalMcpServers = adminData.Overview.TotalMcpServers,
+                    throw new InvalidOperationException("HttpClient BaseAddress not configured - API not available");
+                }
 
-                    // System health
-                    LiteLLMConnected = adminData.Overview.LiteLLMConnected,
-                    LiteLLMUrl = adminData.Overview.LiteLLMUrl,
-                    StorageUsedMB = adminData.Overview.StorageUsedMB,
-                    StorageLimitMB = adminData.Overview.StorageLimitMB,
-                    Uptime = adminData.Overview.Uptime,
-                    AppVersion = adminData.Overview.AppVersion,
+                var adminData = await _httpClient.GetFromJsonAsync<AdminDataDto>(ApiEndpoint);
 
-                    // Storage stats
-                    LocalStorageUsedMB = adminData.Overview.LocalStorageUsedMB,
-                    LocalStorageLimitMB = adminData.Overview.LocalStorageLimitMB,
-                    IndexedDBUsedMB = adminData.Overview.IndexedDBUsedMB,
-                    IndexedDBLimitMB = adminData.Overview.IndexedDBLimitMB,
-
-                    // Models
-                    Models = adminData.Models.Select(m => new AIModelConfig
+                if (adminData != null)
+                {
+                    // Map DTO to State
+                    var adminState = new AdminState
                     {
-                        Id = m.Id,
-                        Name = m.Name,
-                        Provider = m.Provider,
-                        IsEnabled = m.IsEnabled,
-                        MaxTokens = m.MaxTokens,
-                        Description = m.Description
-                    }).ToList(),
+                        // Overview statistics
+                        TotalUsers = adminData.Overview.TotalUsers,
+                        TotalConversations = adminData.Overview.TotalConversations,
+                        ConversationsToday = adminData.Overview.ConversationsToday,
+                        ActiveModels = adminData.Overview.ActiveModels,
+                        TotalModels = adminData.Overview.TotalModels,
+                        ConnectedMcpServers = adminData.Overview.ConnectedMcpServers,
+                        TotalMcpServers = adminData.Overview.TotalMcpServers,
 
-                    // MCP Servers
-                    McpServers = adminData.McpServers.Select(s => new MCPServerConfig
-                    {
-                        Id = s.Id,
-                        Name = s.Name,
-                        Type = s.Type,
-                        Connected = s.Connected,
-                        ToolCount = s.ToolCount,
-                        Command = s.Command,
-                        Arguments = s.Arguments,
-                        Url = s.Url
-                    }).ToList(),
+                        // System health
+                        LiteLLMConnected = adminData.Overview.LiteLLMConnected,
+                        LiteLLMUrl = adminData.Overview.LiteLLMUrl,
+                        StorageUsedMB = adminData.Overview.StorageUsedMB,
+                        StorageLimitMB = adminData.Overview.StorageLimitMB,
+                        Uptime = adminData.Overview.Uptime,
+                        AppVersion = adminData.Overview.AppVersion,
 
-                    // System logs
-                    SystemLogs = adminData.SystemLogs.Select(l => new SystemLog
-                    {
-                        Timestamp = l.Timestamp,
-                        Level = l.Level,
-                        Message = l.Message,
-                        Source = l.Source
-                    }).ToList(),
+                        // Storage stats
+                        LocalStorageUsedMB = adminData.Overview.LocalStorageUsedMB,
+                        LocalStorageLimitMB = adminData.Overview.LocalStorageLimitMB,
+                        IndexedDBUsedMB = adminData.Overview.IndexedDBUsedMB,
+                        IndexedDBLimitMB = adminData.Overview.IndexedDBLimitMB,
 
-                    // Admin settings
-                    AdminLiteLLMUrl = adminData.AdminLiteLLMUrl,
-                    AdminLiteLLMApiKey = adminData.AdminLiteLLMApiKey
-                };
+                        // Models
+                        Models = adminData.Models.Select(m => new AIModelConfig
+                        {
+                            Id = m.Id,
+                            Name = m.Name,
+                            Provider = m.Provider,
+                            IsEnabled = m.IsEnabled,
+                            MaxTokens = m.MaxTokens,
+                            Description = m.Description
+                        }).ToList(),
 
-                dispatcher.Dispatch(new LoadAdminDataSuccessAction(adminState));
-                _logger.LogInformation("Admin data loaded successfully");
+                        // MCP Servers
+                        McpServers = adminData.McpServers.Select(s => new MCPServerConfig
+                        {
+                            Id = s.Id,
+                            Name = s.Name,
+                            Type = s.Type,
+                            Connected = s.Connected,
+                            ToolCount = s.ToolCount,
+                            Command = s.Command,
+                            Arguments = s.Arguments,
+                            Url = s.Url
+                        }).ToList(),
+
+                        // System logs
+                        SystemLogs = adminData.SystemLogs.Select(l => new SystemLog
+                        {
+                            Timestamp = l.Timestamp,
+                            Level = l.Level,
+                            Message = l.Message,
+                            Source = l.Source
+                        }).ToList(),
+
+                        // Admin settings
+                        AdminLiteLLMUrl = adminData.AdminLiteLLMUrl,
+                        AdminLiteLLMApiKey = adminData.AdminLiteLLMApiKey
+                    };
+
+                    dispatcher.Dispatch(new LoadAdminDataSuccessAction(adminState));
+                    _logger.LogInformation("Admin data loaded successfully from API");
+                    return;
+                }
             }
+            catch (Exception apiEx)
+            {
+                _logger.LogWarning(apiEx, "Admin API not available, using default empty state");
+            }
+
+            // Fallback to empty/default state when API is not available
+            var defaultState = new AdminState
+            {
+                AppVersion = "1.0.0",
+                LiteLLMUrl = "http://localhost:4000",
+                AdminLiteLLMUrl = "http://localhost:4000"
+            };
+
+            dispatcher.Dispatch(new LoadAdminDataSuccessAction(defaultState));
+            _logger.LogInformation("Admin data initialized with defaults (API not available)");
         }
         catch (Exception ex)
         {
@@ -137,6 +162,12 @@ public class AdminEffects
         try
         {
             _logger.LogInformation("Testing LiteLLM connection");
+
+            // Check if HttpClient has BaseAddress configured
+            if (_httpClient.BaseAddress == null)
+            {
+                throw new InvalidOperationException("API not available - cannot test connection without backend");
+            }
 
             // Call API to test connection
             var response = await _httpClient.PostAsJsonAsync($"{ApiEndpoint}/test-connection", new
