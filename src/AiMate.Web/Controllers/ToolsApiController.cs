@@ -1,4 +1,5 @@
 using AiMate.Core.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AiMate.Web.Controllers;
@@ -8,6 +9,7 @@ namespace AiMate.Web.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/tools")]
+[Authorize(Policy = "CanManageMCP")] // Requires MCP management permission
 public class ToolsApiController : ControllerBase
 {
     private readonly IMCPToolService _toolService;

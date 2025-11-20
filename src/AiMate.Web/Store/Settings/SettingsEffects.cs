@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using AiMate.Shared.Models;
+using AiMate.Web.Store.Auth;
 using Fluxor;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
@@ -10,18 +11,21 @@ namespace AiMate.Web.Store.Settings;
 public class SettingsEffects
 {
     private readonly IJSRuntime _jsRuntime;
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IState<AuthState> _authState;
     private readonly ILogger<SettingsEffects> _logger;
     private const string StorageKey = "aiMate_settings";
     private const string ApiEndpoint = "/api/v1/settings";
 
     public SettingsEffects(
         IJSRuntime jsRuntime,
-        HttpClient httpClient,
+        IHttpClientFactory httpClientFactory,
+        IState<AuthState> authState,
         ILogger<SettingsEffects> logger)
     {
         _jsRuntime = jsRuntime;
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
+        _authState = authState;
         _logger = logger;
     }
 
@@ -30,34 +34,33 @@ public class SettingsEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
             // Try loading from API first if available
-            if (_httpClient.BaseAddress != null)
+            try
             {
-                try
+                // Get current user ID from auth state
+                var userId = _authState.Value.CurrentUser?.Id.ToString()
+                    ?? throw new UnauthorizedAccessException("User must be authenticated to load settings");
+
+                var settingsDto = await httpClient.GetFromJsonAsync<UserSettingsDto>($"{ApiEndpoint}?userId={userId}");
+
+                if (settingsDto != null)
                 {
-                    var settingsDto = await _httpClient.GetFromJsonAsync<UserSettingsDto>(ApiEndpoint);
+                    var settings = MapDtoToState(settingsDto);
 
-                    if (settingsDto != null)
-                    {
-                        var settings = MapDtoToState(settingsDto);
+                    // Also cache in localStorage
+                    var settingsJson = JsonSerializer.Serialize(settings);
+                    await _jsRuntime.InvokeVoidAsync("localStorage.setItem", StorageKey, settingsJson);
 
-                        // Also cache in localStorage
-                        var settingsJson = JsonSerializer.Serialize(settings);
-                        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", StorageKey, settingsJson);
-
-                        dispatcher.Dispatch(new LoadSettingsSuccessAction(settings));
-                        _logger.LogInformation("Settings loaded from API");
-                        return;
-                    }
-                }
-                catch (Exception apiEx)
-                {
-                    _logger.LogWarning(apiEx, "Failed to load from API, falling back to localStorage");
+                    dispatcher.Dispatch(new LoadSettingsSuccessAction(settings));
+                    _logger.LogInformation("Settings loaded from API");
+                    return;
                 }
             }
-            else
+            catch (Exception apiEx)
             {
-                _logger.LogInformation("Settings API not available, falling back to localStorage");
+                _logger.LogWarning(apiEx, "Failed to load from API, falling back to localStorage");
             }
 
             // Fallback to localStorage
@@ -91,18 +94,21 @@ public class SettingsEffects
     {
         try
         {
-            // This method is called with IState<SettingsState> injected in the component
-            // We need to get the current state from the action's context
-            // For now, we'll implement a workaround using IState injection
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
 
-            // IMPLEMENTATION NOTE: The proper way is to inject IState<SettingsState> in the effect
-            // and read state.Value, then convert to DTO and POST to API
+            // SaveSettingsAction should include the full SettingsState or individual fields to save
+            // Two implementation options:
+            // 1. Modify SaveSettingsAction to include SettingsState: SaveSettingsAction(SettingsState settings)
+            // 2. Inject IState<SettingsState> here and read current state with: _settingsState.Value
+            // Then convert to UserSettingsDto and POST to: /api/v1/settings?userId={userId}
+            // Also need userId from auth: inject IState<AuthState> and use authState.Value.CurrentUser.Id
 
-            _logger.LogWarning("SaveSettings effect needs current state - implement with IState<SettingsState> injection");
+            _logger.LogWarning("SaveSettings needs SettingsState passed in action or IState<SettingsState> injected - modify SaveSettingsAction to include state parameter");
 
-            // For now, just save success (the component should pass state in action)
+            // For now, just save success (awaiting action modification to pass state)
+            await Task.CompletedTask;
             dispatcher.Dispatch(new SaveSettingsSuccessAction());
-            _logger.LogInformation("Settings save acknowledged (API integration pending)");
+            _logger.LogInformation("Settings save acknowledged (needs action to pass state for API call)");
         }
         catch (Exception ex)
         {
@@ -132,11 +138,13 @@ public class SettingsEffects
     {
         try
         {
-            // IMPLEMENTATION NEEDED: Test actual LiteLLM connection
-            // 1. Inject ILiteLLMService into SettingsEffects constructor
-            // 2. Call: var models = await _liteLLMService.GetModelsAsync();
-            // 3. Dispatch success with model count: $"Connected! {models.Count} models available"
-            // Currently simulates successful connection
+            // Test LiteLLM connection by calling API test endpoint
+            // Implementation steps:
+            // 1. Create HttpClient with: var httpClient = _httpClientFactory.CreateClient("ApiClient");
+            // 2. Call test endpoint: POST /api/v1/litellm/test with LiteLLMUrl and ApiKey
+            // 3. API will use ILiteLLMService.GetModelsAsync() to verify connection
+            // 4. Dispatch success with model count from response
+            // Currently simulates successful connection until API endpoint is created
             await Task.Delay(1000);
 
             dispatcher.Dispatch(new TestConnectionSuccessAction("Connection successful!"));

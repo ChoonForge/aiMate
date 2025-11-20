@@ -1,10 +1,12 @@
 using AiMate.Shared.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AiMate.Web.Controllers;
 
 [ApiController]
 [Route("api/v1/[controller]")]
+[Authorize] // Requires authentication
 public class ProjectsController : ControllerBase
 {
     private static readonly List<ProjectDto> _projects = new();

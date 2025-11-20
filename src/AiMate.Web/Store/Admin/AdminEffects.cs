@@ -158,14 +158,10 @@ public class AdminEffects
         {
             _logger.LogInformation("Testing LiteLLM connection");
 
-            // Check if HttpClient has BaseAddress configured
-            if (_httpClient.BaseAddress == null)
-            {
-                throw new InvalidOperationException("API not available - cannot test connection without backend");
-            }
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
 
             // Call API to test connection
-            var response = await _httpClient.PostAsJsonAsync($"{ApiEndpoint}/test-connection", new
+            var response = await httpClient.PostAsJsonAsync($"{ApiEndpoint}/test-connection", new
             {
                 Url = "http://localhost:4000",
                 ApiKey = (string?)null

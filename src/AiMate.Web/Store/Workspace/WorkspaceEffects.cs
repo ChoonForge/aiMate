@@ -1,4 +1,5 @@
 using AiMate.Core.Services;
+using AiMate.Web.Store.Auth;
 using Fluxor;
 using Microsoft.Extensions.Logging;
 
@@ -7,13 +8,16 @@ namespace AiMate.Web.Store.Workspace;
 public class WorkspaceEffects
 {
     private readonly IWorkspaceService _workspaceService;
+    private readonly IState<AuthState> _authState;
     private readonly ILogger<WorkspaceEffects> _logger;
 
     public WorkspaceEffects(
         IWorkspaceService workspaceService,
+        IState<AuthState> authState,
         ILogger<WorkspaceEffects> logger)
     {
         _workspaceService = workspaceService;
+        _authState = authState;
         _logger = logger;
     }
 
@@ -22,10 +26,9 @@ public class WorkspaceEffects
     {
         try
         {
-            // DEMO MODE: Using hardcoded user ID
-            // IMPLEMENTATION NEEDED: Inject IState<AuthState> and get userId = state.Value.CurrentUser?.Id
-            // Requires authentication to be enabled and user logged in
-            var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            // Get current user ID from auth state
+            var userId = _authState.Value.CurrentUser?.Id
+                ?? throw new UnauthorizedAccessException("User must be authenticated to load workspaces");
 
             var workspaces = await _workspaceService.GetUserWorkspacesAsync(userId);
 
@@ -51,8 +54,9 @@ public class WorkspaceEffects
     {
         try
         {
-            // DEMO MODE: Using hardcoded user ID (see HandleLoadWorkspaces for implementation notes)
-            var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            // Get current user ID from auth state
+            var userId = _authState.Value.CurrentUser?.Id
+                ?? throw new UnauthorizedAccessException("User must be authenticated to create a workspace");
 
             // Parse enum types from string
             var workspaceType = Enum.TryParse<Core.Enums.WorkspaceType>(action.Type, out var parsedType)

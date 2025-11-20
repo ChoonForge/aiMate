@@ -11,12 +11,12 @@ namespace AiMate.Web.Store.Feedback;
 /// </summary>
 public class FeedbackEffects
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<FeedbackEffects> _logger;
 
-    public FeedbackEffects(HttpClient httpClient, ILogger<FeedbackEffects> logger)
+    public FeedbackEffects(IHttpClientFactory httpClientFactory, ILogger<FeedbackEffects> logger)
     {
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -25,7 +25,9 @@ public class FeedbackEffects
     {
         try
         {
-            var templates = await _httpClient.GetFromJsonAsync<List<FeedbackTagTemplate>>("/api/v1/feedback/templates");
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
+            var templates = await httpClient.GetFromJsonAsync<List<FeedbackTagTemplate>>("/api/v1/feedback/templates");
             if (templates != null)
             {
                 dispatcher.Dispatch(new LoadTagTemplatesSuccessAction(templates));
@@ -63,7 +65,9 @@ public class FeedbackEffects
                 responseTimeMs = action.ResponseTimeMs
             };
 
-            var response = await _httpClient.PostAsJsonAsync(
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
+            var response = await httpClient.PostAsJsonAsync(
                 $"/api/v1/feedback/messages/{action.MessageId}",
                 request);
 
@@ -114,7 +118,9 @@ public class FeedbackEffects
     {
         try
         {
-            var feedback = await _httpClient.GetFromJsonAsync<MessageFeedback>(
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
+            var feedback = await httpClient.GetFromJsonAsync<MessageFeedback>(
                 $"/api/v1/feedback/messages/{action.MessageId}");
 
             if (feedback != null)
@@ -143,6 +149,8 @@ public class FeedbackEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
             var url = $"/api/v1/feedback/stats/models/{action.ModelId}";
             if (action.FromDate.HasValue || action.ToDate.HasValue)
             {
@@ -154,7 +162,7 @@ public class FeedbackEffects
                 url += "?" + string.Join("&", queryParams);
             }
 
-            var stats = await _httpClient.GetFromJsonAsync<ModelFeedbackStats>(url);
+            var stats = await httpClient.GetFromJsonAsync<ModelFeedbackStats>(url);
             if (stats != null)
             {
                 dispatcher.Dispatch(new LoadModelStatsSuccessAction(action.ModelId, stats));
@@ -176,6 +184,8 @@ public class FeedbackEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
             var request = new
             {
                 category = action.Category,
@@ -192,7 +202,7 @@ public class FeedbackEffects
                 }).ToList()
             };
 
-            var response = await _httpClient.PostAsJsonAsync("/api/v1/feedback/templates", request);
+            var response = await httpClient.PostAsJsonAsync("/api/v1/feedback/templates", request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -225,6 +235,8 @@ public class FeedbackEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
             var request = new
             {
                 category = action.Category,
@@ -235,7 +247,7 @@ public class FeedbackEffects
                 displayOrder = action.DisplayOrder
             };
 
-            var response = await _httpClient.PutAsJsonAsync(
+            var response = await httpClient.PutAsJsonAsync(
                 $"/api/v1/feedback/templates/{action.TemplateId}",
                 request);
 
@@ -270,7 +282,9 @@ public class FeedbackEffects
     {
         try
         {
-            var response = await _httpClient.DeleteAsync($"/api/v1/feedback/templates/{action.TemplateId}");
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
+            var response = await httpClient.DeleteAsync($"/api/v1/feedback/templates/{action.TemplateId}");
 
             if (response.IsSuccessStatusCode)
             {

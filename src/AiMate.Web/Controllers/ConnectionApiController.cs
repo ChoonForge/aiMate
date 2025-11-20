@@ -1,6 +1,7 @@
 using AiMate.Core.Enums;
 using AiMate.Core.Services;
 using AiMate.Shared.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AiMate.Web.Controllers;
@@ -10,6 +11,7 @@ namespace AiMate.Web.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/connections")]
+[Authorize(Policy = "CanAddOwnKeys")] // Requires BYOK permission to manage connections
 public class ConnectionApiController : ControllerBase
 {
     private readonly IPermissionService _permissionService;

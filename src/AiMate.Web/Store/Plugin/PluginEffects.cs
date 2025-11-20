@@ -6,12 +6,12 @@ namespace AiMate.Web.Store.Plugin;
 
 public class PluginEffects
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<PluginEffects> _logger;
 
-    public PluginEffects(HttpClient httpClient, ILogger<PluginEffects> logger)
+    public PluginEffects(IHttpClientFactory httpClientFactory, ILogger<PluginEffects> logger)
     {
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -20,17 +20,11 @@ public class PluginEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
             _logger.LogInformation("Loading plugins from API");
 
-            // Check if HttpClient has BaseAddress configured
-            if (_httpClient.BaseAddress == null)
-            {
-                _logger.LogWarning("Plugins API not available, loading empty state");
-                dispatcher.Dispatch(new LoadPluginsSuccessAction(new List<PluginInfo>()));
-                return;
-            }
-
-            var plugins = await _httpClient.GetFromJsonAsync<List<PluginInfo>>("/api/v1/plugins");
+            var plugins = await httpClient.GetFromJsonAsync<List<PluginInfo>>("/api/v1/plugins");
 
             if (plugins != null)
             {
@@ -50,18 +44,11 @@ public class PluginEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
             _logger.LogInformation("Toggling plugin {PluginId}", action.PluginId);
 
-            // Check if HttpClient has BaseAddress configured
-            if (_httpClient.BaseAddress == null)
-            {
-                var errorMsg = "API not available - plugin toggle requires backend implementation";
-                _logger.LogWarning(errorMsg);
-                dispatcher.Dispatch(new TogglePluginFailureAction(errorMsg));
-                return;
-            }
-
-            var response = await _httpClient.PostAsync($"/api/v1/plugins/{action.PluginId}/toggle", null);
+            var response = await httpClient.PostAsync($"/api/v1/plugins/{action.PluginId}/toggle", null);
 
             if (response.IsSuccessStatusCode)
             {

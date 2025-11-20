@@ -2,6 +2,7 @@ using AiMate.Core.Entities;
 using AiMate.Core.Enums;
 using AiMate.Core.Services;
 using AiMate.Shared.Models;
+using AiMate.Web.Store.Auth;
 using Fluxor;
 using Microsoft.Extensions.Logging;
 
@@ -14,15 +15,18 @@ public class ChatEffects
 {
     private readonly ILiteLLMService _liteLLM;
     private readonly IPersonalityService _personality;
+    private readonly IState<AuthState> _authState;
     private readonly ILogger<ChatEffects> _logger;
 
     public ChatEffects(
         ILiteLLMService liteLLM,
         IPersonalityService personality,
+        IState<AuthState> authState,
         ILogger<ChatEffects> logger)
     {
         _liteLLM = liteLLM;
         _personality = personality;
+        _authState = authState;
         _logger = logger;
     }
 
@@ -136,14 +140,18 @@ public class ChatEffects
     {
         try
         {
-            _logger.LogInformation("Creating new conversation: {Title}", action.Title);
+            // Get current user ID from auth state
+            var userId = _authState.Value.CurrentUser?.Id
+                ?? throw new UnauthorizedAccessException("User must be authenticated to create a conversation");
+
+            _logger.LogInformation("Creating new conversation: {Title} for user {UserId}", action.Title, userId);
 
             // Create workspace (simplified - in production, would use WorkspaceService)
             var workspace = new Core.Entities.Workspace
             {
                 Id = Guid.NewGuid(),
                 Name = "Default Workspace",
-                UserId = Guid.NewGuid(), // Would come from auth
+                UserId = userId,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -161,6 +169,11 @@ public class ChatEffects
             dispatcher.Dispatch(new CreateConversationSuccessAction(conversation));
 
             _logger.LogInformation("Conversation created: {ConversationId}", conversation.Id);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized attempt to create conversation");
+            // Could dispatch an auth failure action here
         }
         catch (Exception ex)
         {

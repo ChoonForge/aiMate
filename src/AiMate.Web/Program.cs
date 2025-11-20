@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using Fluxor;
 using Serilog;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +26,94 @@ builder.Services.AddRazorComponents()
 
 // API Controllers for Developer tier
 builder.Services.AddControllers();
+
+// JWT Authentication
+var jwtSecret = builder.Configuration["Jwt:Secret"]
+    ?? "aiMate-super-secret-key-change-in-production-minimum-32-characters-long";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.SaveToken = true;
+    options.RequireHttpsMetadata = !builder.Environment.IsDevelopment(); // Allow HTTP in dev
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+        ValidateIssuer = false,  // Not using issuer validation for now
+        ValidateAudience = false, // Not using audience validation for now
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero // No tolerance for expired tokens
+    };
+
+    // Enable JWT authentication for SignalR (Blazor Server uses SignalR)
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+
+            // If the request is for a SignalR hub and contains an access token
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/_blazor"))
+            {
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
+});
+
+// Authorization with custom policies
+builder.Services.AddAuthorization(options =>
+{
+    // Policy for users who can add their own API keys (BYOK)
+    options.AddPolicy("CanAddOwnKeys", policy =>
+        policy.Requirements.Add(new AiMate.Web.Authorization.PermissionRequirement(
+            AiMate.Core.Enums.UserPermission.AddOwnKeys)));
+
+    // Policy for users who can manage MCP servers
+    options.AddPolicy("CanManageMCP", policy =>
+        policy.Requirements.Add(new AiMate.Web.Authorization.PermissionRequirement(
+            AiMate.Core.Enums.UserPermission.ManageMCP)));
+
+    // Policy for users who can manage custom models
+    options.AddPolicy("CanManageModels", policy =>
+        policy.Requirements.Add(new AiMate.Web.Authorization.PermissionRequirement(
+            AiMate.Core.Enums.UserPermission.ManageModels)));
+
+    // Policy for users who can share connections
+    options.AddPolicy("CanShareConnections", policy =>
+        policy.Requirements.Add(new AiMate.Web.Authorization.PermissionRequirement(
+            AiMate.Core.Enums.UserPermission.ShareConnections)));
+
+    // Policy for users who can add custom endpoints
+    options.AddPolicy("CanAddCustomEndpoints", policy =>
+        policy.Requirements.Add(new AiMate.Web.Authorization.PermissionRequirement(
+            AiMate.Core.Enums.UserPermission.AddCustomEndpoints)));
+
+    // Policy for admins only
+    options.AddPolicy("AdminOnly", policy =>
+        policy.Requirements.Add(new AiMate.Web.Authorization.PermissionRequirement(
+            AiMate.Core.Enums.UserPermission.AdminAccess)));
+
+    // Policy for viewing all analytics (admin only)
+    options.AddPolicy("CanViewAllAnalytics", policy =>
+        policy.Requirements.Add(new AiMate.Web.Authorization.PermissionRequirement(
+            AiMate.Core.Enums.UserPermission.ViewAllAnalytics)));
+});
+
+// Register authorization handler
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler,
+    AiMate.Web.Authorization.PermissionHandler>();
+
+Log.Information("JWT authentication and authorization configured");
 
 // Swagger/OpenAPI for API documentation (requires Swashbuckle.AspNetCore package)
 // Commented out until package is added to avoid build errors
@@ -208,6 +299,10 @@ app.UseAntiforgery();
 
 // CORS for API
 app.UseCors("ApiCorsPolicy");
+
+// Authentication and Authorization
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapRazorComponents<AiMate.Web.App>()
     .AddInteractiveServerRenderMode();
