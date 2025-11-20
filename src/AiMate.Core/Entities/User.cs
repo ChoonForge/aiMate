@@ -1,4 +1,5 @@
 using AiMate.Core.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AiMate.Core.Entities;
 
@@ -48,8 +49,14 @@ public class User
     public List<ApiKey> ApiKeys { get; set; } = new();
 
     /// <summary>
-    /// API keys for BYOK tier (encrypted)
+    /// API keys for BYOK tier (encrypted, stored as JSON)
     /// </summary>
+    public string? EncryptedApiKeysJson { get; set; }
+
+    /// <summary>
+    /// API keys for BYOK tier (in-memory dictionary, not mapped to database)
+    /// </summary>
+    [NotMapped]
     public Dictionary<string, string> EncryptedApiKeys { get; set; } = new();
 
     /// <summary>
