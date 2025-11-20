@@ -11,30 +11,23 @@
 <MudSnackbarProvider />
 <MudPopoverProvider />
 
-@if (AuthState.Value.IsAuthenticated || IsLoginPage)
-{
-    <div class="main-layout">
+<div class="main-layout">
+    @if (AuthState.Value.IsAuthenticated && !IsLoginPage)
+    {
         <Sidebar />
+    }
 
-        <div class="main-content">
+    <div class="main-content" style="@(AuthState.Value.IsAuthenticated && !IsLoginPage ? "" : "width: 100%;")">
+        @if (AuthState.Value.IsAuthenticated && !IsLoginPage)
+        {
             <TopBar />
+        }
 
-            <div class="chat-container">
-                @Body
-            </div>
+        <div class="chat-container">
+            @Body
         </div>
     </div>
-}
-else
-{
-    <div class="main-layout">
-        <div class="main-content" style="width: 100%;">
-            <div class="chat-container">
-                @Body
-            </div>
-        </div>
-    </div>
-}
+</div>
 
 @code {
     private bool IsLoginPage => Navigation.Uri.Contains("/login", StringComparison.OrdinalIgnoreCase);
@@ -47,7 +40,29 @@ else
         Dispatcher.Dispatch(new CheckAuthAction());
 
         // Subscribe to auth state changes
-        //AuthState.StateChanged += OnAuthStateChanged;
+        AuthState.StateChanged += OnAuthStateChanged;
+
+        // Initial redirect check
+        CheckAndRedirect();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        base.OnAfterRender(firstRender);
+
+        if (firstRender)
+        {
+            CheckAndRedirect();
+        }
+    }
+
+    private void CheckAndRedirect()
+    {
+        // Redirect to login if not authenticated and not already on login page
+        if (!AuthState.Value.IsAuthenticated && !IsLoginPage)
+        {
+            Navigation.NavigateTo("/login", forceLoad: false);
+        }
     }
 
     private void OnAuthStateChanged(object? sender, AuthState state)
