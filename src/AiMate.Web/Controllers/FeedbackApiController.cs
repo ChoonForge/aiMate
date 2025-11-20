@@ -1,5 +1,6 @@
 using AiMate.Core.Entities;
 using AiMate.Core.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AiMate.Web.Controllers;
@@ -9,6 +10,7 @@ namespace AiMate.Web.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/feedback")]
+[Authorize] // Requires authentication
 public class FeedbackApiController : ControllerBase
 {
     private readonly IFeedbackService _feedbackService;

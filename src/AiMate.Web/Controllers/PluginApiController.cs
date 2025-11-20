@@ -1,6 +1,7 @@
 using AiMate.Core.Plugins;
 using AiMate.Core.Services;
 using AiMate.Web.Store.Plugin;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AiMate.Web.Controllers;
@@ -10,6 +11,7 @@ namespace AiMate.Web.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/plugins")]
+[Authorize] // Requires authentication
 public class PluginApiController : ControllerBase
 {
     private readonly IPluginManager _pluginManager;

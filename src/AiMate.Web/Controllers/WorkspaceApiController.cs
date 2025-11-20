@@ -1,5 +1,6 @@
 using AiMate.Core.Services;
 using AiMate.Shared.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AiMate.Web.Controllers;
@@ -9,6 +10,7 @@ namespace AiMate.Web.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/workspaces")]
+[Authorize] // Requires authentication
 public class WorkspaceApiController : ControllerBase
 {
     private readonly IWorkspaceService _workspaceService;

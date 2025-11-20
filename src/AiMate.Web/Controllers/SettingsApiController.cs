@@ -1,4 +1,5 @@
 using AiMate.Shared.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -9,6 +10,7 @@ namespace AiMate.Web.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/settings")]
+[Authorize] // Requires authentication
 public class SettingsApiController : ControllerBase
 {
     private readonly ILogger<SettingsApiController> _logger;

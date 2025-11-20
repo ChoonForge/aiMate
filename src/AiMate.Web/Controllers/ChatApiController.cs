@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using AiMate.Core.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AiMate.Web.Controllers;
@@ -10,6 +11,7 @@ namespace AiMate.Web.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/chat")]
+[Authorize] // Requires authentication
 public class ChatApiController : ControllerBase
 {
     private readonly ILiteLLMService _liteLLMService;
