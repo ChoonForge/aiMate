@@ -10,18 +10,18 @@ namespace AiMate.Web.Store.Settings;
 public class SettingsEffects
 {
     private readonly IJSRuntime _jsRuntime;
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<SettingsEffects> _logger;
     private const string StorageKey = "aiMate_settings";
     private const string ApiEndpoint = "/api/v1/settings";
 
     public SettingsEffects(
         IJSRuntime jsRuntime,
-        HttpClient httpClient,
+        IHttpClientFactory httpClientFactory,
         ILogger<SettingsEffects> logger)
     {
         _jsRuntime = jsRuntime;
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -30,12 +30,14 @@ public class SettingsEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
             // Try loading from API first if available
-            if (_httpClient.BaseAddress != null)
+            if (httpClient.BaseAddress != null)
             {
                 try
                 {
-                    var settingsDto = await _httpClient.GetFromJsonAsync<UserSettingsDto>(ApiEndpoint);
+                    var settingsDto = await httpClient.GetFromJsonAsync<UserSettingsDto>(ApiEndpoint);
 
                     if (settingsDto != null)
                     {

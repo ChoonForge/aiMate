@@ -7,12 +7,12 @@ namespace AiMate.Web.Store.Connection;
 
 public class ConnectionEffects
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ConnectionEffects> _logger;
 
-    public ConnectionEffects(HttpClient httpClient, ILogger<ConnectionEffects> logger)
+    public ConnectionEffects(IHttpClientFactory httpClientFactory, ILogger<ConnectionEffects> logger)
     {
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -21,8 +21,10 @@ public class ConnectionEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
             // Check if HttpClient has BaseAddress configured
-            if (_httpClient.BaseAddress == null)
+            if (httpClient.BaseAddress == null)
             {
                 _logger.LogWarning("Connections API not available, loading empty state");
                 dispatcher.Dispatch(new LoadConnectionsSuccessAction(new List<ProviderConnectionDto>()));
@@ -33,7 +35,7 @@ public class ConnectionEffects
             var userId = "user-1";
             var tier = "Free";
 
-            var connections = await _httpClient.GetFromJsonAsync<List<ProviderConnectionDto>>(
+            var connections = await httpClient.GetFromJsonAsync<List<ProviderConnectionDto>>(
                 $"/api/v1/connections?userId={userId}&tierStr={tier}");
 
             if (connections != null)
@@ -53,8 +55,10 @@ public class ConnectionEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
             // Check if HttpClient has BaseAddress configured
-            if (_httpClient.BaseAddress == null)
+            if (httpClient.BaseAddress == null)
             {
                 _logger.LogWarning("Connections API not available, using default limits");
                 // Provide default limits for Free tier
@@ -70,7 +74,7 @@ public class ConnectionEffects
 
             var tier = "Free"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Tier
 
-            var response = await _httpClient.GetFromJsonAsync<ConnectionLimitsResponse>(
+            var response = await httpClient.GetFromJsonAsync<ConnectionLimitsResponse>(
                 $"/api/v1/connections/limits?tierStr={tier}");
 
             if (response != null)
@@ -95,8 +99,10 @@ public class ConnectionEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
             // Check if HttpClient has BaseAddress configured
-            if (_httpClient.BaseAddress == null)
+            if (httpClient.BaseAddress == null)
             {
                 var errorMsg = "API not available - connection creation requires backend implementation";
                 _logger.LogWarning(errorMsg);
@@ -107,7 +113,7 @@ public class ConnectionEffects
             var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             var tier = "Free";
 
-            var response = await _httpClient.PostAsJsonAsync(
+            var response = await httpClient.PostAsJsonAsync(
                 $"/api/v1/connections?userId={userId}&tierStr={tier}",
                 action.Connection);
 
@@ -137,8 +143,10 @@ public class ConnectionEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
             // Check if HttpClient has BaseAddress configured
-            if (_httpClient.BaseAddress == null)
+            if (httpClient.BaseAddress == null)
             {
                 var errorMsg = "API not available - connection update requires backend implementation";
                 _logger.LogWarning(errorMsg);
@@ -149,7 +157,7 @@ public class ConnectionEffects
             var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             var tier = "Free";
 
-            var response = await _httpClient.PutAsJsonAsync(
+            var response = await httpClient.PutAsJsonAsync(
                 $"/api/v1/connections/{action.Id}?userId={userId}&tierStr={tier}",
                 action.Connection);
 
@@ -179,8 +187,10 @@ public class ConnectionEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
             // Check if HttpClient has BaseAddress configured
-            if (_httpClient.BaseAddress == null)
+            if (httpClient.BaseAddress == null)
             {
                 var errorMsg = "API not available - connection deletion requires backend implementation";
                 _logger.LogWarning(errorMsg);
@@ -191,7 +201,7 @@ public class ConnectionEffects
             var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             var tier = "Free";
 
-            var response = await _httpClient.DeleteAsync(
+            var response = await httpClient.DeleteAsync(
                 $"/api/v1/connections/{action.Id}?userId={userId}&tierStr={tier}");
 
             if (response.IsSuccessStatusCode)
@@ -216,8 +226,10 @@ public class ConnectionEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+
             // Check if HttpClient has BaseAddress configured
-            if (_httpClient.BaseAddress == null)
+            if (httpClient.BaseAddress == null)
             {
                 var errorMsg = "API not available - connection testing requires backend implementation";
                 _logger.LogWarning(errorMsg);
@@ -227,7 +239,7 @@ public class ConnectionEffects
 
             var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
 
-            var response = await _httpClient.PostAsync(
+            var response = await httpClient.PostAsync(
                 $"/api/v1/connections/{action.Id}/test?userId={userId}", null);
 
             if (response.IsSuccessStatusCode)

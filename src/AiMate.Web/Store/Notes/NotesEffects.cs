@@ -6,11 +6,11 @@ namespace AiMate.Web.Store.Notes;
 
 public class NotesEffects
 {
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public NotesEffects(HttpClient httpClient)
+    public NotesEffects(IHttpClientFactory httpClientFactory)
     {
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
     }
 
     // ========================================================================
@@ -22,8 +22,9 @@ public class NotesEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
-            var notes = await _httpClient.GetFromJsonAsync<List<NoteDto>>($"/api/v1/notes?userId={userId}");
+            var notes = await httpClient.GetFromJsonAsync<List<NoteDto>>($"/api/v1/notes?userId={userId}");
 
             if (notes != null)
             {
@@ -49,6 +50,7 @@ public class NotesEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             var request = new CreateNoteRequest
             {
                 Title = action.Note.Title,
@@ -60,7 +62,7 @@ public class NotesEffects
                 Color = action.Note.Color
             };
 
-            var response = await _httpClient.PostAsJsonAsync("/api/v1/notes", request);
+            var response = await httpClient.PostAsJsonAsync("/api/v1/notes", request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -95,6 +97,7 @@ public class NotesEffects
     {
         try
         {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
             var request = new UpdateNoteRequest
             {
                 Title = action.UpdatedNote.Title,
@@ -109,7 +112,7 @@ public class NotesEffects
                 IsArchived = action.UpdatedNote.IsArchived
             };
 
-            var response = await _httpClient.PutAsJsonAsync($"/api/v1/notes/{action.NoteId}", request);
+            var response = await httpClient.PutAsJsonAsync($"/api/v1/notes/{action.NoteId}", request);
 
             if (response.IsSuccessStatusCode)
             {
@@ -144,7 +147,8 @@ public class NotesEffects
     {
         try
         {
-            var response = await _httpClient.DeleteAsync($"/api/v1/notes/{action.NoteId}");
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+            var response = await httpClient.DeleteAsync($"/api/v1/notes/{action.NoteId}");
 
             if (response.IsSuccessStatusCode)
             {
