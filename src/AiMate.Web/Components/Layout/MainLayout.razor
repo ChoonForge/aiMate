@@ -1,32 +1,74 @@
 @using AiMate.Web.Store.Auth
 @using Fluxor
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject IDispatcher Dispatcher
+@inject IState<AuthState> AuthState
+@inject NavigationManager Navigation
 
 <MudThemeProvider Theme="@_theme" />
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudPopoverProvider />
 
-<div class="main-layout">
-    <Sidebar />
+@if (AuthState.Value.IsAuthenticated || IsLoginPage)
+{
+    <div class="main-layout">
+        <Sidebar />
 
-    <div class="main-content">
-        <TopBar />
+        <div class="main-content">
+            <TopBar />
 
-        <div class="chat-container">
-            @Body
+            <div class="chat-container">
+                @Body
+            </div>
         </div>
     </div>
-</div>
+}
+else
+{
+    <div class="main-layout">
+        <div class="main-content" style="width: 100%;">
+            <div class="chat-container">
+                @Body
+            </div>
+        </div>
+    </div>
+}
 
 @code {
+    private bool IsLoginPage => Navigation.Uri.Contains("/login", StringComparison.OrdinalIgnoreCase);
+
     protected override void OnInitialized()
     {
         base.OnInitialized();
 
         // Check authentication status on app load (restores user from localStorage token)
         Dispatcher.Dispatch(new CheckAuthAction());
+
+        // Subscribe to auth state changes
+        AuthState.StateChanged += OnAuthStateChanged;
+    }
+
+    private void OnAuthStateChanged(object? sender, AuthState state)
+    {
+        // Redirect to login if not authenticated and not already on login page
+        if (!state.IsAuthenticated && !IsLoginPage)
+        {
+            Navigation.NavigateTo("/login", forceLoad: false);
+        }
+        else if (state.IsAuthenticated && IsLoginPage)
+        {
+            // Redirect to home if authenticated and on login page
+            Navigation.NavigateTo("/", forceLoad: false);
+        }
+
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        AuthState.StateChanged -= OnAuthStateChanged;
     }
 
     private MudTheme _theme = new()

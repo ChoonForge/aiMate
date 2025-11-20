@@ -272,6 +272,35 @@ Log.Information("All services registered successfully (Phase 6 complete)");
 
 var app = builder.Build();
 
+// Seed database with default admin user for development
+if (app.Environment.IsDevelopment() && databaseProvider.Equals("InMemory", StringComparison.OrdinalIgnoreCase))
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<AiMateDbContext>();
+
+        // Check if admin user already exists
+        if (!dbContext.Users.Any(u => u.Username == "admin"))
+        {
+            var adminUser = new AiMate.Core.Entities.User
+            {
+                Id = Guid.NewGuid(),
+                Username = "admin",
+                Email = "admin@localhost",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
+                Tier = AiMate.Core.Enums.UserTier.Developer,
+                DefaultPersonality = AiMate.Core.Enums.PersonalityMode.Professional,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            dbContext.Users.Add(adminUser);
+            dbContext.SaveChanges();
+
+            Log.Information("Created default admin user (username: admin, password: admin)");
+        }
+    }
+}
+
 // Initialize plugins on startup
 using (var scope = app.Services.CreateScope())
 {
@@ -340,6 +369,51 @@ app.MapGet("/health", async (AiMateDbContext? db) =>
         return Results.Json(new { status = "unhealthy", message = ex.Message }, statusCode: 503);
     }
 });
+
+// Dev-only: Database inspection endpoint
+if (app.Environment.IsDevelopment())
+{
+    app.MapGet("/dev/db", async (AiMateDbContext db) =>
+    {
+        var users = await db.Users.ToListAsync();
+        var workspaces = await db.Workspaces.ToListAsync();
+        var conversations = await db.Conversations.ToListAsync();
+        var projects = await db.Projects.ToListAsync();
+        var notes = await db.Notes.ToListAsync();
+        var knowledgeItems = await db.KnowledgeItems.ToListAsync();
+
+        return Results.Ok(new
+        {
+            DatabaseProvider = databaseProvider,
+            Counts = new
+            {
+                Users = users.Count,
+                Workspaces = workspaces.Count,
+                Conversations = conversations.Count,
+                Projects = projects.Count,
+                Notes = notes.Count,
+                KnowledgeItems = knowledgeItems.Count
+            },
+            Users = users.Select(u => new
+            {
+                u.Id,
+                u.Username,
+                u.Email,
+                u.Tier,
+                u.DefaultPersonality,
+                u.CreatedAt,
+                HasPassword = !string.IsNullOrEmpty(u.PasswordHash)
+            }),
+            Workspaces = workspaces.Select(w => new { w.Id, w.Name, w.UserId }),
+            Conversations = conversations.Select(c => new { c.Id, c.Title, c.WorkspaceId, c.CreatedAt }),
+            Projects = projects.Select(p => new { p.Id, p.Name, p.Key, p.Status, p.UserId }),
+            Notes = notes.Select(n => new { n.Id, n.Title, n.WorkspaceId }),
+            KnowledgeItems = knowledgeItems.Select(k => new { k.Id, k.Title, k.Type, k.UserId })
+        });
+    });
+
+    Log.Information("Dev endpoint enabled: GET /dev/db");
+}
 
 try
 {
