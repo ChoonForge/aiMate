@@ -150,35 +150,26 @@ The authentication and authorization system for aiMate is **production-ready** w
 
 ## What Still Needs to Be Done ⚠️
 
-### 1. Add [Authorize] Attributes to Controllers
-**Status**: Not started
+### ✅ 1. Add [Authorize] Attributes to Controllers
+**Status**: ✅ **COMPLETED** (2025-11-20)
 **Effort**: 2-3 hours
 
-Need to add `[Authorize]` or `[Authorize(Policy = "...")]` to all API controllers:
+All 11 API controllers are now secured with appropriate `[Authorize]` attributes:
 
-```csharp
-[Authorize] // Basic auth - any authenticated user
-public class ChatApiController : ControllerBase
+**Basic Authentication** (`[Authorize]` - any authenticated user):
+- ✅ ChatApiController
+- ✅ WorkspaceApiController
+- ✅ ProjectsApiController
+- ✅ NotesApiController
+- ✅ KnowledgeApiController
+- ✅ FeedbackApiController
+- ✅ PluginApiController
+- ✅ SettingsApiController
 
-[Authorize(Policy = "CanManageMCP")] // Permission-based
-public class ToolsApiController : ControllerBase
-
-[Authorize(Policy = "AdminOnly")] // Admin only
-public class AdminApiController : ControllerBase
-```
-
-**Controllers to secure**:
-- ChatApiController - `[Authorize]`
-- WorkspaceApiController - `[Authorize]`
-- ProjectsApiController - `[Authorize]`
-- NotesApiController - `[Authorize]`
-- KnowledgeApiController - `[Authorize]`
-- FeedbackApiController - `[Authorize]`
-- PluginApiController - `[Authorize]`
-- ToolsApiController - `[Authorize(Policy = "CanManageMCP")]`
-- ConnectionApiController - `[Authorize(Policy = "CanAddOwnKeys")]`
-- SettingsApiController - `[Authorize]`
-- AdminApiController - `[Authorize(Policy = "AdminOnly")]`
+**Policy-Based Authorization**:
+- ✅ ToolsApiController - `[Authorize(Policy = "CanManageMCP")]`
+- ✅ ConnectionApiController - `[Authorize(Policy = "CanAddOwnKeys")]`
+- ✅ AdminApiController - `[Authorize(Policy = "AdminOnly")]`
 
 ### 2. Update Effects to Use AuthState Instead of Hardcoded userId
 **Status**: Not started
@@ -361,7 +352,7 @@ The BYOK (Bring Your Own Key) system supports:
 
 ## Next Steps (Priority Order)
 
-1. **Add [Authorize] attributes** to all controllers (2-3 hrs)
+1. ~~**Add [Authorize] attributes** to all controllers (2-3 hrs)~~ ✅ **COMPLETED**
 2. **Update Effects** to use AuthState.CurrentUser.Id (3-4 hrs)
 3. **Add CheckAuthAction dispatch** on app init (1 hr)
 4. **Create database migration** for new entities (1-2 hrs)
@@ -371,7 +362,7 @@ The BYOK (Bring Your Own Key) system supports:
 8. **Add navigation guards** for protected routes (2-3 hrs)
 9. **Comprehensive testing** (10-15 hrs)
 
-**Total Estimated Time**: 28-45 hours
+**Total Estimated Time**: ~~28-45 hours~~ → **25-42 hours** (controller authorization completed)
 
 ---
 
@@ -380,9 +371,10 @@ The BYOK (Bring Your Own Key) system supports:
 ✅ **Authentication**: 100% complete and production-ready
 ✅ **Authorization**: 100% complete with policies and handlers
 ✅ **Multi-Tenant**: 100% entities and relationships defined
-⚠️ **Integration**: 30% complete (needs [Authorize] attributes, Effects updates, testing)
+✅ **API Security**: 100% complete - all 11 controllers secured
+⚠️ **Integration**: 40% complete (needs Effects updates, CheckAuth dispatch, testing)
 
-**Bottom Line**: The authentication system is architecturally complete and production-ready. The remaining work is integration (wiring up the pieces) and testing. Estimate 28-45 hours to full production deployment.
+**Bottom Line**: The authentication system is architecturally complete and production-ready. API security is now fully implemented with all controllers secured. The remaining work is integration (updating Effects to use real user IDs) and testing. Estimate **25-42 hours** to full production deployment.
 
 ---
 
