@@ -36,33 +36,11 @@
     {
         base.OnInitialized();
 
-        // Check authentication status on app load (restores user from localStorage token)
+        // Subscribe to auth state changes FIRST
+        AuthState.StateChanged += OnAuthStateChanged;
+
+        // Then check authentication status (async - will update state when complete)
         Dispatcher.Dispatch(new CheckAuthAction());
-
-        // Subscribe to auth state changes
-        //AuthState.StateChanged += OnAuthStateChanged;
-
-        // Initial redirect check
-        CheckAndRedirect();
-    }
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        base.OnAfterRender(firstRender);
-
-        if (firstRender)
-        {
-            CheckAndRedirect();
-        }
-    }
-
-    private void CheckAndRedirect()
-    {
-        // Redirect to login if not authenticated and not already on login page
-        if (!AuthState.Value.IsAuthenticated && !IsLoginPage)
-        {
-            Navigation.NavigateTo("/login", forceLoad: false);
-        }
     }
 
     private void OnAuthStateChanged(object? sender, EventArgs e)
@@ -85,7 +63,7 @@
 
     public void Dispose()
     {
-        //AuthState.StateChanged -= OnAuthStateChanged;
+        AuthState.StateChanged -= OnAuthStateChanged;
     }
 
     private MudTheme _theme = new()
