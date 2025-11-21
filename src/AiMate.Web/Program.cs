@@ -289,7 +289,7 @@ if (app.Environment.IsDevelopment() && databaseProvider.Equals("InMemory", Strin
                 Email = "admin@localhost",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
                 Tier = AiMate.Core.Enums.UserTier.Developer,
-                DefaultPersonality = AiMate.Core.Enums.PersonalityMode.Professional,
+                DefaultPersonality = AiMate.Core.Enums.PersonalityMode.KiwiProfessional,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -407,7 +407,7 @@ if (app.Environment.IsDevelopment())
             Workspaces = workspaces.Select(w => new { w.Id, w.Name, w.UserId }),
             Conversations = conversations.Select(c => new { c.Id, c.Title, c.WorkspaceId, c.CreatedAt }),
             Projects = projects.Select(p => new { p.Id, p.Name, p.Key, p.Status, p.UserId }),
-            Notes = notes.Select(n => new { n.Id, n.Title, n.WorkspaceId }),
+            Notes = notes.Select(n => new { n.Id, n.Title, n.LinkedWorkspaceId}),
             KnowledgeItems = knowledgeItems.Select(k => new { k.Id, k.Title, k.Type, k.UserId })
         });
     });

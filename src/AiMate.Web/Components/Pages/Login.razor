@@ -145,7 +145,14 @@
 
     private void OnAuthStateChanged(object? sender, EventArgs e)
     {
-        // Just trigger UI update - MainLayout handles redirects
+        var state = AuthState.Value;
+
+        // Redirect on successful login/register
+        if (state.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+
         StateHasChanged();
     }
 
