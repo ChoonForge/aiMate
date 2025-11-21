@@ -148,8 +148,10 @@
         AuthState.StateChanged += OnAuthStateChanged;
     }
 
-    private void OnAuthStateChanged(object? sender, AuthState state)
+    private void OnAuthStateChanged(object? sender, EventArgs e)
     {
+        var state = AuthState.Value;
+
         // Redirect on successful login/register
         if (state.IsAuthenticated)
         {
