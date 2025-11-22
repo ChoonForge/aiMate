@@ -116,49 +116,67 @@ builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationH
 
 Log.Information("JWT authentication and authorization configured");
 
-// Swagger/OpenAPI for API documentation (requires Swashbuckle.AspNetCore package)
-// Commented out until package is added to avoid build errors
+// Swagger/OpenAPI for API documentation
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "aiMate API",
+        Version = "v1",
+        Description = "REST API for aiMate - Chat completions, projects, notes, knowledge base, and BYOK connections",
+        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+        {
+            Name = "aiMate Support",
+            Email = "support@aimate.co.nz",
+            Url = new Uri("https://github.com/ChoonForge/aiMate")
+        },
+        License = new Microsoft.OpenApi.Models.OpenApiLicense
+        {
+            Name = "MIT",
+            Url = new Uri("https://opensource.org/licenses/MIT")
+        }
+    });
 
-//builder.Services.AddEndpointsApiExplorer();
-//builder.Services.AddSwaggerGen(c =>
-//{
-//    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-//    {
-//        Title = "aiMate API",
-//        Version = "v1",
-//        Description = "REST API for aiMate - Developer tier access",
-//        Contact = new Microsoft.OpenApi.Models.OpenApiContact
-//        {
-//            Name = "aiMate",
-//            Email = "support@aimate.co.nz"
-//        }
-//    });
+    // Include XML comments
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
 
-//    // Add API Key authentication
-//    c.AddSecurityDefinition("ApiKey", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-//    {
-//        Description = "API Key authentication. Use format: Bearer {your-api-key}",
-//        Name = "Authorization",
-//        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-//        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-//        Scheme = "Bearer"
-//    });
+    // Add JWT Bearer authentication
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Format: Bearer {token}",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
 
-//    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-//    {
-//        {
-//            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-//            {
-//                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-//                {
-//                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-//                    Id = "ApiKey"
-//                }
-//            },
-//            Array.Empty<string>()
-//        }
-//    });
-//});
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+
+    // Group endpoints by controller
+    c.TagActionsBy(api => new[] { api.GroupName ?? api.ActionDescriptor.RouteValues["controller"] ?? "Default" });
+    c.DocInclusionPredicate((name, api) => true);
+});
+
+Log.Information("Swagger/OpenAPI configured");
 
 
 // CORS for API access
@@ -256,6 +274,7 @@ builder.Services.AddScoped<AiMate.Core.Services.IDatasetGeneratorService, AiMate
 builder.Services.AddScoped<AiMate.Core.Services.IMCPToolService, AiMate.Infrastructure.Services.MCPToolService>();
 builder.Services.AddScoped<AiMate.Core.Services.IApiKeyService, AiMate.Infrastructure.Services.ApiKeyService>();
 builder.Services.AddScoped<AiMate.Core.Services.IFeedbackService, AiMate.Infrastructure.Services.FeedbackService>();
+builder.Services.AddScoped<AiMate.Core.Services.IConnectionService, AiMate.Infrastructure.Services.ConnectionService>();
 
 // Register Plugin System (Singleton for plugin lifecycle management)
 builder.Services.AddSingleton<AiMate.Core.Services.IPluginManager, AiMate.Infrastructure.Services.PluginManager>();
@@ -317,15 +336,16 @@ if (!app.Environment.IsDevelopment())
 }
 
 // Enable Swagger in all environments (production needs API docs too)
-// Commented out until Swashbuckle.AspNetCore package is added
-/*
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "aiMate API v1");
     c.RoutePrefix = "api/docs"; // Access at /api/docs
+    c.DocumentTitle = "aiMate API Documentation";
+    c.DefaultModelsExpandDepth(-1); // Hide schemas section by default
 });
-*/
+
+Log.Information("Swagger UI enabled at /api/docs");
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

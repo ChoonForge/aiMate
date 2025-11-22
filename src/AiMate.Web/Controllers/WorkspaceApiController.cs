@@ -35,17 +35,19 @@ public class WorkspaceApiController : ControllerBase
     /// Get all workspaces for the current user
     /// </summary>
     [HttpGet]
-    public async Task<IActionResult> GetWorkspaces()
+    public async Task<IActionResult> GetWorkspaces([FromQuery] string userId)
     {
         try
         {
-            _logger.LogInformation("Fetching workspaces");
+            _logger.LogInformation("Fetching workspaces for user {UserId}", userId);
 
-            // DEMO MODE: Using hardcoded user ID
-            // IMPLEMENTATION NEEDED: Get from authenticated user context
-            var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            // TODO: Get userId from HttpContext.User claims once authentication is fully configured
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return BadRequest("Invalid user ID");
+            }
 
-            var workspaces = await _workspaceService.GetUserWorkspacesAsync(userId);
+            var workspaces = await _workspaceService.GetUserWorkspacesAsync(userGuid);
 
             var workspaceDtos = workspaces.Select(w => new WorkspaceDto
             {
@@ -108,15 +110,17 @@ public class WorkspaceApiController : ControllerBase
     /// Create a new workspace
     /// </summary>
     [HttpPost]
-    public async Task<IActionResult> CreateWorkspace([FromBody] CreateWorkspaceRequest request)
+    public async Task<IActionResult> CreateWorkspace([FromBody] CreateWorkspaceRequest request, [FromQuery] string userId)
     {
         try
         {
-            _logger.LogInformation("Creating workspace: {Name}", request.Name);
+            _logger.LogInformation("Creating workspace: {Name} for user {UserId}", request.Name, userId);
 
-            // DEMO MODE: Using hardcoded user ID
-            // IMPLEMENTATION NEEDED: Get from authenticated user context
-            var userId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+            // TODO: Get userId from HttpContext.User claims once authentication is fully configured
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return BadRequest("Invalid user ID");
+            }
 
             // Parse enums
             if (!Enum.TryParse<Core.Enums.WorkspaceType>(request.Type, out var workspaceType))
@@ -135,7 +139,7 @@ public class WorkspaceApiController : ControllerBase
                 Description = request.Description,
                 Type = workspaceType,
                 DefaultPersonality = personality,
-                UserId = userId
+                UserId = userGuid
             };
 
             var created = await _workspaceService.CreateWorkspaceAsync(workspace);

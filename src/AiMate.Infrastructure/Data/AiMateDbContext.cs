@@ -27,6 +27,7 @@ public class AiMateDbContext : DbContext
     public DbSet<FeedbackTagTemplate> FeedbackTagTemplates => Set<FeedbackTagTemplate>();
     public DbSet<FeedbackTagOption> FeedbackTagOptions => Set<FeedbackTagOption>();
     public DbSet<Note> Notes => Set<Note>();
+    public DbSet<Connection> Connections => Set<Connection>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -246,6 +247,27 @@ public class AiMateDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Connection configuration
+        modelBuilder.Entity<Connection>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.OwnerId);
+            entity.HasIndex(e => e.Type);
+            entity.HasIndex(e => e.IsEnabled);
+            entity.HasIndex(e => new { e.OwnerId, e.IsEnabled });
+            entity.HasIndex(e => e.OrganizationId);
+
+            entity.HasOne(e => e.Owner)
+                .WithMany()
+                .HasForeignKey(e => e.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Organization)
+                .WithMany()
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

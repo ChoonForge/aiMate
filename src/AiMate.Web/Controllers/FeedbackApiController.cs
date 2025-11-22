@@ -188,12 +188,11 @@ public class FeedbackApiController : ControllerBase
     /// Create a new tag template (admin)
     /// </summary>
     [HttpPost("templates")]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> CreateTagTemplate([FromBody] CreateTagTemplateRequest request)
     {
         try
         {
-            // IMPLEMENTATION NEEDED: Add [Authorize(Roles = "Admin")] attribute to this method
-            // Or check HttpContext.User.IsInRole("Admin") and return Forbid() if unauthorized
 
             var options = request.Options.Select(o => new FeedbackTagOption
             {
@@ -225,14 +224,13 @@ public class FeedbackApiController : ControllerBase
     /// Update a tag template (admin)
     /// </summary>
     [HttpPut("templates/{templateId}")]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> UpdateTagTemplate(
         Guid templateId,
         [FromBody] UpdateTagTemplateRequest request)
     {
         try
         {
-            // IMPLEMENTATION NEEDED: Add [Authorize(Roles = "Admin")] attribute to this method
-            // Or check HttpContext.User.IsInRole("Admin") and return Forbid() if unauthorized
 
             var template = await _feedbackService.UpdateTagTemplateAsync(
                 templateId,
@@ -261,12 +259,11 @@ public class FeedbackApiController : ControllerBase
     /// Delete a tag template (admin)
     /// </summary>
     [HttpDelete("templates/{templateId}")]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> DeleteTagTemplate(Guid templateId)
     {
         try
         {
-            // IMPLEMENTATION NEEDED: Add [Authorize(Roles = "Admin")] attribute to this method
-            // Or check HttpContext.User.IsInRole("Admin") and return Forbid() if unauthorized
 
             var success = await _feedbackService.DeleteTagTemplateAsync(templateId);
             if (!success)
