@@ -315,6 +315,52 @@ else
         options.UseInMemoryDatabase("AiMateDb"));
 }
 
+// Hangfire Background Jobs
+// Note: Requires Hangfire.AspNetCore and Hangfire.PostgreSql (or Hangfire.InMemory) NuGet packages
+// Install with: dotnet add package Hangfire.AspNetCore
+//              dotnet add package Hangfire.PostgreSql (for production)
+//              dotnet add package Hangfire.InMemory (for development)
+try
+{
+    if (databaseProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+    {
+        var connectionString = builder.Configuration.GetConnectionString("PostgreSQL");
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            builder.Services.AddHangfire(config =>
+            {
+                config.UsePostgreSqlStorage(c =>
+                    c.UseNpgsqlConnection(connectionString));
+                config.UseSimpleAssemblyNameTypeSerializer();
+                config.UseRecommendedSerializerSettings();
+            });
+        }
+    }
+    else
+    {
+        // Use in-memory storage for development
+        builder.Services.AddHangfire(config =>
+        {
+            config.UseInMemoryStorage();
+            config.UseSimpleAssemblyNameTypeSerializer();
+            config.UseRecommendedSerializerSettings();
+        });
+    }
+
+    builder.Services.AddHangfireServer(options =>
+    {
+        options.WorkerCount = 2; // Number of background workers
+        options.Queues = new[] { "default", "high-priority" };
+    });
+
+    Log.Information("Hangfire background jobs configured");
+}
+catch (Exception ex)
+{
+    // Hangfire packages not installed yet - log warning but don't fail startup
+    Log.Warning(ex, "Hangfire not configured - background jobs disabled. Install Hangfire.AspNetCore package to enable.");
+}
+
 // Add HTTP client for general use
 builder.Services.AddHttpClient();
 
@@ -396,6 +442,18 @@ builder.Services.AddScoped<AiMate.Core.Services.ISearchService, AiMate.Infrastru
 // Register File Storage Service (local filesystem, can be swapped for Azure/S3)
 builder.Services.AddSingleton<AiMate.Core.Services.IFileStorageService, AiMate.Infrastructure.Services.LocalFileStorageService>();
 
+// Register Background Job Services (requires Hangfire packages)
+try
+{
+    builder.Services.AddSingleton<AiMate.Core.Services.IBackgroundJobService, AiMate.Infrastructure.Services.HangfireBackgroundJobService>();
+    builder.Services.AddScoped<AiMate.Core.Services.IBackgroundJobs, AiMate.Infrastructure.Services.BackgroundJobs>();
+    Log.Information("Background job services registered");
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Background job services not registered - Hangfire packages may not be installed");
+}
+
 // Register HttpClient for services that need it
 builder.Services.AddHttpClient<AiMate.Infrastructure.Services.LiteLLMService>();
 builder.Services.AddHttpClient<AiMate.Infrastructure.Services.OpenAIEmbeddingService>();
@@ -474,6 +532,59 @@ app.UseRateLimiter();
 // Authentication and Authorization
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Hangfire Dashboard (requires Hangfire packages)
+try
+{
+    app.UseHangfireDashboard("/hangfire", new Hangfire.DashboardOptions
+    {
+        Authorization = new[] { new HangfireAuthorizationFilter() },
+        DashboardTitle = "aiMate Background Jobs"
+    });
+
+    // Schedule recurring jobs
+    var jobService = app.Services.GetService<AiMate.Core.Services.IBackgroundJobService>();
+    var backgroundJobs = app.Services.CreateScope().ServiceProvider.GetService<AiMate.Core.Services.IBackgroundJobs>();
+
+    if (jobService != null && backgroundJobs != null)
+    {
+        // Clean up old error logs daily at 2 AM
+        jobService.AddOrUpdateRecurringJob(
+            "cleanup-old-errors",
+            () => backgroundJobs.CleanupOldErrorLogsAsync(),
+            Hangfire.Cron.Daily(2));
+
+        // Clean up old feedback monthly
+        jobService.AddOrUpdateRecurringJob(
+            "cleanup-old-feedback",
+            () => backgroundJobs.CleanupOldFeedbackAsync(),
+            Hangfire.Cron.Monthly(1, 3));
+
+        // Generate missing embeddings every hour
+        jobService.AddOrUpdateRecurringJob(
+            "generate-embeddings",
+            () => backgroundJobs.GenerateMissingEmbeddingsAsync(),
+            Hangfire.Cron.Hourly());
+
+        // Send daily summary email at 9 AM
+        jobService.AddOrUpdateRecurringJob(
+            "daily-summary-email",
+            () => backgroundJobs.SendDailySummaryEmailAsync(),
+            Hangfire.Cron.Daily(9));
+
+        // Clean up orphaned files weekly on Sundays at 4 AM
+        jobService.AddOrUpdateRecurringJob(
+            "cleanup-orphaned-files",
+            () => backgroundJobs.CleanupOrphanedFilesAsync(),
+            Hangfire.Cron.Weekly(DayOfWeek.Sunday, 4));
+
+        Log.Information("Hangfire recurring jobs scheduled");
+    }
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Hangfire dashboard not configured - install Hangfire packages to enable");
+}
 
 app.MapRazorComponents<AiMate.Web.App>()
     .AddInteractiveServerRenderMode();
