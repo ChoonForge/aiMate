@@ -15,15 +15,18 @@ public class ConnectionService : IConnectionService
     private readonly AiMateDbContext _context;
     private readonly ILogger<ConnectionService> _logger;
     private readonly ILiteLLMService _liteLLMService;
+    private readonly IEncryptionService _encryptionService;
 
     public ConnectionService(
         AiMateDbContext context,
         ILogger<ConnectionService> logger,
-        ILiteLLMService liteLLMService)
+        ILiteLLMService liteLLMService,
+        IEncryptionService encryptionService)
     {
         _context = context;
         _logger = logger;
         _liteLLMService = liteLLMService;
+        _encryptionService = encryptionService;
     }
 
     public async Task<List<Connection>> GetUserConnectionsAsync(
@@ -57,6 +60,20 @@ public class ConnectionService : IConnectionService
         Connection connection,
         CancellationToken cancellationToken = default)
     {
+        // Encrypt credentials before saving
+        if (!string.IsNullOrEmpty(connection.EncryptedCredentials))
+        {
+            try
+            {
+                connection.EncryptedCredentials = _encryptionService.Encrypt(connection.EncryptedCredentials);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to encrypt credentials for connection");
+                throw new InvalidOperationException("Failed to encrypt connection credentials", ex);
+            }
+        }
+
         _context.Connections.Add(connection);
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -82,7 +99,21 @@ public class ConnectionService : IConnectionService
         existing.Description = connection.Description;
         existing.Type = connection.Type;
         existing.BaseUrl = connection.BaseUrl;
-        existing.EncryptedCredentials = connection.EncryptedCredentials;
+
+        // Encrypt credentials before saving (only if credentials have changed)
+        if (!string.IsNullOrEmpty(connection.EncryptedCredentials))
+        {
+            try
+            {
+                existing.EncryptedCredentials = _encryptionService.Encrypt(connection.EncryptedCredentials);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to encrypt credentials for connection {ConnectionId}", connection.Id);
+                throw new InvalidOperationException("Failed to encrypt connection credentials", ex);
+            }
+        }
+
         existing.ConfigurationJson = connection.ConfigurationJson;
         existing.IsEnabled = connection.IsEnabled;
         existing.IsBYOK = connection.IsBYOK;

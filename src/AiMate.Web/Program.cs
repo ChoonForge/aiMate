@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,82 @@ builder.Services.AddRazorComponents()
 
 // API Controllers for Developer tier
 builder.Services.AddControllers();
+
+// Rate Limiting
+builder.Services.AddRateLimiter(options =>
+{
+    // Default policy for authenticated API calls
+    options.AddFixedWindowLimiter("api", limiterOptions =>
+    {
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.PermitLimit = 60; // 60 requests per minute
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 10;
+    });
+
+    // Strict policy for anonymous error logging (prevent abuse)
+    options.AddFixedWindowLimiter("error-logging", limiterOptions =>
+    {
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.PermitLimit = 10; // 10 errors per minute per IP
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0; // No queue for error logs
+    });
+
+    // Developer tier policy (higher limits)
+    options.AddFixedWindowLimiter("developer", limiterOptions =>
+    {
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.PermitLimit = 120; // 120 requests per minute
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 20;
+    });
+
+    // Admin endpoints (generous limits)
+    options.AddFixedWindowLimiter("admin", limiterOptions =>
+    {
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.PermitLimit = 200; // 200 requests per minute
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 50;
+    });
+
+    // Global limiter (fallback)
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    {
+        // Get user identifier (IP address for anonymous, userId for authenticated)
+        var userId = context.User.Identity?.IsAuthenticated == true
+            ? context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown"
+            : context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(userId, _ => new FixedWindowRateLimiterOptions
+        {
+            Window = TimeSpan.FromMinutes(1),
+            PermitLimit = 100,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 10
+        });
+    });
+
+    // Rejection response
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            error = new
+            {
+                message = "Too many requests. Please try again later.",
+                type = "rate_limit_error",
+                retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)
+                    ? (int)retryAfter.TotalSeconds
+                    : 60
+            }
+        }, cancellationToken);
+    };
+});
+
+Log.Information("Rate limiting configured");
 
 // JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"]
@@ -190,6 +267,14 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Data Protection (for API key encryption)
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "keys")))
+    .SetApplicationName("AiMate")
+    .SetDefaultKeyLifetime(TimeSpan.FromDays(90)); // Rotate keys every 90 days
+
+Log.Information("Data Protection configured for API key encryption");
+
 // MudBlazor
 builder.Services.AddMudServices();
 
@@ -302,6 +387,9 @@ builder.Services.AddScoped<AiMate.Core.Services.IGroupService, AiMate.Infrastruc
 builder.Services.AddScoped<AiMate.Core.Services.IUserFeedbackService, AiMate.Infrastructure.Services.UserFeedbackService>();
 builder.Services.AddScoped<AiMate.Core.Services.IErrorLoggingService, AiMate.Infrastructure.Services.ErrorLoggingService>();
 
+// Register Encryption Service (for API key protection)
+builder.Services.AddSingleton<AiMate.Core.Services.IEncryptionService, AiMate.Infrastructure.Services.EncryptionService>();
+
 // Register HttpClient for services that need it
 builder.Services.AddHttpClient<AiMate.Infrastructure.Services.LiteLLMService>();
 builder.Services.AddHttpClient<AiMate.Infrastructure.Services.OpenAIEmbeddingService>();
@@ -373,6 +461,9 @@ app.UseAntiforgery();
 
 // CORS for API
 app.UseCors("ApiCorsPolicy");
+
+// Rate Limiting (must be before Authentication)
+app.UseRateLimiter();
 
 // Authentication and Authorization
 app.UseAuthentication();

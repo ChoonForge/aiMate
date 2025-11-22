@@ -296,8 +296,10 @@ public class FeedbackSystemApiController : ControllerBase
     /// </remarks>
     [HttpPost("errors/log")]
     [AllowAnonymous] // Allow pre-auth errors, but implement rate limiting
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("error-logging")]
     [ProducesResponseType(typeof(ErrorLog), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> LogError([FromBody] LogErrorRequest request)
     {
         // Get userId if authenticated
