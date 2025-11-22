@@ -1,10 +1,18 @@
 @using Fluxor
 @using AiMate.Web.Store.Chat
 @using AiMate.Web.Store.Project
+@using AiMate.Web.Store.Knowledge
+@using AiMate.Web.Store.Workspace
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.JSInterop
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @inject IState<ChatState> ChatState
 @inject IState<ProjectState> ProjectState
+@inject IState<KnowledgeState> KnowledgeState
+@inject IState<WorkspaceState> WorkspaceState
 @inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
 
 <aside class="w-[280px] bg-[#1A1A1A] border-r border-[#2A2A2A] flex flex-col h-screen">
 
@@ -52,14 +60,6 @@
                 <span class="text-sm">Notes</span>
             </a>
 
-            <a href="/knowledge" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-all cursor-pointer mb-1">
-                <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                </svg>
-                <span class="text-sm">Knowledge</span>
-            </a>
-
             <a href="/files" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-all cursor-pointer mb-1">
                 <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
@@ -68,6 +68,211 @@
                 <span class="text-sm">Files</span>
             </a>
         </div>
+
+        @* Workspaces - Collapsible with Virtual List *@
+        @if (WorkspaceState.Value.Workspaces.Any())
+        {
+            <div class="mb-6">
+                <div @onclick="ToggleWorkspaces" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-all cursor-pointer mb-1">
+                    <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                    <span class="text-sm flex-1">Workspaces</span>
+                    <span class="text-xs bg-purple-500/20 text-purple-400 px-1.5 py-0.5 rounded">@WorkspaceState.Value.Workspaces.Count</span>
+                    <svg class="w-4 h-4 transition-transform @(workspacesExpanded ? "rotate-180" : "")"
+                         fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
+
+                @if (workspacesExpanded)
+                {
+                    <div class="ml-3 mt-1 space-y-0.5 max-h-[200px] overflow-y-auto">
+                        @foreach (var workspace in WorkspaceState.Value.Workspaces.Values
+                            .OrderByDescending(w => w.IsPinned)
+                            .ThenByDescending(w => w.UpdatedAt)
+                            .Take(20))
+                        {
+                            <div class="group relative">
+                                <a href="@($"/workspaces/{workspace.Id}")"
+                                   class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-all cursor-pointer text-sm">
+                                    @if (workspace.IsPinned)
+                                    {
+                                        <svg class="w-3 h-3 text-purple-400" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M16 12V4h1.5v-2h-11v2H8v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
+                                        </svg>
+                                    }
+                                    else
+                                    {
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="12" r="3"/>
+                                        </svg>
+                                    }
+                                    <span class="flex-1 truncate text-xs">@workspace.Name</span>
+                                    <button @onclick="@(() => ToggleWorkspaceMenu(workspace.Id))" @onclick:stopPropagation="true"
+                                            data-kebab-button
+                                            class="opacity-0 group-hover:opacity-100 p-1 hover:bg-[#3A3A3A] rounded transition-opacity">
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="5" r="2"/>
+                                            <circle cx="12" cy="12" r="2"/>
+                                            <circle cx="12" cy="19" r="2"/>
+                                        </svg>
+                                    </button>
+                                </a>
+
+                                @* Workspace Kebab Menu *@
+                                @if (openWorkspaceMenuId == workspace.Id)
+                                {
+                                    <div class="absolute right-0 top-8 bg-[#242424] border border-[#2A2A2A] rounded-lg shadow-2xl py-1 z-50 min-w-[160px]"
+                                         data-kebab-menu
+                                         @onclick:stopPropagation="true">
+                                        <button @onclick="@(() => OpenWorkspace(workspace.Id))" class="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-300 hover:bg-[#2A2A2A] hover:text-white transition-all w-full text-left">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                <circle cx="12" cy="12" r="3"/>
+                                            </svg>
+                                            Open
+                                        </button>
+                                        <button @onclick="@(() => PinWorkspace(workspace.Id))" class="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-300 hover:bg-[#2A2A2A] hover:text-white transition-all w-full text-left">
+                                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M16 12V4h1.5v-2h-11v2H8v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
+                                            </svg>
+                                            @(workspace.IsPinned ? "Unpin" : "Pin")
+                                        </button>
+                                        <button @onclick="@(() => EditWorkspace(workspace.Id))" class="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-300 hover:bg-[#2A2A2A] hover:text-white transition-all w-full text-left">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                                            </svg>
+                                            Edit
+                                        </button>
+                                        <button @onclick="@(() => ArchiveWorkspace(workspace.Id))" class="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-300 hover:bg-[#2A2A2A] hover:text-white transition-all w-full text-left">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <polyline points="21 8 21 21 3 21 3 8"/>
+                                                <rect x="1" y="3" width="22" height="5"/>
+                                                <line x1="10" y1="12" x2="14" y2="12"/>
+                                            </svg>
+                                            @(workspace.IsArchived ? "Unarchive" : "Archive")
+                                        </button>
+                                        <div class="h-px bg-[#2A2A2A] my-1"></div>
+                                        <button @onclick="@(() => DeleteWorkspace(workspace.Id))" class="flex items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-[#2A2A2A] hover:text-red-300 transition-all w-full text-left">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <polyline points="3 6 5 6 21 6"/>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                            </svg>
+                                            Delete
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @* Knowledge - Collapsible with Virtual List *@
+        @if (KnowledgeState.Value.KnowledgeItems.Any())
+        {
+            <div class="mb-6">
+                <div @onclick="ToggleKnowledge" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-all cursor-pointer mb-1">
+                    <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                    </svg>
+                    <span class="text-sm flex-1">Knowledge</span>
+                    <span class="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">@KnowledgeState.Value.KnowledgeItems.Count</span>
+                    <svg class="w-4 h-4 transition-transform @(knowledgeExpanded ? "rotate-180" : "")"
+                         fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
+
+                @if (knowledgeExpanded)
+                {
+                    <div class="ml-3 mt-1 space-y-0.5 max-h-[200px] overflow-y-auto">
+                        @foreach (var item in KnowledgeState.Value.KnowledgeItems.Values
+                            .OrderByDescending(k => k.IsPinned)
+                            .ThenByDescending(k => k.UpdatedAt)
+                            .Take(20))
+                        {
+                            <div class="group relative">
+                                <a href="@($"/knowledge/{item.Id}")"
+                                   class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-all cursor-pointer text-sm">
+                                    @if (item.IsPinned)
+                                    {
+                                        <svg class="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M16 12V4h1.5v-2h-11v2H8v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
+                                        </svg>
+                                    }
+                                    else
+                                    {
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                                        </svg>
+                                    }
+                                    <span class="flex-1 truncate text-xs">@item.Title</span>
+                                    <button @onclick="@(() => ToggleKnowledgeMenu(item.Id))" @onclick:stopPropagation="true"
+                                            data-kebab-button
+                                            class="opacity-0 group-hover:opacity-100 p-1 hover:bg-[#3A3A3A] rounded transition-opacity">
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="5" r="2"/>
+                                            <circle cx="12" cy="12" r="2"/>
+                                            <circle cx="12" cy="19" r="2"/>
+                                        </svg>
+                                    </button>
+                                </a>
+
+                                @* Knowledge Kebab Menu *@
+                                @if (openKnowledgeMenuId == item.Id)
+                                {
+                                    <div class="absolute right-0 top-8 bg-[#242424] border border-[#2A2A2A] rounded-lg shadow-2xl py-1 z-50 min-w-[160px]"
+                                         data-kebab-menu
+                                         @onclick:stopPropagation="true">
+                                        <button @onclick="@(() => ViewKnowledge(item.Id))" class="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-300 hover:bg-[#2A2A2A] hover:text-white transition-all w-full text-left">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                <circle cx="12" cy="12" r="3"/>
+                                            </svg>
+                                            View
+                                        </button>
+                                        <button @onclick="@(() => PinKnowledge(item.Id))" class="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-300 hover:bg-[#2A2A2A] hover:text-white transition-all w-full text-left">
+                                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                                <path d="M16 12V4h1.5v-2h-11v2H8v8l-2 2v2h5v6h2v-6h5v-2l-2-2z"/>
+                                            </svg>
+                                            @(item.IsPinned ? "Unpin" : "Pin")
+                                        </button>
+                                        <button @onclick="@(() => EditKnowledge(item.Id))" class="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-300 hover:bg-[#2A2A2A] hover:text-white transition-all w-full text-left">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                                            </svg>
+                                            Edit
+                                        </button>
+                                        <button @onclick="@(() => ShareKnowledge(item.Id))" class="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-300 hover:bg-[#2A2A2A] hover:text-white transition-all w-full text-left">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <circle cx="18" cy="5" r="3"/>
+                                                <circle cx="6" cy="12" r="3"/>
+                                                <circle cx="18" cy="19" r="3"/>
+                                                <path d="m8.59 13.51 6.83 3.98m-.01-10.98-6.82 3.98"/>
+                                            </svg>
+                                            Share
+                                        </button>
+                                        <div class="h-px bg-[#2A2A2A] my-1"></div>
+                                        <button @onclick="@(() => DeleteKnowledge(item.Id))" class="flex items-center gap-2 px-3 py-1.5 text-xs text-red-400 hover:bg-[#2A2A2A] hover:text-red-300 transition-all w-full text-left">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <polyline points="3 6 5 6 21 6"/>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                            </svg>
+                                            Delete
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
 
         @* Projects - Collapsible *@
         <div class="mb-6">
@@ -105,24 +310,90 @@
             }
         </div>
 
-        @* Recent Conversations *@
+        @* Recent Conversations - Virtual List with Kebab Menu *@
         @if (ChatState.Value.Conversations.Any())
         {
             <div class="mb-6">
-                <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-3">Recent</div>
-                @foreach (var conversation in ChatState.Value.Conversations.Values
-                    .Where(c => !c.IsArchived)
-                    .OrderByDescending(c => c.UpdatedAt)
-                    .Take(10))
-                {
-                    <a href="@($"/chat/{conversation.Id}")"
-                       class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-all cursor-pointer mb-1">
-                        <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                        </svg>
-                        <span class="text-sm truncate">@(conversation.Title.Length > 30 ? conversation.Title.Substring(0, 30) + "..." : conversation.Title)</span>
-                    </a>
-                }
+                <div class="flex items-center justify-between mb-2 px-3">
+                    <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Recent Chats</div>
+                    <span class="text-xs bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">
+                        @ChatState.Value.Conversations.Values.Count(c => !c.IsArchived)
+                    </span>
+                </div>
+
+                <div class="space-y-0.5 max-h-[300px] overflow-y-auto">
+                    @foreach (var conversation in ChatState.Value.Conversations.Values
+                        .Where(c => !c.IsArchived)
+                        .OrderByDescending(c => c.UpdatedAt)
+                        .Take(20))
+                    {
+                        <div class="group relative">
+                            <a href="@($"/chat/{conversation.Id}")"
+                               class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-all cursor-pointer">
+                                <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                <span class="text-sm truncate flex-1">@(conversation.Title.Length > 25 ? conversation.Title.Substring(0, 25) + "..." : conversation.Title)</span>
+                                <button @onclick="@(() => ToggleChatMenu(conversation.Id))" @onclick:stopPropagation="true"
+                                        data-kebab-button
+                                        class="opacity-0 group-hover:opacity-100 p-1 hover:bg-[#3A3A3A] rounded transition-opacity">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                        <circle cx="12" cy="5" r="2"/>
+                                        <circle cx="12" cy="12" r="2"/>
+                                        <circle cx="12" cy="19" r="2"/>
+                                    </svg>
+                                </button>
+                            </a>
+
+                            @* Chat Kebab Menu *@
+                            @if (openChatMenuId == conversation.Id)
+                            {
+                                <div class="absolute right-0 top-10 bg-[#242424] border border-[#2A2A2A] rounded-lg shadow-2xl py-1 z-50 min-w-[160px]"
+                                     data-kebab-menu
+                                     @onclick:stopPropagation="true">
+                                    <button @onclick="@(() => OpenChat(conversation.Id))" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2A2A2A] hover:text-white transition-all w-full text-left">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                        </svg>
+                                        Open
+                                    </button>
+                                    <button @onclick="@(() => RenameChat(conversation.Id))" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2A2A2A] hover:text-white transition-all w-full text-left">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                                        </svg>
+                                        Rename
+                                    </button>
+                                    <button @onclick="@(() => ShareChat(conversation.Id))" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2A2A2A] hover:text-white transition-all w-full text-left">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <circle cx="18" cy="5" r="3"/>
+                                            <circle cx="6" cy="12" r="3"/>
+                                            <circle cx="18" cy="19" r="3"/>
+                                            <path d="m8.59 13.51 6.83 3.98m-.01-10.98-6.82 3.98"/>
+                                        </svg>
+                                        Share
+                                    </button>
+                                    <button @onclick="@(() => ArchiveChat(conversation.Id))" class="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-[#2A2A2A] hover:text-white transition-all w-full text-left">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <polyline points="21 8 21 21 3 21 3 8"/>
+                                            <rect x="1" y="3" width="22" height="5"/>
+                                            <line x1="10" y1="12" x2="14" y2="12"/>
+                                        </svg>
+                                        Archive
+                                    </button>
+                                    <div class="h-px bg-[#2A2A2A] my-1"></div>
+                                    <button @onclick="@(() => DeleteChat(conversation.Id))" class="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-[#2A2A2A] hover:text-red-300 transition-all w-full text-left">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <polyline points="3 6 5 6 21 6"/>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                        </svg>
+                                        Delete
+                                    </button>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
             </div>
         }
     </div>
@@ -191,6 +462,46 @@
 @code {
     private bool projectsExpanded = false;
     private bool userMenuOpen = false;
+    private bool workspacesExpanded = false;
+    private bool knowledgeExpanded = false;
+
+    // Menu state for kebab menus
+    private Guid? openChatMenuId = null;
+    private Guid? openWorkspaceMenuId = null;
+    private Guid? openKnowledgeMenuId = null;
+
+    private DotNetObjectReference<Sidebar>? dotNetHelper;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                dotNetHelper = DotNetObjectReference.Create(this);
+                await JSRuntime.InvokeVoidAsync("sidebarHelper.initializeClickOutside", dotNetHelper);
+                await JSRuntime.InvokeVoidAsync("sidebarHelper.initializeEscapeKey", dotNetHelper);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing sidebar JS: {ex.Message}");
+            }
+        }
+    }
+
+    [JSInvokable]
+    public void CloseAllMenus()
+    {
+        openChatMenuId = null;
+        openWorkspaceMenuId = null;
+        openKnowledgeMenuId = null;
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        dotNetHelper?.Dispose();
+    }
 
     private void ToggleProjects()
     {
@@ -200,5 +511,135 @@
     private void ToggleUserMenu()
     {
         userMenuOpen = !userMenuOpen;
+    }
+
+    private void ToggleWorkspaces()
+    {
+        workspacesExpanded = !workspacesExpanded;
+    }
+
+    private void ToggleKnowledge()
+    {
+        knowledgeExpanded = !knowledgeExpanded;
+    }
+
+    // Chat menu handlers
+    private void ToggleChatMenu(Guid chatId)
+    {
+        openChatMenuId = openChatMenuId == chatId ? null : chatId;
+    }
+
+    private void OpenChat(Guid chatId)
+    {
+        Navigation.NavigateTo($"/chat/{chatId}");
+        openChatMenuId = null;
+    }
+
+    private void RenameChat(Guid chatId)
+    {
+        // TODO: Implement rename dialog
+        Console.WriteLine($"Rename chat: {chatId}");
+        openChatMenuId = null;
+    }
+
+    private void ShareChat(Guid chatId)
+    {
+        // TODO: Implement share dialog
+        Console.WriteLine($"Share chat: {chatId}");
+        openChatMenuId = null;
+    }
+
+    private void ArchiveChat(Guid chatId)
+    {
+        // TODO: Dispatch archive action
+        Console.WriteLine($"Archive chat: {chatId}");
+        openChatMenuId = null;
+    }
+
+    private void DeleteChat(Guid chatId)
+    {
+        // TODO: Implement delete confirmation
+        Console.WriteLine($"Delete chat: {chatId}");
+        openChatMenuId = null;
+    }
+
+    // Workspace menu handlers
+    private void ToggleWorkspaceMenu(Guid workspaceId)
+    {
+        openWorkspaceMenuId = openWorkspaceMenuId == workspaceId ? null : workspaceId;
+    }
+
+    private void OpenWorkspace(Guid workspaceId)
+    {
+        Navigation.NavigateTo($"/workspaces/{workspaceId}");
+        openWorkspaceMenuId = null;
+    }
+
+    private void PinWorkspace(Guid workspaceId)
+    {
+        // TODO: Dispatch pin/unpin action
+        Console.WriteLine($"Pin/Unpin workspace: {workspaceId}");
+        openWorkspaceMenuId = null;
+    }
+
+    private void EditWorkspace(Guid workspaceId)
+    {
+        // TODO: Implement edit dialog
+        Console.WriteLine($"Edit workspace: {workspaceId}");
+        openWorkspaceMenuId = null;
+    }
+
+    private void ArchiveWorkspace(Guid workspaceId)
+    {
+        // TODO: Dispatch archive action
+        Console.WriteLine($"Archive workspace: {workspaceId}");
+        openWorkspaceMenuId = null;
+    }
+
+    private void DeleteWorkspace(Guid workspaceId)
+    {
+        // TODO: Implement delete confirmation
+        Console.WriteLine($"Delete workspace: {workspaceId}");
+        openWorkspaceMenuId = null;
+    }
+
+    // Knowledge menu handlers
+    private void ToggleKnowledgeMenu(Guid knowledgeId)
+    {
+        openKnowledgeMenuId = openKnowledgeMenuId == knowledgeId ? null : knowledgeId;
+    }
+
+    private void ViewKnowledge(Guid knowledgeId)
+    {
+        Navigation.NavigateTo($"/knowledge/{knowledgeId}");
+        openKnowledgeMenuId = null;
+    }
+
+    private void PinKnowledge(Guid knowledgeId)
+    {
+        // TODO: Dispatch pin/unpin action
+        Console.WriteLine($"Pin/Unpin knowledge: {knowledgeId}");
+        openKnowledgeMenuId = null;
+    }
+
+    private void EditKnowledge(Guid knowledgeId)
+    {
+        // TODO: Implement edit dialog
+        Console.WriteLine($"Edit knowledge: {knowledgeId}");
+        openKnowledgeMenuId = null;
+    }
+
+    private void ShareKnowledge(Guid knowledgeId)
+    {
+        // TODO: Implement share dialog
+        Console.WriteLine($"Share knowledge: {knowledgeId}");
+        openKnowledgeMenuId = null;
+    }
+
+    private void DeleteKnowledge(Guid knowledgeId)
+    {
+        // TODO: Implement delete confirmation
+        Console.WriteLine($"Delete knowledge: {knowledgeId}");
+        openKnowledgeMenuId = null;
     }
 }
