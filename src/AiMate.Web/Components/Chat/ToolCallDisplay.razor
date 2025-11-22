@@ -1,0 +1,195 @@
+@using AiMate.Core.Entities
+@using System.Text.Json
+
+<div class="@GetContainerClass() group/tool">
+    <div class="flex items-start gap-3">
+        @* Tool Icon *@
+        <div class="flex-shrink-0 mt-0.5">
+            <div class="@GetIconClass()">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    @switch (GetToolCategory())
+                    {
+                        case "code":
+                            <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
+                            break;
+                        case "search":
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.35-4.35"/>
+                            break;
+                        case "file":
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                            <polyline points="13 2 13 9 20 9"/>
+                            break;
+                        default:
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                            break;
+                    }
+                </svg>
+            </div>
+        </div>
+
+        @* Tool Info *@
+        <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+                <span class="text-xs font-semibold text-gray-300">@ToolCall.ToolName</span>
+                <span class="@GetStatusBadgeClass()">
+                    @ToolCall.Status
+                </span>
+                @if (ToolCall.CompletedAt.HasValue)
+                {
+                    var duration = (ToolCall.CompletedAt.Value - ToolCall.CalledAt).TotalMilliseconds;
+                    <span class="text-xs text-gray-500">
+                        @duration.ToString("0")ms
+                    </span>
+                }
+            </div>
+
+            @* Collapsed View *@
+            @if (!isExpanded)
+            {
+                <div class="text-xs text-gray-400 truncate">
+                    @GetSummary()
+                </div>
+            }
+
+            @* Expanded View *@
+            @if (isExpanded)
+            {
+                <div class="mt-3 space-y-2">
+                    @* Arguments *@
+                    @if (!string.IsNullOrWhiteSpace(ToolCall.ArgumentsJson))
+                    {
+                        <div class="space-y-1">
+                            <div class="text-xs font-medium text-gray-400">Arguments:</div>
+                            <div class="bg-[#1A1A1A] rounded-lg p-3 overflow-x-auto">
+                                <pre class="text-xs text-gray-300 font-mono">@FormatJson(ToolCall.ArgumentsJson)</pre>
+                            </div>
+                        </div>
+                    }
+
+                    @* Result *@
+                    @if (!string.IsNullOrWhiteSpace(ToolCall.ResultJson))
+                    {
+                        <div class="space-y-1">
+                            <div class="text-xs font-medium text-gray-400">Result:</div>
+                            <div class="bg-[#1A1A1A] rounded-lg p-3 overflow-x-auto">
+                                <pre class="text-xs text-gray-300 font-mono">@FormatJson(ToolCall.ResultJson)</pre>
+                            </div>
+                        </div>
+                    }
+
+                    @* Error *@
+                    @if (!string.IsNullOrWhiteSpace(ToolCall.ErrorMessage))
+                    {
+                        <div class="space-y-1">
+                            <div class="text-xs font-medium text-red-400">Error:</div>
+                            <div class="bg-red-950/30 border border-red-900/30 rounded-lg p-3">
+                                <pre class="text-xs text-red-300 font-mono whitespace-pre-wrap">@ToolCall.ErrorMessage</pre>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        @* Expand/Collapse Button *@
+        <button @onclick="ToggleExpanded"
+                class="flex-shrink-0 p-1.5 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all opacity-0 group-hover/tool:opacity-100"
+                title="@(isExpanded ? "Collapse" : "Expand")">
+            <svg class="w-4 h-4 transition-transform @(isExpanded ? "rotate-180" : "")"
+                 fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <polyline points="6 9 12 15 18 9"/>
+            </svg>
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public required ToolCall ToolCall { get; set; }
+
+    private bool isExpanded = false;
+
+    private void ToggleExpanded()
+    {
+        isExpanded = !isExpanded;
+    }
+
+    private string GetContainerClass()
+    {
+        return ToolCall.Status switch
+        {
+            "success" => "border-l-2 border-green-500/50 bg-green-950/10 rounded-lg pl-3 pr-2 py-2",
+            "error" => "border-l-2 border-red-500/50 bg-red-950/10 rounded-lg pl-3 pr-2 py-2",
+            _ => "border-l-2 border-yellow-500/50 bg-yellow-950/10 rounded-lg pl-3 pr-2 py-2"
+        };
+    }
+
+    private string GetIconClass()
+    {
+        return ToolCall.Status switch
+        {
+            "success" => "w-7 h-7 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center",
+            "error" => "w-7 h-7 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center",
+            _ => "w-7 h-7 rounded-lg bg-yellow-500/20 text-yellow-400 flex items-center justify-center animate-pulse"
+        };
+    }
+
+    private string GetStatusBadgeClass()
+    {
+        return ToolCall.Status switch
+        {
+            "success" => "px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full font-medium",
+            "error" => "px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded-full font-medium",
+            _ => "px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded-full font-medium"
+        };
+    }
+
+    private string GetToolCategory()
+    {
+        var toolName = ToolCall.ToolName.ToLowerInvariant();
+        if (toolName.Contains("code") || toolName.Contains("execute") || toolName.Contains("run"))
+            return "code";
+        if (toolName.Contains("search") || toolName.Contains("query") || toolName.Contains("find"))
+            return "search";
+        if (toolName.Contains("file") || toolName.Contains("read") || toolName.Contains("write"))
+            return "file";
+        return "default";
+    }
+
+    private string GetSummary()
+    {
+        if (!string.IsNullOrWhiteSpace(ToolCall.ResultJson))
+        {
+            try
+            {
+                var result = JsonSerializer.Deserialize<JsonElement>(ToolCall.ResultJson);
+                if (result.ValueKind == JsonValueKind.String)
+                    return result.GetString() ?? "Completed";
+                return "View result";
+            }
+            catch
+            {
+                return "View result";
+            }
+        }
+        return ToolCall.Status == "pending" ? "Running..." : "No output";
+    }
+
+    private string FormatJson(string json)
+    {
+        try
+        {
+            var obj = JsonSerializer.Deserialize<JsonElement>(json);
+            return JsonSerializer.Serialize(obj, new JsonSerializerOptions
+            {
+                WriteIndented = true
+            });
+        }
+        catch
+        {
+            return json;
+        }
+    }
+}
