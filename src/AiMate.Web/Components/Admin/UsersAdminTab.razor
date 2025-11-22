@@ -1,47 +1,239 @@
-@using Fluxor
-@using AiMate.Web.Store.Admin
-@inherits Fluxor.Blazor.Web.Components.FluxorComponent
-@inject IState<AdminState> AdminState
+@* Mobile-first users management tab *@
 
-<MudStack Spacing="3">
-    <MudText Typo="Typo.h6">User Management</MudText>
-    <MudDivider />
+<div class="space-y-4 md:space-y-6">
 
-    <MudAlert Severity="Severity.Warning">
-        <MudStack Spacing="2">
-            <MudText Typo="Typo.subtitle2">Multi-User Mode Not Enabled</MudText>
-            <MudText Typo="Typo.body2">
-                aiMate is currently running in single-user mode. Enable multi-user support to:
-            </MudText>
-            <ul style="margin: 0; padding-left: 20px;">
-                <li>Create and manage user accounts</li>
-                <li>Set user permissions and quotas</li>
-                <li>Track usage per user</li>
-                <li>Enable authentication</li>
-            </ul>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="true">
-                Enable Multi-User Mode
-            </MudButton>
-            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                Requires backend server configuration
-            </MudText>
-        </MudStack>
-    </MudAlert>
+    @* Header with Actions - Responsive *@
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h3 class="text-base md:text-lg font-semibold text-white">Users & Groups</h3>
+            <p class="text-xs md:text-sm text-gray-400 mt-1">Manage user accounts and permissions</p>
+        </div>
+        <button @onclick="OpenAddUserModal"
+                class="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <span>Add User</span>
+        </button>
+    </div>
 
-    <MudDivider Class="my-4" />
+    @* Search and Filters - Mobile responsive *@
+    <div class="flex flex-col sm:flex-row gap-3">
+        <div class="flex-1 relative">
+            <input type="text"
+                   @bind="searchQuery"
+                   placeholder="Search users..."
+                   class="w-full pl-10 pr-4 py-2 md:py-2.5 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <svg class="w-4 h-4 md:w-5 md:h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+            </svg>
+        </div>
+        <select class="px-4 py-2 md:py-2.5 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+            <option>All Roles</option>
+            <option>Admin</option>
+            <option>User</option>
+            <option>Guest</option>
+        </select>
+    </div>
 
-    <MudText Typo="Typo.subtitle1">Current User</MudText>
-    <MudPaper Class="pa-4" Elevation="2">
-        <MudStack Spacing="2">
-            <MudText Typo="Typo.body1"><strong>Mode:</strong> Single-user (local)</MudText>
-            <MudText Typo="Typo.body1"><strong>Tier:</strong> Free</MudText>
-            <MudText Typo="Typo.body1"><strong>Conversations:</strong> @AdminState.Value.TotalConversations</MudText>
-            <MudText Typo="Typo.body1"><strong>Storage Used:</strong> @AdminState.Value.StorageUsedMB.ToString("F1") MB</MudText>
-        </MudStack>
-    </MudPaper>
+    @* Users Table - Mobile: Cards, Desktop: Table *@
+    <div class="hidden md:block overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-[#0F0F0F] border-b border-[#2A2A2A]">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">User</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Email</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Role</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Joined</th>
+                    <th class="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-[#2A2A2A]">
+                @foreach (var user in users)
+                {
+                    <tr class="hover:bg-[#0F0F0F] transition-colors">
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-sm font-medium text-white">
+                                    @user.Name.Substring(0, 1)
+                                </div>
+                                <span class="text-white font-medium">@user.Name</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-gray-300">@user.Email</td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs font-medium rounded">
+                                @user.Role
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="px-2 py-1 @(user.IsActive ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-400") text-xs font-medium rounded">
+                                @(user.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-gray-400">@user.JoinedDate.ToString("MMM dd, yyyy")</td>
+                        <td class="px-4 py-3 text-right">
+                            <button @onclick="@(() => OpenEditUserModal(user))"
+                                    class="p-2 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all"
+                                    title="Edit">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 
-    <MudText Typo="Typo.caption" Color="Color.Info" Class="mt-4">
-        🇳🇿 <strong>True Open Source:</strong> No gatekeeping, no "benefactors" model. All tiers get full access to the codebase.
-        Pay if you can, use free if you can't.
-    </MudText>
-</MudStack>
+    @* Mobile Card View *@
+    <div class="md:hidden space-y-3">
+        @foreach (var user in users)
+        {
+            <div class="p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-sm font-medium text-white">
+                            @user.Name.Substring(0, 1)
+                        </div>
+                        <div>
+                            <div class="text-white font-medium text-sm">@user.Name</div>
+                            <div class="text-gray-400 text-xs">@user.Email</div>
+                        </div>
+                    </div>
+                    <button @onclick="@(() => OpenEditUserModal(user))"
+                            class="p-2 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs font-medium rounded">
+                        @user.Role
+                    </span>
+                    <span class="px-2 py-1 @(user.IsActive ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-400") text-xs font-medium rounded">
+                        @(user.IsActive ? "Active" : "Inactive")
+                    </span>
+                    <span class="text-gray-400 text-xs ml-auto">Joined @user.JoinedDate.ToString("MMM dd, yyyy")</span>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@* Add/Edit User Modal *@
+@if (showUserModal)
+{
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+         @onclick="CloseUserModal">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl shadow-2xl w-full max-w-md"
+             @onclick:stopPropagation="true">
+            <div class="px-6 py-4 border-b border-[#2A2A2A]">
+                <h3 class="text-lg font-semibold text-white">@(isEditMode ? "Edit User" : "Add New User")</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                    <input type="text"
+                           @bind="editingUser.Name"
+                           class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                           placeholder="John Doe">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                    <input type="email"
+                           @bind="editingUser.Email"
+                           class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                           placeholder="john@example.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Role</label>
+                    <select @bind="editingUser.Role"
+                            class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <option value="Admin">Admin</option>
+                        <option value="User">User</option>
+                        <option value="Guest">Guest</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-300">Active</label>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" @bind="editingUser.IsActive" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-[#2A2A2A] flex gap-3">
+                <button @onclick="CloseUserModal"
+                        class="flex-1 px-4 py-2 bg-[#0F0F0F] hover:bg-[#2A2A2A] text-gray-300 rounded-lg transition-all">
+                    Cancel
+                </button>
+                <button @onclick="HandleSaveUser"
+                        class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string searchQuery = string.Empty;
+    private bool showUserModal = false;
+    private bool isEditMode = false;
+    private UserModel editingUser = new();
+
+    private List<UserModel> users = new()
+    {
+        new UserModel { Id = "1", Name = "John Doe", Email = "john@example.com", Role = "Admin", IsActive = true, JoinedDate = DateTime.UtcNow.AddDays(-30) },
+        new UserModel { Id = "2", Name = "Jane Smith", Email = "jane@example.com", Role = "User", IsActive = true, JoinedDate = DateTime.UtcNow.AddDays(-15) },
+        new UserModel { Id = "3", Name = "Bob Johnson", Email = "bob@example.com", Role = "User", IsActive = false, JoinedDate = DateTime.UtcNow.AddDays(-60) },
+    };
+
+    private void OpenAddUserModal()
+    {
+        isEditMode = false;
+        editingUser = new UserModel { IsActive = true };
+        showUserModal = true;
+    }
+
+    private void OpenEditUserModal(UserModel user)
+    {
+        isEditMode = true;
+        editingUser = new UserModel
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            Role = user.Role,
+            IsActive = user.IsActive
+        };
+        showUserModal = true;
+    }
+
+    private void CloseUserModal()
+    {
+        showUserModal = false;
+    }
+
+    private async Task HandleSaveUser()
+    {
+        // TODO: Save user
+        CloseUserModal();
+        await Task.CompletedTask;
+    }
+
+    public class UserModel
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Role { get; set; } = "User";
+        public bool IsActive { get; set; }
+        public DateTime JoinedDate { get; set; }
+    }
+}
