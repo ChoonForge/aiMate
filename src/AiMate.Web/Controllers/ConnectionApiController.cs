@@ -1,3 +1,4 @@
+using AiMate.Core.Entities;
 using AiMate.Core.Enums;
 using AiMate.Core.Services;
 using AiMate.Shared.Models;
@@ -14,13 +15,16 @@ namespace AiMate.Web.Controllers;
 [Authorize(Policy = "CanAddOwnKeys")] // Requires BYOK permission to manage connections
 public class ConnectionApiController : ControllerBase
 {
+    private readonly IConnectionService _connectionService;
     private readonly IPermissionService _permissionService;
     private readonly ILogger<ConnectionApiController> _logger;
 
     public ConnectionApiController(
+        IConnectionService connectionService,
         IPermissionService permissionService,
         ILogger<ConnectionApiController> logger)
     {
+        _connectionService = connectionService;
         _permissionService = permissionService;
         _logger = logger;
     }
@@ -46,27 +50,15 @@ public class ConnectionApiController : ControllerBase
                 return Ok(new List<ProviderConnectionDto>());
             }
 
-            // IMPLEMENTATION NEEDED: Get from database
-            // For now, return mock data
-            var connections = new List<ProviderConnectionDto>
+            if (!Guid.TryParse(userId, out var userGuid))
             {
-                new()
-                {
-                    Id = "conn-1",
-                    Name = "My OpenAI Connection",
-                    Type = "Cloud",
-                    Url = "https://api.openai.com/v1",
-                    Auth = "ApiKey",
-                    ProviderType = "OpenAI",
-                    ModelIds = new List<string> { "gpt-4", "gpt-3.5-turbo" },
-                    Tags = new List<string> { "production", "main" },
-                    IsEnabled = true,
-                    OwnerId = userId,
-                    Visibility = "Private"
-                }
-            };
+                return BadRequest("Invalid user ID");
+            }
 
-            return Ok(connections);
+            var connections = await _connectionService.GetUserConnectionsAsync(userGuid);
+            var connectionDtos = connections.Select(MapToDto).ToList();
+
+            return Ok(connectionDtos);
         }
         catch (Exception ex)
         {
@@ -90,21 +82,25 @@ public class ConnectionApiController : ControllerBase
 
             _logger.LogInformation("Getting connection {ConnectionId} for user {UserId}", id, userId);
 
-            // IMPLEMENTATION NEEDED: Get from database
-            var connection = new ProviderConnectionDto
+            if (!Guid.TryParse(id, out var connectionGuid))
             {
-                Id = id,
-                Name = "My OpenAI Connection",
-                OwnerId = userId
-            };
+                return BadRequest("Invalid connection ID");
+            }
+
+            var connection = await _connectionService.GetConnectionByIdAsync(connectionGuid);
+
+            if (connection == null)
+            {
+                return NotFound($"Connection {id} not found");
+            }
 
             // Check permissions
-            if (!_permissionService.CanManageConnection(userId, connection.OwnerId ?? string.Empty, tier))
+            if (!_permissionService.CanManageConnection(userId, connection.OwnerId.ToString(), tier))
             {
                 return Forbid("You don't have permission to access this connection");
             }
 
-            return Ok(connection);
+            return Ok(MapToDto(connection));
         }
         catch (Exception ex)
         {
@@ -143,9 +139,14 @@ public class ConnectionApiController : ControllerBase
                 return Forbid("You don't have permission to add connections");
             }
 
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return BadRequest("Invalid user ID");
+            }
+
             // Check connection limit
-            // IMPLEMENTATION NEEDED: Get current connection count from database
-            var currentCount = 0;
+            var userConnections = await _connectionService.GetUserConnectionsAsync(userGuid);
+            var currentCount = userConnections.Count;
             var maxConnections = _permissionService.GetMaxConnectionsForTier(tier);
 
             if (currentCount >= maxConnections)
@@ -176,15 +177,13 @@ public class ConnectionApiController : ControllerBase
                 return Forbid("Only admins can create organization or public connections");
             }
 
-            // Set owner
-            connection.OwnerId = userId;
-            connection.Id = Guid.NewGuid().ToString();
+            // Create entity from DTO
+            var entity = MapToEntity(connection, userGuid);
+            var created = await _connectionService.CreateConnectionAsync(entity);
 
-            // IMPLEMENTATION NEEDED: Save to database
+            _logger.LogInformation("Created connection {ConnectionId} for user {UserId}", created.Id, userId);
 
-            _logger.LogInformation("Created connection {ConnectionId} for user {UserId}", connection.Id, userId);
-
-            return CreatedAtAction(nameof(GetConnection), new { id = connection.Id, userId, tierStr }, connection);
+            return CreatedAtAction(nameof(GetConnection), new { id = created.Id.ToString(), userId, tierStr }, MapToDto(created));
         }
         catch (Exception ex)
         {
@@ -212,29 +211,44 @@ public class ConnectionApiController : ControllerBase
 
             _logger.LogInformation("Updating connection {ConnectionId} for user {UserId}", id, userId);
 
-            // IMPLEMENTATION NEEDED: Get existing connection from database
-            var existingConnection = new ProviderConnectionDto { Id = id, OwnerId = userId };
+            if (!Guid.TryParse(id, out var connectionGuid))
+            {
+                return BadRequest("Invalid connection ID");
+            }
+
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return BadRequest("Invalid user ID");
+            }
+
+            var existingConnection = await _connectionService.GetConnectionByIdAsync(connectionGuid);
+
+            if (existingConnection == null)
+            {
+                return NotFound($"Connection {id} not found");
+            }
 
             // Check permissions
-            if (!_permissionService.CanManageConnection(userId, existingConnection.OwnerId ?? string.Empty, tier))
+            if (!_permissionService.CanManageConnection(userId, existingConnection.OwnerId.ToString(), tier))
             {
                 return Forbid("You don't have permission to update this connection");
             }
 
             // Validate tier-specific updates
-            if (connection.Type != existingConnection.Type &&
+            var existingDto = MapToDto(existingConnection);
+            if (connection.Type != existingDto.Type &&
                 connection.Type == "Local" &&
                 !_permissionService.HasPermission(tier, UserPermission.AddCustomEndpoints))
             {
                 return Forbid("Custom endpoints require Developer tier or higher");
             }
 
-            connection.Id = id;
-            connection.OwnerId = existingConnection.OwnerId;
+            // Update entity from DTO
+            var entity = MapToEntity(connection, existingConnection.OwnerId);
+            entity.Id = connectionGuid; // Preserve original ID
+            var updated = await _connectionService.UpdateConnectionAsync(entity);
 
-            // IMPLEMENTATION NEEDED: Update in database
-
-            return Ok(connection);
+            return Ok(MapToDto(updated));
         }
         catch (Exception ex)
         {
@@ -258,16 +272,25 @@ public class ConnectionApiController : ControllerBase
 
             _logger.LogInformation("Deleting connection {ConnectionId} for user {UserId}", id, userId);
 
-            // IMPLEMENTATION NEEDED: Get connection from database
-            var connection = new ProviderConnectionDto { Id = id, OwnerId = userId };
+            if (!Guid.TryParse(id, out var connectionGuid))
+            {
+                return BadRequest("Invalid connection ID");
+            }
+
+            var connection = await _connectionService.GetConnectionByIdAsync(connectionGuid);
+
+            if (connection == null)
+            {
+                return NotFound($"Connection {id} not found");
+            }
 
             // Check permissions
-            if (!_permissionService.CanManageConnection(userId, connection.OwnerId ?? string.Empty, tier))
+            if (!_permissionService.CanManageConnection(userId, connection.OwnerId.ToString(), tier))
             {
                 return Forbid("You don't have permission to delete this connection");
             }
 
-            // IMPLEMENTATION NEEDED: Delete from database
+            await _connectionService.DeleteConnectionAsync(connectionGuid);
 
             return NoContent();
         }
@@ -288,30 +311,27 @@ public class ConnectionApiController : ControllerBase
         {
             _logger.LogInformation("Testing connection {ConnectionId}", id);
 
-            // IMPLEMENTATION NEEDED: Actually test the connection
-            await Task.Delay(1000); // Simulate API call
-
-            var isSuccess = new Random().Next(0, 2) == 1;
-
-            if (isSuccess)
+            if (!Guid.TryParse(id, out var connectionGuid))
             {
-                return Ok(new
-                {
-                    success = true,
-                    message = "Connection successful! API is responding.",
-                    modelCount = 12,
-                    latencyMs = 245
-                });
+                return BadRequest("Invalid connection ID");
             }
-            else
+
+            var connection = await _connectionService.GetConnectionByIdAsync(connectionGuid);
+
+            if (connection == null)
             {
-                return Ok(new
-                {
-                    success = false,
-                    message = "Connection failed: Invalid API key",
-                    error = "Authentication failed"
-                });
+                return NotFound($"Connection {id} not found");
             }
+
+            var (success, message) = await _connectionService.TestConnectionAsync(connection);
+
+            return Ok(new
+            {
+                success,
+                message,
+                modelCount = connection.AvailableModels.Count,
+                latencyMs = 0
+            });
         }
         catch (Exception ex)
         {
@@ -353,5 +373,61 @@ public class ConnectionApiController : ControllerBase
             _logger.LogError(ex, "Failed to get connection limits");
             return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to get limits", details = ex.Message }));
         }
+    }
+
+    // Helper method to map Connection entity to ProviderConnectionDto
+    private static ProviderConnectionDto MapToDto(Connection connection)
+    {
+        return new ProviderConnectionDto
+        {
+            Id = connection.Id.ToString(),
+            Name = connection.Name,
+            Type = connection.Type switch
+            {
+                ConnectionType.CustomOpenAI => "Local",
+                ConnectionType.OpenAI => "Cloud",
+                ConnectionType.Anthropic => "Cloud",
+                ConnectionType.Google => "Cloud",
+                ConnectionType.AzureOpenAI => "Cloud",
+                ConnectionType.MCP => "MCP",
+                _ => "Cloud"
+            },
+            Url = connection.BaseUrl ?? string.Empty,
+            Auth = "ApiKey",
+            ProviderType = connection.Type.ToString(),
+            ModelIds = connection.AvailableModels,
+            IsEnabled = connection.IsEnabled,
+            OwnerId = connection.OwnerId.ToString(),
+            Visibility = connection.Visibility.ToString(),
+            Tags = new List<string>()
+        };
+    }
+
+    // Helper method to map ProviderConnectionDto to Connection entity
+    private static Connection MapToEntity(ProviderConnectionDto dto, Guid ownerId)
+    {
+        return new Connection
+        {
+            Id = Guid.TryParse(dto.Id, out var id) ? id : Guid.NewGuid(),
+            Name = dto.Name ?? "Unnamed Connection",
+            Description = dto.Description,
+            Type = dto.ProviderType switch
+            {
+                "OpenAI" => ConnectionType.OpenAI,
+                "Anthropic" => ConnectionType.Anthropic,
+                "Google" => ConnectionType.Google,
+                "AzureOpenAI" => ConnectionType.AzureOpenAI,
+                "MCP" => ConnectionType.MCP,
+                _ when dto.Type == "Local" => ConnectionType.CustomOpenAI,
+                _ => ConnectionType.Other
+            },
+            OwnerId = ownerId,
+            BaseUrl = dto.Url,
+            EncryptedCredentials = dto.ApiKey, // Would need encryption in production
+            IsEnabled = dto.IsEnabled,
+            IsBYOK = true,
+            AvailableModels = dto.ModelIds ?? new List<string>(),
+            Visibility = Enum.TryParse<ConnectionVisibility>(dto.Visibility, out var vis) ? vis : ConnectionVisibility.Private
+        };
     }
 }
