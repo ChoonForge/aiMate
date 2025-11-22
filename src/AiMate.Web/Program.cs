@@ -105,6 +105,81 @@ builder.Services.AddRateLimiter(options =>
 
 Log.Information("Rate limiting configured");
 
+// Response Caching and Compression
+builder.Services.AddResponseCaching(options =>
+{
+    options.MaximumBodySize = 64 * 1024 * 1024; // 64MB max cached response
+    options.UseCaseSensitivePaths = false;
+    options.SizeLimit = 100 * 1024 * 1024; // 100MB total cache size
+});
+
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true; // Enable compression for HTTPS
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
+    options.MimeTypes = Microsoft.AspNetCore.ResponseCompression.ResponseCompressionDefaults.MimeTypes.Concat(
+        new[] { "application/json", "application/xml", "text/plain", "text/css", "text/html", "application/javascript" });
+});
+
+// Configure Brotli compression (best compression)
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest; // Balance speed and size
+});
+
+// Configure Gzip compression (fallback for older browsers)
+builder.Services.Configure<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest;
+});
+
+// Configure output caching (ASP.NET Core 9 feature - better than ResponseCaching)
+builder.Services.AddOutputCache(options =>
+{
+    // Default policy: cache for 60 seconds
+    options.AddBasePolicy(builder => builder
+        .Expire(TimeSpan.FromSeconds(60))
+        .Tag("default"));
+
+    // Policy for static API responses (user profiles, settings, etc.)
+    options.AddPolicy("static", builder => builder
+        .Expire(TimeSpan.FromMinutes(5))
+        .Tag("static")
+        .SetVaryByQuery("*"));
+
+    // Policy for search results (cache for 2 minutes)
+    options.AddPolicy("search", builder => builder
+        .Expire(TimeSpan.FromMinutes(2))
+        .Tag("search")
+        .SetVaryByQuery("query", "limit", "threshold"));
+
+    // Policy for knowledge base items (cache for 5 minutes)
+    options.AddPolicy("knowledge", builder => builder
+        .Expire(TimeSpan.FromMinutes(5))
+        .Tag("knowledge")
+        .SetVaryByQuery("*"));
+
+    // Policy for public content (cache for 30 minutes)
+    options.AddPolicy("public", builder => builder
+        .Expire(TimeSpan.FromMinutes(30))
+        .Tag("public")
+        .SetVaryByQuery("*"));
+
+    // Policy for analytics (cache for 1 minute - frequently changing data)
+    options.AddPolicy("analytics", builder => builder
+        .Expire(TimeSpan.FromMinutes(1))
+        .Tag("analytics")
+        .SetVaryByQuery("*"));
+
+    // No caching policy for dynamic content (chat completions, streaming, etc.)
+    options.AddPolicy("no-cache", builder => builder
+        .NoCache()
+        .Tag("no-cache"));
+});
+
+Log.Information("Response caching and compression configured");
+
 // JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? "aiMate-super-secret-key-change-in-production-minimum-32-characters-long";
@@ -315,6 +390,52 @@ else
         options.UseInMemoryDatabase("AiMateDb"));
 }
 
+// Hangfire Background Jobs
+// Note: Requires Hangfire.AspNetCore and Hangfire.PostgreSql (or Hangfire.InMemory) NuGet packages
+// Install with: dotnet add package Hangfire.AspNetCore
+//              dotnet add package Hangfire.PostgreSql (for production)
+//              dotnet add package Hangfire.InMemory (for development)
+try
+{
+    if (databaseProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+    {
+        var connectionString = builder.Configuration.GetConnectionString("PostgreSQL");
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            builder.Services.AddHangfire(config =>
+            {
+                config.UsePostgreSqlStorage(c =>
+                    c.UseNpgsqlConnection(connectionString));
+                config.UseSimpleAssemblyNameTypeSerializer();
+                config.UseRecommendedSerializerSettings();
+            });
+        }
+    }
+    else
+    {
+        // Use in-memory storage for development
+        builder.Services.AddHangfire(config =>
+        {
+            config.UseInMemoryStorage();
+            config.UseSimpleAssemblyNameTypeSerializer();
+            config.UseRecommendedSerializerSettings();
+        });
+    }
+
+    builder.Services.AddHangfireServer(options =>
+    {
+        options.WorkerCount = 2; // Number of background workers
+        options.Queues = new[] { "default", "high-priority" };
+    });
+
+    Log.Information("Hangfire background jobs configured");
+}
+catch (Exception ex)
+{
+    // Hangfire packages not installed yet - log warning but don't fail startup
+    Log.Warning(ex, "Hangfire not configured - background jobs disabled. Install Hangfire.AspNetCore package to enable.");
+}
+
 // Add HTTP client for general use
 builder.Services.AddHttpClient();
 
@@ -393,6 +514,21 @@ builder.Services.AddSingleton<AiMate.Core.Services.IEncryptionService, AiMate.In
 // Register Search Service (full-text and semantic search)
 builder.Services.AddScoped<AiMate.Core.Services.ISearchService, AiMate.Infrastructure.Services.SearchService>();
 
+// Register File Storage Service (local filesystem, can be swapped for Azure/S3)
+builder.Services.AddSingleton<AiMate.Core.Services.IFileStorageService, AiMate.Infrastructure.Services.LocalFileStorageService>();
+
+// Register Background Job Services (requires Hangfire packages)
+try
+{
+    builder.Services.AddSingleton<AiMate.Core.Services.IBackgroundJobService, AiMate.Infrastructure.Services.HangfireBackgroundJobService>();
+    builder.Services.AddScoped<AiMate.Core.Services.IBackgroundJobs, AiMate.Infrastructure.Services.BackgroundJobs>();
+    Log.Information("Background job services registered");
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Background job services not registered - Hangfire packages may not be installed");
+}
+
 // Register HttpClient for services that need it
 builder.Services.AddHttpClient<AiMate.Infrastructure.Services.LiteLLMService>();
 builder.Services.AddHttpClient<AiMate.Infrastructure.Services.OpenAIEmbeddingService>();
@@ -459,6 +595,10 @@ app.UseSwaggerUI(c =>
 Log.Information("Swagger UI enabled at /api/docs");
 
 app.UseHttpsRedirection();
+
+// Response compression (must be early in pipeline, before static files)
+app.UseResponseCompression();
+
 app.UseStaticFiles();
 app.UseAntiforgery();
 
@@ -471,6 +611,62 @@ app.UseRateLimiter();
 // Authentication and Authorization
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Output caching (after auth so we can cache per-user if needed)
+app.UseOutputCache();
+
+// Hangfire Dashboard (requires Hangfire packages)
+try
+{
+    app.UseHangfireDashboard("/hangfire", new Hangfire.DashboardOptions
+    {
+        Authorization = new[] { new HangfireAuthorizationFilter() },
+        DashboardTitle = "aiMate Background Jobs"
+    });
+
+    // Schedule recurring jobs
+    var jobService = app.Services.GetService<AiMate.Core.Services.IBackgroundJobService>();
+    var backgroundJobs = app.Services.CreateScope().ServiceProvider.GetService<AiMate.Core.Services.IBackgroundJobs>();
+
+    if (jobService != null && backgroundJobs != null)
+    {
+        // Clean up old error logs daily at 2 AM
+        jobService.AddOrUpdateRecurringJob(
+            "cleanup-old-errors",
+            () => backgroundJobs.CleanupOldErrorLogsAsync(),
+            Hangfire.Cron.Daily(2));
+
+        // Clean up old feedback monthly
+        jobService.AddOrUpdateRecurringJob(
+            "cleanup-old-feedback",
+            () => backgroundJobs.CleanupOldFeedbackAsync(),
+            Hangfire.Cron.Monthly(1, 3));
+
+        // Generate missing embeddings every hour
+        jobService.AddOrUpdateRecurringJob(
+            "generate-embeddings",
+            () => backgroundJobs.GenerateMissingEmbeddingsAsync(),
+            Hangfire.Cron.Hourly());
+
+        // Send daily summary email at 9 AM
+        jobService.AddOrUpdateRecurringJob(
+            "daily-summary-email",
+            () => backgroundJobs.SendDailySummaryEmailAsync(),
+            Hangfire.Cron.Daily(9));
+
+        // Clean up orphaned files weekly on Sundays at 4 AM
+        jobService.AddOrUpdateRecurringJob(
+            "cleanup-orphaned-files",
+            () => backgroundJobs.CleanupOrphanedFilesAsync(),
+            Hangfire.Cron.Weekly(DayOfWeek.Sunday, 4));
+
+        Log.Information("Hangfire recurring jobs scheduled");
+    }
+}
+catch (Exception ex)
+{
+    Log.Warning(ex, "Hangfire dashboard not configured - install Hangfire packages to enable");
+}
 
 app.MapRazorComponents<AiMate.Web.App>()
     .AddInteractiveServerRenderMode();

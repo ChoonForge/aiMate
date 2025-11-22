@@ -1,6 +1,7 @@
 using AiMate.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using System.Security.Claims;
 
 namespace AiMate.Web.Controllers;
@@ -39,6 +40,7 @@ public class SearchApiController : ControllerBase
     ///
     /// </remarks>
     [HttpGet("conversations")]
+    [OutputCache(PolicyName = "search")]
     [ProducesResponseType(typeof(SearchResults<Core.Entities.Conversation>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> SearchConversations(
@@ -78,6 +80,7 @@ public class SearchApiController : ControllerBase
     ///
     /// </remarks>
     [HttpGet("messages")]
+    [OutputCache(PolicyName = "search")]
     [ProducesResponseType(typeof(SearchResults<Core.Entities.Message>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> SearchMessages(
@@ -119,6 +122,7 @@ public class SearchApiController : ControllerBase
     ///
     /// </remarks>
     [HttpGet("knowledge/semantic")]
+    [OutputCache(PolicyName = "search")]
     [ProducesResponseType(typeof(SearchResults<Core.Entities.KnowledgeItem>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> SearchKnowledgeSemantic(
@@ -163,6 +167,7 @@ public class SearchApiController : ControllerBase
     ///
     /// </remarks>
     [HttpGet("knowledge")]
+    [OutputCache(PolicyName = "search")]
     [ProducesResponseType(typeof(SearchResults<Core.Entities.KnowledgeItem>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> SearchKnowledge(
@@ -214,6 +219,7 @@ public class SearchApiController : ControllerBase
     ///
     /// </remarks>
     [HttpGet]
+    [OutputCache(PolicyName = "search")]
     [ProducesResponseType(typeof(GlobalSearchResults), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> SearchGlobal(
