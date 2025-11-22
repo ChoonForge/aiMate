@@ -15,13 +15,16 @@ namespace AiMate.Web.Controllers;
 public class PluginApiController : ControllerBase
 {
     private readonly IPluginManager _pluginManager;
+    private readonly IPluginSettingsService _pluginSettingsService;
     private readonly ILogger<PluginApiController> _logger;
 
     public PluginApiController(
         IPluginManager pluginManager,
+        IPluginSettingsService pluginSettingsService,
         ILogger<PluginApiController> logger)
     {
         _pluginManager = pluginManager;
+        _pluginSettingsService = pluginSettingsService;
         _logger = logger;
     }
 
@@ -135,10 +138,10 @@ public class PluginApiController : ControllerBase
     }
 
     /// <summary>
-    /// Get plugin settings UI
+    /// Get plugin settings (UI schema and current values)
     /// </summary>
     [HttpGet("{id}/settings")]
-    public Task<IActionResult> GetPluginSettings(string id)
+    public async Task<IActionResult> GetPluginSettings(string id, [FromQuery] string? userId = null)
     {
         try
         {
@@ -147,26 +150,40 @@ public class PluginApiController : ControllerBase
             var plugin = _pluginManager.GetPlugin(id);
             if (plugin == null)
             {
-                return Task.FromResult<IActionResult>(NotFound(new { error = "Plugin not found", pluginId = id }));
+                return NotFound(new { error = "Plugin not found", pluginId = id });
             }
 
             if (plugin is not IUIExtension uiExtension)
             {
-                return Task.FromResult<IActionResult>(BadRequest(new { error = "Plugin does not support settings" }));
+                return BadRequest(new { error = "Plugin does not support settings" });
             }
 
-            var settings = uiExtension.GetSettingsUI();
-            if (settings == null)
+            var settingsUI = uiExtension.GetSettingsUI();
+            if (settingsUI == null)
             {
-                return Task.FromResult<IActionResult>(NotFound(new { error = "Plugin has no settings" }));
+                return NotFound(new { error = "Plugin has no settings" });
             }
 
-            return Task.FromResult<IActionResult>(Ok(settings));
+            // Parse userId if provided
+            Guid? userGuid = null;
+            if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var parsedUserId))
+            {
+                userGuid = parsedUserId;
+            }
+
+            // Load persisted settings values
+            var savedSettings = await _pluginSettingsService.GetPluginSettingsAsync(id, userGuid);
+
+            return Ok(new
+            {
+                schema = settingsUI,
+                values = savedSettings ?? new Dictionary<string, object>()
+            });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to fetch settings for plugin {PluginId}", id);
-            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to fetch plugin settings", details = ex.Message }));
+            return StatusCode(500, new { error = "Failed to fetch plugin settings", details = ex.Message });
         }
     }
 
@@ -174,7 +191,7 @@ public class PluginApiController : ControllerBase
     /// Update plugin settings
     /// </summary>
     [HttpPost("{id}/settings")]
-    public Task<IActionResult> UpdatePluginSettings(string id, [FromBody] Dictionary<string, object> settings)
+    public async Task<IActionResult> UpdatePluginSettings(string id, [FromBody] Dictionary<string, object> settings, [FromQuery] string? userId = null)
     {
         try
         {
@@ -183,19 +200,27 @@ public class PluginApiController : ControllerBase
             var plugin = _pluginManager.GetPlugin(id);
             if (plugin == null)
             {
-                return Task.FromResult<IActionResult>(NotFound(new { error = "Plugin not found", pluginId = id }));
+                return NotFound(new { error = "Plugin not found", pluginId = id });
             }
 
-            // IMPLEMENTATION NEEDED: Add settings persistence to plugin system
-            // For now, just return success
-            _logger.LogInformation("Plugin settings updated (persistence not yet implemented)");
+            // Parse userId if provided (for user-specific settings)
+            Guid? userGuid = null;
+            if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var parsedUserId))
+            {
+                userGuid = parsedUserId;
+            }
 
-            return Task.FromResult<IActionResult>(Ok(new { message = "Settings updated successfully (in-memory only)" }));
+            // Persist settings to database
+            await _pluginSettingsService.SavePluginSettingsAsync(id, settings, userGuid);
+
+            _logger.LogInformation("Plugin settings updated and persisted for plugin {PluginId}", id);
+
+            return Ok(new { message = "Settings updated successfully", userId = userGuid?.ToString() });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to update settings for plugin {PluginId}", id);
-            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to update plugin settings", details = ex.Message }));
+            return StatusCode(500, new { error = "Failed to update plugin settings", details = ex.Message });
         }
     }
 

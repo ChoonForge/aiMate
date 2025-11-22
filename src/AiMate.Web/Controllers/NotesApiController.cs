@@ -28,7 +28,15 @@ public class NotesApiController : ControllerBase
     /// <summary>
     /// Get all notes for a user
     /// </summary>
+    /// <param name="userId">User ID (GUID)</param>
+    /// <returns>List of user's notes</returns>
+    /// <response code="200">Returns the list of notes</response>
+    /// <response code="400">Invalid user ID format</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet]
+    [ProducesResponseType(typeof(List<NoteDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<NoteDto>>> GetNotes([FromQuery] string userId)
     {
         try
@@ -53,7 +61,20 @@ public class NotesApiController : ControllerBase
     /// <summary>
     /// Get a specific note by ID
     /// </summary>
+    /// <param name="id">Note ID (GUID)</param>
+    /// <param name="userId">User ID (GUID) for permission check</param>
+    /// <returns>Note details</returns>
+    /// <response code="200">Returns the note</response>
+    /// <response code="400">Invalid note ID or user ID format</response>
+    /// <response code="403">User doesn't have permission to access this note</response>
+    /// <response code="404">Note not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(NoteDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<NoteDto>> GetNote(string id, [FromQuery] string userId)
     {
         try
@@ -95,7 +116,31 @@ public class NotesApiController : ControllerBase
     /// <summary>
     /// Create a new note
     /// </summary>
+    /// <param name="request">Note details</param>
+    /// <param name="userId">User ID (GUID)</param>
+    /// <returns>Created note with ID</returns>
+    /// <response code="201">Note created successfully</response>
+    /// <response code="400">Invalid request or user ID</response>
+    /// <response code="500">Internal server error</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/v1/notes?userId=abc123
+    ///     {
+    ///         "title": "Meeting Notes",
+    ///         "content": "Discussion about Q1 goals...",
+    ///         "contentType": "Markdown",
+    ///         "tags": ["meetings", "q1", "goals"],
+    ///         "collection": "Work",
+    ///         "category": "Business",
+    ///         "color": "#FF5733"
+    ///     }
+    ///
+    /// </remarks>
     [HttpPost]
+    [ProducesResponseType(typeof(NoteDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<NoteDto>> CreateNote([FromBody] CreateNoteRequest request, [FromQuery] string userId)
     {
         try
@@ -133,7 +178,21 @@ public class NotesApiController : ControllerBase
     /// <summary>
     /// Update an existing note
     /// </summary>
+    /// <param name="id">Note ID (GUID)</param>
+    /// <param name="request">Updated note details (only include fields to update)</param>
+    /// <param name="userId">User ID (GUID) for permission check</param>
+    /// <returns>Updated note</returns>
+    /// <response code="200">Note updated successfully</response>
+    /// <response code="400">Invalid note ID or user ID format</response>
+    /// <response code="403">User doesn't have permission to update this note</response>
+    /// <response code="404">Note not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(NoteDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<NoteDto>> UpdateNote(string id, [FromBody] UpdateNoteRequest request, [FromQuery] string userId)
     {
         try
@@ -189,7 +248,20 @@ public class NotesApiController : ControllerBase
     /// <summary>
     /// Delete a note
     /// </summary>
+    /// <param name="id">Note ID (GUID)</param>
+    /// <param name="userId">User ID (GUID) for permission check</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Note deleted successfully</response>
+    /// <response code="400">Invalid note ID or user ID format</response>
+    /// <response code="403">User doesn't have permission to delete this note</response>
+    /// <response code="404">Note not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteNote(string id, [FromQuery] string userId)
     {
         try
@@ -231,9 +303,17 @@ public class NotesApiController : ControllerBase
     }
 
     /// <summary>
-    /// Get all collections for a user
+    /// Get all collections for a user (distinct collection names from user's notes)
     /// </summary>
+    /// <param name="userId">User ID (GUID)</param>
+    /// <returns>List of collection names</returns>
+    /// <response code="200">Returns the list of collection names</response>
+    /// <response code="400">Invalid user ID format</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("collections")]
+    [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<string>>> GetCollections([FromQuery] string userId)
     {
         try
@@ -261,9 +341,17 @@ public class NotesApiController : ControllerBase
     }
 
     /// <summary>
-    /// Get all tags used by a user
+    /// Get all tags used by a user (distinct tags from user's notes)
     /// </summary>
+    /// <param name="userId">User ID (GUID)</param>
+    /// <returns>List of tag names</returns>
+    /// <response code="200">Returns the list of tag names</response>
+    /// <response code="400">Invalid user ID format</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("tags")]
+    [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<string>>> GetTags([FromQuery] string userId)
     {
         try

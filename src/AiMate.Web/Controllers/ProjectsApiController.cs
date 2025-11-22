@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AiMate.Web.Controllers;
 
+/// <summary>
+/// API for managing software projects and initiatives
+/// </summary>
 [ApiController]
 [Route("api/v1/projects")]
 [Authorize] // Requires authentication
@@ -22,7 +25,18 @@ public class ProjectsApiController : ControllerBase
         _logger = logger;
     }
 
+    /// <summary>
+    /// Get all projects for a user
+    /// </summary>
+    /// <param name="userId">User ID (GUID)</param>
+    /// <returns>List of projects ordered by last updated</returns>
+    /// <response code="200">Returns the list of projects</response>
+    /// <response code="400">Invalid user ID format</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet]
+    [ProducesResponseType(typeof(List<ProjectDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<ProjectDto>>> GetProjects([FromQuery] string userId)
     {
         try
@@ -44,7 +58,20 @@ public class ProjectsApiController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Get a specific project by ID
+    /// </summary>
+    /// <param name="id">Project ID (GUID)</param>
+    /// <returns>Project details</returns>
+    /// <response code="200">Returns the project</response>
+    /// <response code="400">Invalid project ID format</response>
+    /// <response code="404">Project not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ProjectDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ProjectDto>> GetProject(string id)
     {
         try
@@ -70,7 +97,39 @@ public class ProjectsApiController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Create a new project
+    /// </summary>
+    /// <param name="request">Project details</param>
+    /// <param name="userId">User ID (GUID)</param>
+    /// <returns>Created project with ID</returns>
+    /// <response code="201">Project created successfully</response>
+    /// <response code="400">Invalid request or user ID</response>
+    /// <response code="500">Internal server error</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/v1/projects?userId=abc123
+    ///     {
+    ///         "key": "PROJ-001",
+    ///         "name": "New Website",
+    ///         "description": "Build a new company website",
+    ///         "status": "In Progress",
+    ///         "priority": "High",
+    ///         "budget": 50000,
+    ///         "startDate": "2024-01-01T00:00:00Z",
+    ///         "dueDate": "2024-06-30T00:00:00Z",
+    ///         "owner": "John Doe",
+    ///         "ownerEmail": "john@example.com",
+    ///         "teamMembers": ["alice@example.com", "bob@example.com"],
+    ///         "tags": ["web", "frontend", "priority"]
+    ///     }
+    ///
+    /// </remarks>
     [HttpPost]
+    [ProducesResponseType(typeof(ProjectDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ProjectDto>> CreateProject([FromBody] CreateProjectRequest request, [FromQuery] string userId)
     {
         try
@@ -112,7 +171,21 @@ public class ProjectsApiController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Update an existing project
+    /// </summary>
+    /// <param name="id">Project ID (GUID)</param>
+    /// <param name="request">Updated project details (only include fields to update)</param>
+    /// <returns>Updated project</returns>
+    /// <response code="200">Project updated successfully</response>
+    /// <response code="400">Invalid project ID format</response>
+    /// <response code="404">Project not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(ProjectDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<ProjectDto>> UpdateProject(string id, [FromBody] UpdateProjectRequest request)
     {
         try
@@ -156,7 +229,18 @@ public class ProjectsApiController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Delete a project
+    /// </summary>
+    /// <param name="id">Project ID (GUID)</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Project deleted successfully</response>
+    /// <response code="400">Invalid project ID format</response>
+    /// <response code="500">Internal server error</response>
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteProject(string id)
     {
         try
