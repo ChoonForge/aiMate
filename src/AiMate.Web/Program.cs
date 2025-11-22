@@ -390,6 +390,9 @@ builder.Services.AddScoped<AiMate.Core.Services.IErrorLoggingService, AiMate.Inf
 // Register Encryption Service (for API key protection)
 builder.Services.AddSingleton<AiMate.Core.Services.IEncryptionService, AiMate.Infrastructure.Services.EncryptionService>();
 
+// Register Search Service (full-text and semantic search)
+builder.Services.AddScoped<AiMate.Core.Services.ISearchService, AiMate.Infrastructure.Services.SearchService>();
+
 // Register HttpClient for services that need it
 builder.Services.AddHttpClient<AiMate.Infrastructure.Services.LiteLLMService>();
 builder.Services.AddHttpClient<AiMate.Infrastructure.Services.OpenAIEmbeddingService>();
