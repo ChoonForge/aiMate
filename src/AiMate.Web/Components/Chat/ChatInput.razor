@@ -1,4 +1,10 @@
 @inject IJSRuntime JSRuntime
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject HttpClient HttpClient
+
+@* Hidden file input *@
+<input type="file" id="fileInput" multiple style="display: none;" />
 
 <div class="border-t border-[#2A2A2A] bg-[#1A1A1A] p-4">
     <div class="max-w-4xl mx-auto">
@@ -195,62 +201,230 @@
 
     private async Task HandleAttachFile()
     {
-        // TODO: Implement file upload
-        // For demo, add a sample attachment
-        attachments.Add(new Attachment
-        {
-            Name = "Document.pdf",
-            Type = "file"
-        });
         attachMenuOpen = false;
-        await OnAttachmentsChanged.InvokeAsync(attachments);
+
+        try
+        {
+            // Call JS to trigger file input
+            var files = await JSRuntime.InvokeAsync<FileData[]>("attachmentHelpers.handleFileSelection",
+                await JSRuntime.InvokeAsync<object>("document.getElementById", "fileInput"));
+
+            if (files != null && files.Length > 0)
+            {
+                foreach (var file in files)
+                {
+                    attachments.Add(new Attachment
+                    {
+                        Name = file.Name,
+                        Type = "file",
+                        Url = file.Data
+                    });
+                }
+
+                await OnAttachmentsChanged.InvokeAsync(attachments);
+                Snackbar.Add($"{files.Length} file(s) attached", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to attach files: {ex.Message}", Severity.Error);
+        }
     }
 
     private async Task HandleCapture()
     {
-        // TODO: Implement screenshot/camera capture
         attachMenuOpen = false;
-        await Task.CompletedTask;
+
+        try
+        {
+            // Show choice: Screenshot or Photo
+            var options = new DialogOptions { MaxWidth = MaxWidth.Small };
+            var parameters = new DialogParameters
+            {
+                ["Message"] = "Choose capture type",
+                ["Buttons"] = new[] { "Screenshot", "Photo", "Cancel" }
+            };
+
+            // For now, try screenshot
+            var screenshot = await JSRuntime.InvokeAsync<FileData>("attachmentHelpers.captureScreenshot");
+
+            if (screenshot != null)
+            {
+                attachments.Add(new Attachment
+                {
+                    Name = screenshot.Name,
+                    Type = "file",
+                    Url = screenshot.Data
+                });
+
+                await OnAttachmentsChanged.InvokeAsync(attachments);
+                Snackbar.Add("Screenshot captured", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Capture failed: {ex.Message}", Severity.Warning);
+        }
     }
 
     private async Task HandleAttachWebpage()
     {
-        // TODO: Implement webpage fetching
         attachMenuOpen = false;
-        await Task.CompletedTask;
+
+        var parameters = new DialogParameters
+        {
+            ["Title"] = "Attach Webpage",
+            ["Label"] = "Enter URL",
+            ["Placeholder"] = "https://example.com"
+        };
+
+        var dialog = await DialogService.ShowAsync<TextInputDialog>("Attach Webpage", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is string url)
+        {
+            try
+            {
+                Snackbar.Add("Fetching webpage...", Severity.Info);
+
+                var response = await HttpClient.PostAsJsonAsync("/api/v1/attachments/fetch-webpage", new { Url = url });
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var webpageData = await response.Content.ReadFromJsonAsync<WebpageData>();
+
+                    if (webpageData != null)
+                    {
+                        attachments.Add(new Attachment
+                        {
+                            Name = webpageData.Title,
+                            Type = "webpage",
+                            Url = webpageData.Url
+                        });
+
+                        await OnAttachmentsChanged.InvokeAsync(attachments);
+                        Snackbar.Add("Webpage attached", Severity.Success);
+                    }
+                }
+                else
+                {
+                    Snackbar.Add("Failed to fetch webpage", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error fetching webpage: {ex.Message}", Severity.Error);
+            }
+        }
     }
 
     private async Task HandleAttachNotes()
     {
-        // TODO: Open notes picker
-        // For demo, add a sample attachment
-        attachments.Add(new Attachment
-        {
-            Name = "Requirements",
-            Type = "note"
-        });
         attachMenuOpen = false;
-        await OnAttachmentsChanged.InvokeAsync(attachments);
+
+        var dialog = await DialogService.ShowAsync<NotesPickerDialog>("Select Notes");
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data != null)
+        {
+            var selectedNotes = result.Data as List<NotesPickerDialog.NoteItem>;
+
+            if (selectedNotes != null && selectedNotes.Any())
+            {
+                foreach (var note in selectedNotes)
+                {
+                    attachments.Add(new Attachment
+                    {
+                        Name = note.Title,
+                        Type = "note",
+                        Url = $"/notes/{note.Id}"
+                    });
+                }
+
+                await OnAttachmentsChanged.InvokeAsync(attachments);
+                Snackbar.Add($"{selectedNotes.Count} note(s) attached", Severity.Success);
+            }
+        }
     }
 
     private async Task HandleAttachKnowledge()
     {
-        // TODO: Open knowledge picker dialog
-        // For demo, add a sample attachment
-        attachments.Add(new Attachment
-        {
-            Name = "Project Discussion",
-            Type = "knowledge"
-        });
         attachMenuOpen = false;
-        await OnAttachmentsChanged.InvokeAsync(attachments);
+
+        var dialog = await DialogService.ShowAsync<KnowledgePickerDialog>("Select Knowledge");
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data != null)
+        {
+            dynamic selectedItems = result.Data;
+            var knowledge = selectedItems.Knowledge as List<KnowledgePickerDialog.KnowledgeItem>;
+            var collections = selectedItems.Collections as List<KnowledgePickerDialog.CollectionItem>;
+
+            int count = 0;
+
+            if (knowledge != null)
+            {
+                foreach (var item in knowledge)
+                {
+                    attachments.Add(new Attachment
+                    {
+                        Name = item.Title,
+                        Type = "knowledge",
+                        Url = $"/knowledge/{item.Id}"
+                    });
+                    count++;
+                }
+            }
+
+            if (collections != null)
+            {
+                foreach (var collection in collections)
+                {
+                    attachments.Add(new Attachment
+                    {
+                        Name = collection.Name,
+                        Type = "knowledge",
+                        Url = $"/knowledge/collections/{collection.Id}"
+                    });
+                    count++;
+                }
+            }
+
+            if (count > 0)
+            {
+                await OnAttachmentsChanged.InvokeAsync(attachments);
+                Snackbar.Add($"{count} knowledge item(s) attached", Severity.Success);
+            }
+        }
     }
 
     private async Task HandleReferenceChat()
     {
-        // TODO: Open chat reference picker
         attachMenuOpen = false;
-        await Task.CompletedTask;
+
+        var dialog = await DialogService.ShowAsync<ChatReferencePickerDialog>("Reference Chat");
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data != null)
+        {
+            var selectedChats = result.Data as List<ChatReferencePickerDialog.ConversationItem>;
+
+            if (selectedChats != null && selectedChats.Any())
+            {
+                foreach (var chat in selectedChats)
+                {
+                    attachments.Add(new Attachment
+                    {
+                        Name = chat.Title,
+                        Type = "chat",
+                        Url = $"/chat/{chat.Id}"
+                    });
+                }
+
+                await OnAttachmentsChanged.InvokeAsync(attachments);
+                Snackbar.Add($"{selectedChats.Count} conversation(s) referenced", Severity.Success);
+            }
+        }
     }
 
     private async Task RemoveAttachment(Attachment attachment)
@@ -321,5 +495,21 @@
         public string Border { get; set; } = string.Empty;
         public string Text { get; set; } = string.Empty;
         public string CloseButton { get; set; } = string.Empty;
+    }
+
+    public class FileData
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
+        public long Size { get; set; }
+        public string Data { get; set; } = string.Empty;
+    }
+
+    public class WebpageData
+    {
+        public string Url { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
     }
 }

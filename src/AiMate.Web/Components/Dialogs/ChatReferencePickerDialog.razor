@@ -1,0 +1,211 @@
+@inject IDialogService DialogService
+
+<MudDialog>
+    <DialogContent>
+        <div class="mb-4">
+            <MudTextField @bind-Value="_searchQuery"
+                         Label="Search conversations"
+                         Placeholder="Type to search..."
+                         Variant="Variant.Outlined"
+                         Margin="Margin.Dense"
+                         FullWidth="true"
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="@Icons.Material.Filled.Search" />
+        </div>
+
+        <MudStack Spacing="2" Class="mb-4">
+            <MudChipSet @bind-SelectedChip="_selectedFilter" Filter="true" Mandatory="false">
+                <MudChip Text="All" Default="true" Color="Color.Default" />
+                <MudChip Text="Recent" Color="Color.Primary" />
+                <MudChip Text="Archived" Color="Color.Secondary" />
+            </MudChipSet>
+        </MudStack>
+
+        @if (_filteredConversations.Any())
+        {
+            <MudList Clickable="true" Dense="true" Class="max-h-96 overflow-y-auto">
+                @foreach (var conversation in _filteredConversations)
+                {
+                    <MudListItem OnClick="@(() => ToggleConversationSelection(conversation))"
+                                Class="@(IsConversationSelected(conversation) ? "bg-primary/10" : "")">
+                        <div class="flex items-center gap-3">
+                            <MudCheckBox @bind-Checked="@conversation.IsSelected"
+                                        Color="Color.Primary"
+                                        Dense="true" />
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <MudText Typo="Typo.body2" Class="font-medium">@conversation.Title</MudText>
+                                    @if (conversation.IsPinned)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.PushPin" Size="Size.Small" Color="Color.Warning" />
+                                    }
+                                </div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @conversation.MessageCount messages · @GetRelativeTime(conversation.LastMessageAt)
+                                </MudText>
+                                @if (!string.IsNullOrEmpty(conversation.Project))
+                                {
+                                    <MudChip Size="Size.Small" Color="Color.Info" Class="mt-1">@conversation.Project</MudChip>
+                                }
+                            </div>
+                        </div>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+        else
+        {
+            <div class="text-center py-8">
+                <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+                    @(_searchQuery.Length > 0 ? "No conversations found" : "No conversations available")
+                </MudText>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="@(!_conversations.Any(c => c.IsSelected))">
+            Reference (@_conversations.Count(c => c.IsSelected))
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private string _searchQuery = string.Empty;
+    private MudChip? _selectedFilter;
+    private List<ConversationItem> _conversations = new();
+
+    private IEnumerable<ConversationItem> _filteredConversations
+    {
+        get
+        {
+            var filtered = _conversations.AsEnumerable();
+
+            // Apply filter
+            if (_selectedFilter?.Text == "Recent")
+            {
+                filtered = filtered.Where(c => c.LastMessageAt > DateTime.Now.AddDays(-7));
+            }
+            else if (_selectedFilter?.Text == "Archived")
+            {
+                filtered = filtered.Where(c => c.IsArchived);
+            }
+
+            // Apply search
+            if (!string.IsNullOrWhiteSpace(_searchQuery))
+            {
+                filtered = filtered.Where(c =>
+                    c.Title.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                    (c.Project?.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) ?? false));
+            }
+
+            return filtered.OrderByDescending(c => c.LastMessageAt);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        // TODO: Load actual conversations from service
+        _conversations = new List<ConversationItem>
+        {
+            new ConversationItem
+            {
+                Id = 1,
+                Title = "How do I center a div in CSS?",
+                MessageCount = 8,
+                LastMessageAt = DateTime.Now.AddHours(-2),
+                IsPinned = true,
+                Project = null
+            },
+            new ConversationItem
+            {
+                Id = 2,
+                Title = "Explain React hooks",
+                MessageCount = 15,
+                LastMessageAt = DateTime.Now.AddDays(-1),
+                IsPinned = false,
+                Project = "Website Redesign"
+            },
+            new ConversationItem
+            {
+                Id = 3,
+                Title = "TypeScript best practices",
+                MessageCount = 23,
+                LastMessageAt = DateTime.Now.AddDays(-3),
+                IsPinned = true,
+                Project = "Mobile App"
+            },
+            new ConversationItem
+            {
+                Id = 4,
+                Title = "API design patterns",
+                MessageCount = 12,
+                LastMessageAt = DateTime.Now.AddDays(-5),
+                IsPinned = false,
+                Project = "API Gateway"
+            },
+            new ConversationItem
+            {
+                Id = 5,
+                Title = "Old conversation about React",
+                MessageCount = 5,
+                LastMessageAt = DateTime.Now.AddDays(-45),
+                IsPinned = false,
+                IsArchived = true,
+                Project = null
+            }
+        };
+    }
+
+    private void ToggleConversationSelection(ConversationItem conversation)
+    {
+        conversation.IsSelected = !conversation.IsSelected;
+        StateHasChanged();
+    }
+
+    private bool IsConversationSelected(ConversationItem conversation) => conversation.IsSelected;
+
+    private string GetRelativeTime(DateTime dateTime)
+    {
+        var timeSpan = DateTime.Now - dateTime;
+
+        if (timeSpan.TotalMinutes < 1)
+            return "just now";
+        if (timeSpan.TotalHours < 1)
+            return $"{(int)timeSpan.TotalMinutes}m ago";
+        if (timeSpan.TotalDays < 1)
+            return $"{(int)timeSpan.TotalHours}h ago";
+        if (timeSpan.TotalDays < 7)
+            return $"{(int)timeSpan.TotalDays}d ago";
+        if (timeSpan.TotalDays < 30)
+            return $"{(int)(timeSpan.TotalDays / 7)}w ago";
+
+        return dateTime.ToString("MMM dd, yyyy");
+    }
+
+    void Submit()
+    {
+        var selectedConversations = _conversations.Where(c => c.IsSelected).ToList();
+        MudDialog.Close(DialogResult.Ok(selectedConversations));
+    }
+
+    void Cancel() => MudDialog.Cancel();
+
+    public class ConversationItem
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public int MessageCount { get; set; }
+        public DateTime LastMessageAt { get; set; }
+        public bool IsPinned { get; set; }
+        public bool IsArchived { get; set; }
+        public string? Project { get; set; }
+        public bool IsSelected { get; set; }
+    }
+}

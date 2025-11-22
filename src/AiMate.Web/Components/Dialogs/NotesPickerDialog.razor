@@ -1,0 +1,129 @@
+@inject IDialogService DialogService
+
+<MudDialog>
+    <DialogContent>
+        <div class="mb-4">
+            <MudTextField @bind-Value="_searchQuery"
+                         Label="Search notes"
+                         Placeholder="Type to search..."
+                         Variant="Variant.Outlined"
+                         Margin="Margin.Dense"
+                         FullWidth="true"
+                         Adornment="Adornment.Start"
+                         AdornmentIcon="@Icons.Material.Filled.Search" />
+        </div>
+
+        @if (_filteredNotes.Any())
+        {
+            <MudList Clickable="true" Dense="true" Class="max-h-96 overflow-y-auto">
+                @foreach (var note in _filteredNotes)
+                {
+                    <MudListItem OnClick="@(() => ToggleNoteSelection(note))"
+                                Class="@(IsNoteSelected(note) ? "bg-primary/10" : "")">
+                        <div class="flex items-center gap-3">
+                            <MudCheckBox @bind-Checked="@note.IsSelected"
+                                        Color="Color.Primary"
+                                        Dense="true" />
+                            <div class="flex-1">
+                                <MudText Typo="Typo.body2" Class="font-medium">@note.Title</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @note.Preview · @note.CreatedAt.ToString("MMM dd, yyyy")
+                                </MudText>
+                            </div>
+                        </div>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+        else
+        {
+            <div class="text-center py-8">
+                <MudIcon Icon="@Icons.Material.Filled.Note" Size="Size.Large" Color="Color.Secondary" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+                    @(_searchQuery.Length > 0 ? "No notes found" : "No notes available")
+                </MudText>
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary"
+                   OnClick="Submit"
+                   Disabled="@(!_notes.Any(n => n.IsSelected))">
+            Attach (@_notes.Count(n => n.IsSelected))
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private string _searchQuery = string.Empty;
+    private List<NoteItem> _notes = new();
+    private IEnumerable<NoteItem> _filteredNotes => string.IsNullOrWhiteSpace(_searchQuery)
+        ? _notes
+        : _notes.Where(n => n.Title.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                           n.Preview.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase));
+
+    protected override void OnInitialized()
+    {
+        // TODO: Load actual notes from service
+        _notes = new List<NoteItem>
+        {
+            new NoteItem
+            {
+                Id = 1,
+                Title = "Project Requirements",
+                Preview = "List of requirements for the new project including authentication...",
+                CreatedAt = DateTime.Now.AddDays(-5)
+            },
+            new NoteItem
+            {
+                Id = 2,
+                Title = "Meeting Notes",
+                Preview = "Discussion points from today's meeting about sprint planning...",
+                CreatedAt = DateTime.Now.AddDays(-2)
+            },
+            new NoteItem
+            {
+                Id = 3,
+                Title = "Design Ideas",
+                Preview = "Ideas for the new design system including color palette...",
+                CreatedAt = DateTime.Now.AddDays(-10)
+            },
+            new NoteItem
+            {
+                Id = 4,
+                Title = "API Endpoints",
+                Preview = "Documentation for all REST API endpoints with request/response...",
+                CreatedAt = DateTime.Now.AddDays(-7)
+            }
+        };
+    }
+
+    private void ToggleNoteSelection(NoteItem note)
+    {
+        note.IsSelected = !note.IsSelected;
+        StateHasChanged();
+    }
+
+    private bool IsNoteSelected(NoteItem note) => note.IsSelected;
+
+    void Submit()
+    {
+        var selectedNotes = _notes.Where(n => n.IsSelected).ToList();
+        MudDialog.Close(DialogResult.Ok(selectedNotes));
+    }
+
+    void Cancel() => MudDialog.Cancel();
+
+    public class NoteItem
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Preview { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public bool IsSelected { get; set; }
+    }
+}
