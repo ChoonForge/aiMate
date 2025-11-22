@@ -1,0 +1,228 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "aiMate Alpha Testing Survey";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link href="/css/survey.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 aiMate Alpha Testing Survey</h1>
+            <p class="subtitle">Help us build the AI assistant you actually want to use</p>
+        </div>
+
+        <div id="successMessage" class="success-message" style="display: none;">
+            <h2>✅ Thank you for your feedback!</h2>
+            <p>We really appreciate you taking the time to share your thoughts. If you opted in for alpha testing, we'll be in touch soon!</p>
+        </div>
+
+        <form id="surveyForm" class="survey-form">
+            <!-- Demographics Section -->
+            <div class="section">
+                <h2>About You</h2>
+                <p class="section-description">Help us understand who we're building for (all optional)</p>
+
+                <div class="form-group">
+                    <label for="ageRange">Age Range</label>
+                    <select id="ageRange" name="ageRange">
+                        <option value="">Prefer not to say</option>
+                        <option value="18-24">18-24</option>
+                        <option value="25-34">25-34</option>
+                        <option value="35-44">35-44</option>
+                        <option value="45-54">45-54</option>
+                        <option value="55-64">55-64</option>
+                        <option value="65+">65+</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="generalLocation">General Location</label>
+                    <input type="text" id="generalLocation" name="generalLocation" placeholder="e.g., Pacific Northwest, Midwest, UK, etc.">
+                </div>
+
+                <div class="form-group">
+                    <label for="occupationCategory">What best describes your work?</label>
+                    <select id="occupationCategory" name="occupationCategory">
+                        <option value="">Select one</option>
+                        <option value="Technology">Technology/IT</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Education">Education</option>
+                        <option value="Business/Finance">Business/Finance</option>
+                        <option value="Creative/Design">Creative/Design</option>
+                        <option value="Marketing/Sales">Marketing/Sales</option>
+                        <option value="Student">Student</option>
+                        <option value="Retired">Retired</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="techComfortLevel">Tech Comfort Level</label>
+                    <select id="techComfortLevel" name="techComfortLevel">
+                        <option value="">Select one</option>
+                        <option value="Beginner">Beginner - I struggle with new tech</option>
+                        <option value="Intermediate">Intermediate - I can figure most things out</option>
+                        <option value="Advanced">Advanced - I'm very comfortable with technology</option>
+                        <option value="Expert">Expert - I work in tech or am a power user</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Current AI Usage Section -->
+            <div class="section">
+                <h2>Your AI Experience</h2>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="currentlyUsesAI" name="currentlyUsesAI">
+                        I currently use AI tools
+                    </label>
+                </div>
+
+                <div id="aiUserQuestions" style="display: none;">
+                    <div class="form-group">
+                        <label for="aiToolsUsed">Which AI tools do you use? (separate with commas)</label>
+                        <input type="text" id="aiToolsUsed" name="aiToolsUsed" placeholder="e.g., ChatGPT, Claude, Gemini, Copilot">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="primaryAITool">Which is your main AI tool?</label>
+                        <input type="text" id="primaryAITool" name="primaryAITool" placeholder="e.g., ChatGPT">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="frequencyOfUse">How often do you use AI?</label>
+                        <select id="frequencyOfUse" name="frequencyOfUse">
+                            <option value="">Select one</option>
+                            <option value="Multiple times daily">Multiple times daily</option>
+                            <option value="Daily">Daily</option>
+                            <option value="Few times a week">Few times a week</option>
+                            <option value="Weekly">Weekly</option>
+                            <option value="Monthly">Monthly</option>
+                            <option value="Rarely">Rarely</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>What do you use AI for? (check all that apply)</label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="useForWork"> Work tasks
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="useForPersonalProjects"> Personal projects
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="useForLearning"> Learning new things
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="useForCreativeWork"> Creative work (writing, art, music)
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="useForCoding"> Coding/programming
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="useForWriting"> Writing (emails, documents, etc.)
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="useForResearch"> Research
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="useForOther"> Other
+                        </label>
+                        <input type="text" name="otherUseCase" placeholder="Please specify" style="margin-top: 10px;">
+                    </div>
+                </div>
+
+                <div id="nonAiUserQuestions" style="display: none;">
+                    <div class="form-group">
+                        <label>What's stopping you from using AI? (check all that apply)</label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="barrierCost"> Too expensive
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="barrierComplexity"> Too complicated to use
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="barrierPrivacyConcerns"> Privacy/security concerns
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="barrierDontKnowHowToStart"> Don't know how to get started
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="barrierDontSeeBenefit"> Don't see the benefit
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="barrierOther"> Other
+                        </label>
+                        <input type="text" name="otherBarrier" placeholder="Please specify" style="margin-top: 10px;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Section -->
+            <div class="section">
+                <h2>Help Us Build Better</h2>
+
+                <div class="form-group">
+                    <label for="biggestFrustration">What's your biggest frustration with current AI tools?</label>
+                    <textarea id="biggestFrustration" name="biggestFrustration" rows="3" placeholder="What drives you crazy about the AI tools you use (or have tried)?"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="whatsMissing">What's missing from existing AI tools?</label>
+                    <textarea id="whatsMissing" name="whatsMissing" rows="3" placeholder="What features or capabilities do you wish existed?"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="idealAIFeatures">Describe your ideal AI assistant</label>
+                    <textarea id="idealAIFeatures" name="idealAIFeatures" rows="4" placeholder="If you could design the perfect AI tool, what would it do? How would it work?"></textarea>
+                </div>
+            </div>
+
+            <!-- Alpha Testing Section -->
+            <div class="section">
+                <h2>Join Our Alpha</h2>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="interestedInAlphaTesting" name="interestedInAlphaTesting" required>
+                        Yes! I want to be considered for alpha testing aiMate
+                    </label>
+                </div>
+
+                <div id="alphaDetails" style="display: none;">
+                    <div class="form-group">
+                        <label for="email">Email Address *</label>
+                        <input type="email" id="email" name="email" placeholder="your.email@example.com">
+                        <small>We'll only use this to contact you about alpha testing</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Comments -->
+            <div class="section">
+                <div class="form-group">
+                    <label for="additionalComments">Anything else you'd like us to know?</label>
+                    <textarea id="additionalComments" name="additionalComments" rows="3"></textarea>
+                </div>
+
+                <input type="hidden" id="referralSource" name="referralSource" value="">
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="submit-btn">Submit Survey</button>
+            </div>
+        </form>
+    </div>
+
+    <script src="/js/survey.js"></script>
+</body>
+</html>
