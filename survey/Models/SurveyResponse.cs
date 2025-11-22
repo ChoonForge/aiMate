@@ -63,6 +63,74 @@ public class SurveyResponse
 
     public string? AdditionalComments { get; set; }
 
+    // NEW: Dynamic Use Cases (replaces boolean fields above)
+    public ICollection<SurveyResponseUseCase> SelectedUseCases { get; set; } = new List<SurveyResponseUseCase>();
+
+    // NEW: Feature & LLM Selection Metrics
+    // Context & Conversation Needs
+    public string? TypicalConversationLength { get; set; } // "Single question", "Few exchanges (2-5)", "Extended (6-15)", "Very long (15+)"
+    public bool NeedsLongTermMemory { get; set; } // Remember across sessions
+    public bool NeedsContextAcrossSessions { get; set; } // Continue where you left off
+
+    // File & Document Handling
+    public bool WorksWithDocuments { get; set; } // PDFs, Word docs, etc.
+    public bool WorksWithImages { get; set; } // View/analyze images
+    public bool WorksWithCode { get; set; } // Code files
+    public bool WorksWithData { get; set; } // CSV, Excel, databases
+    public string? TypicalFileSize { get; set; } // "Small (<1MB)", "Medium (1-10MB)", "Large (10-100MB)", "Very Large (100MB+)"
+
+    // Response Preferences
+    public string? PreferredResponseStyle { get; set; } // "Concise & brief", "Moderate detail", "Very detailed", "Depends on task"
+    public string? QualityVsSpeed { get; set; } // "Speed is critical", "Balanced", "Quality over speed", "Highest quality always"
+
+    // Advanced Features
+    public bool NeedsCodeExecution { get; set; } // Run/test code
+    public bool NeedsImageGeneration { get; set; } // Create images
+    public bool NeedsWebSearch { get; set; } // Real-time web search
+    public bool NeedsDataVisualization { get; set; } // Charts, graphs
+
+    // Collaboration & Sharing
+    public bool NeedsTeamCollaboration { get; set; } // Share with team members
+    public bool NeedsWorkspaceOrganization { get; set; } // Projects, folders, organization
+    public bool WouldShareConversations { get; set; } // Share publicly or with others
+
+    // Integration Needs
+    public bool NeedsAPIAccess { get; set; }
+    public bool NeedsIntegrationWithTools { get; set; } // Slack, email, IDEs, etc.
+    public string? SpecificIntegrations { get; set; } // Comma-separated list
+
+    // Privacy & Data Preferences
+    public string? DataPrivacyConcern { get; set; } // "Not concerned", "Somewhat concerned", "Very concerned", "Critical concern"
+    public string? PreferredDataLocation { get; set; } // "Cloud is fine", "Prefer local option", "Must be local only"
+    public bool WillingToShareDataForImprovement { get; set; } // Opt-in to training data
+
+    // Pricing & Cost
+    public string? WillingToPayMonthly { get; set; } // "Free only", "$0-10", "$10-20", "$20-50", "$50+", "Depends on value"
+    public string? PreferredPricingModel { get; set; } // "Subscription", "Pay-per-use", "One-time purchase", "Free with ads", "Freemium"
+    public string? MostImportantValue { get; set; } // "Cost", "Features", "Privacy", "Speed", "Accuracy", "Ease of use"
+
+    // Platform Preferences
+    public bool UsesWeb { get; set; }
+    public bool UsesDesktop { get; set; }
+    public bool UsesMobile { get; set; }
+    public string? PrimaryPlatform { get; set; } // "Web", "Desktop", "Mobile"
+
+    // Specific LLM Preferences/Familiarity
+    public bool FamiliarWithGPT4 { get; set; }
+    public bool FamiliarWithClaude { get; set; }
+    public bool FamiliarWithGemini { get; set; }
+    public bool FamiliarWithOpenSource { get; set; } // Llama, Mistral, etc.
+    public string? PreferredLLMFeatures { get; set; } // What do they like about their preferred LLM
+
+    // Multimodal Needs
+    public bool NeedsVoiceInput { get; set; }
+    public bool NeedsVoiceOutput { get; set; }
+    public bool NeedsVideoAnalysis { get; set; }
+
+    // Language Preferences
+    public string? PrimaryLanguage { get; set; } // "English", "Spanish", "Multilingual", etc.
+    public bool NeedsMultilingualSupport { get; set; }
+
     // Metadata
     public string? ReferralSource { get; set; } // Which Facebook group or source
     public string? IpAddress { get; set; }

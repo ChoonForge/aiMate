@@ -53,7 +53,7 @@ app.UseAuthorization();
 app.MapRazorPages();
 app.MapControllers();
 
-// Auto-migrate database on startup
+// Auto-migrate database and seed data on startup
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<SurveyDbContext>();
@@ -61,10 +61,14 @@ using (var scope = app.Services.CreateScope())
     {
         dbContext.Database.Migrate();
         app.Logger.LogInformation("Database migrated successfully");
+
+        // Seed default use case categories and options
+        await SurveyDataSeeder.SeedDefaultUseCasesAsync(dbContext);
+        app.Logger.LogInformation("Database seeded successfully");
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "Error migrating database");
+        app.Logger.LogError(ex, "Error migrating/seeding database");
     }
 }
 
