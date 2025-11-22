@@ -1,7 +1,10 @@
 @page "/files"
 @using AiMate.Shared.Models
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
 @inject ISnackbar Snackbar
+@inject HttpClient Http
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 
 <PageTitle>Files - aiMate</PageTitle>
@@ -155,17 +158,76 @@
 </MudPaper>
 
 @code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public Guid? WorkspaceId { get; set; }
+
     private List<FileDto> _files = new();
     private bool _isLoading = false;
     private string _viewMode = "Grid";
     private string _searchQuery = string.Empty;
     private string _fileTypeFilter = "All";
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // File API not implemented yet - showing empty state
-        _isLoading = false;
-        _files = new();
+        if (WorkspaceId == null)
+        {
+            // Use a default workspace or get from user context
+            // For now, use a dummy GUID - in production, get from WorkspaceState
+            WorkspaceId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        }
+
+        await LoadFiles();
+    }
+
+    private async Task LoadFiles()
+    {
+        _isLoading = true;
+        try
+        {
+            var response = await Http.GetFromJsonAsync<List<WorkspaceFileDto>>(
+                $"/api/v1/files?workspaceId={WorkspaceId}");
+
+            if (response != null)
+            {
+                _files = response.Select(MapToFileDto).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load files: {ex.Message}", Severity.Error);
+            _files = new();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private FileDto MapToFileDto(WorkspaceFileDto apiFile)
+    {
+        return new FileDto
+        {
+            Id = apiFile.Id,
+            Name = apiFile.FileName,
+            Type = DetermineFileType(apiFile.ContentType),
+            Size = apiFile.FileSize,
+            UploadedAt = apiFile.UploadedAt
+        };
+    }
+
+    private string DetermineFileType(string contentType)
+    {
+        if (string.IsNullOrEmpty(contentType))
+            return "Other";
+
+        if (contentType.StartsWith("image/")) return "Image";
+        if (contentType.Contains("pdf") || contentType.Contains("document") ||
+            contentType.Contains("word") || contentType.Contains("text")) return "Document";
+        if (contentType.Contains("text/") || contentType.Contains("application/json") ||
+            contentType.Contains("javascript") || contentType.Contains("xml")) return "Code";
+
+        return "Other";
     }
 
     private List<FileDto> FilteredFiles
@@ -213,29 +275,107 @@
         return $"{len:0.##} {sizes[order]}";
     }
 
-    private Task HandleFileUpload(IReadOnlyList<IBrowserFile> files)
+    private async Task HandleFileUpload(IReadOnlyList<IBrowserFile> files)
     {
-        if (files == null || !files.Any())
-            return Task.CompletedTask;
+        if (files == null || !files.Any() || WorkspaceId == null)
+            return;
 
-        Snackbar.Add("File upload API not implemented yet", Severity.Info);
-        return Task.CompletedTask;
+        _isLoading = true;
+        var successful = 0;
+
+        try
+        {
+            foreach (var file in files)
+            {
+                using var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(file.OpenReadStream(50 * 1024 * 1024)); // 50MB max
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+
+                content.Add(fileContent, "file", file.Name);
+
+                var response = await Http.PostAsync(
+                    $"/api/v1/files/upload?workspaceId={WorkspaceId}",
+                    content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    successful++;
+                }
+            }
+
+            Snackbar.Add($"Successfully uploaded {successful} of {files.Count} file(s)", Severity.Success);
+            await LoadFiles(); // Refresh list
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Upload failed: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private void OpenFile(FileDto file)
     {
-        // TODO: Implement file preview dialog
-        Snackbar.Add($"Opening {file.Name}...", Severity.Info);
+        // Trigger download for now - can implement preview later
+        _ = DownloadFile(file);
     }
 
-    private void DownloadFile(FileDto file)
+    private async Task DownloadFile(FileDto file)
     {
-        Snackbar.Add($"Download API not implemented yet", Severity.Info);
+        try
+        {
+            var response = await Http.GetAsync($"/api/v1/files/{file.Id}/download");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var stream = await response.Content.ReadAsStreamAsync();
+                var fileName = file.Name;
+
+                // Use JS interop to trigger download
+                using var streamRef = new DotNetStreamReference(stream);
+                await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+
+                Snackbar.Add($"Downloading {fileName}", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add($"Download failed", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Download failed: {ex.Message}", Severity.Error);
+        }
     }
 
-    private void DeleteFile(FileDto file)
+    private async Task DeleteFile(FileDto file)
     {
-        Snackbar.Add($"Delete API not implemented yet", Severity.Info);
+        // Note: MudBlazor doesn't have a built-in confirm dialog, so using Snackbar
+        // In production, consider using a proper confirmation dialog
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Delete {file.Name}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var response = await Http.DeleteAsync($"/api/v1/files/{file.Id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add($"Deleted {file.Name}", Severity.Success);
+                _files.Remove(file);
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add($"Delete failed", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Delete failed: {ex.Message}", Severity.Error);
+        }
     }
 
     // DTO for file representation
@@ -245,6 +385,19 @@
         public string Name { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty;
         public long Size { get; set; }
+        public DateTime UploadedAt { get; set; }
+    }
+
+    // API Response Model
+    private class WorkspaceFileDto
+    {
+        public Guid Id { get; set; }
+        public Guid WorkspaceId { get; set; }
+        public string FileName { get; set; } = string.Empty;
+        public string FilePath { get; set; } = string.Empty;
+        public long FileSize { get; set; }
+        public string ContentType { get; set; } = string.Empty;
+        public string? Description { get; set; }
         public DateTime UploadedAt { get; set; }
     }
 }
