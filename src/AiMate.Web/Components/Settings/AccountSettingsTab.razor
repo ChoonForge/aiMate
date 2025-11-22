@@ -4,99 +4,118 @@
 @inject IState<SettingsState> SettingsState
 @inject IDispatcher Dispatcher
 
-<MudText Typo="Typo.h6" Class="mb-4">Account Settings</MudText>
+@* Mobile-first responsive Account Settings Tab *@
 
-<MudGrid Spacing="2">
-    <MudItem xs="12">
-        <MudText Typo="Typo.subtitle1" Class="mb-2">Profile Information</MudText>
-    </MudItem>
+<div class="space-y-6 md:space-y-8">
 
-    <MudItem xs="12" md="6">
-        <MudTextField T="string" Value="@_username"
-                     Label="Username"
-                     Variant="Variant.Outlined"
-                     Margin="Margin.Dense"
-                     Placeholder="johndoe"
-                     ValueChanged="@((string value) => { _username = value; Dispatcher.Dispatch(new UpdateUsernameAction(value)); })" />
-    </MudItem>
+    @* Section: Account Information *@
+    <div>
+        <h3 class="text-base md:text-lg font-semibold text-white mb-4">Account Information</h3>
 
-    <MudItem xs="12" md="6">
-        <MudTextField T="string" Value="@_email"
-                     Label="Email"
-                     Variant="Variant.Outlined"
-                     Margin="Margin.Dense"
-                     InputType="InputType.Email"
-                     Placeholder="john.doe@example.com"
-                     ValueChanged="@((string value) => { _email = value; Dispatcher.Dispatch(new UpdateEmailAction(value)); })" />
-    </MudItem>
+        <div class="space-y-4">
+            @* Email *@
+            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                <label class="block text-sm font-medium text-white mb-2">Email</label>
+                <input type="email"
+                       @bind="_email"
+                       @bind:after="@(() => Dispatcher.Dispatch(new UpdateEmailAction(_email)))"
+                       class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                       placeholder="rich@example.com" />
+            </div>
 
-    <MudItem xs="12">
-        <MudTextField T="string" Value="@_avatarUrl"
-                     Label="Avatar URL"
-                     Variant="Variant.Outlined"
-                     Margin="Margin.Dense"
-                     Placeholder="https://example.com/avatar.jpg"
-                     ValueChanged="@((string value) => { _avatarUrl = value; Dispatcher.Dispatch(new UpdateAvatarUrlAction(value)); })" />
-    </MudItem>
+            @* Username *@
+            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                <label class="block text-sm font-medium text-white mb-2">Username</label>
+                <input type="text"
+                       @bind="_username"
+                       @bind:after="@(() => Dispatcher.Dispatch(new UpdateUsernameAction(_username)))"
+                       class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                       placeholder="rich" />
+            </div>
 
-    <MudItem xs="12">
-        <MudDivider Class="my-4" />
-    </MudItem>
+            @* Update Profile Button *@
+            <div class="flex justify-start">
+                <button @onclick="HandleUpdateProfile"
+                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-all">
+                    Update Profile
+                </button>
+            </div>
+        </div>
+    </div>
 
-    <MudItem xs="12">
-        <MudText Typo="Typo.subtitle1" Class="mb-2">Subscription Tier</MudText>
-    </MudItem>
+    @* Section: Password *@
+    <div>
+        <h3 class="text-base md:text-lg font-semibold text-white mb-4">Password</h3>
 
-    <MudItem xs="12">
-        <MudRadioGroup @bind-SelectedValue="@_userTier" T="string">
-            <MudRadio T="string" Value="@("Free")" Color="Color.Primary" Dense="true">
-                <MudText Typo="Typo.body1">Free Tier</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    Fair use limits, all features available
-                </MudText>
-            </MudRadio>
+        <div class="space-y-4">
+            @* Current Password *@
+            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                <label class="block text-sm font-medium text-white mb-2">Current Password</label>
+                <input type="password"
+                       @bind="_currentPassword"
+                       class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                       placeholder="Enter current password" />
+            </div>
 
-            <MudRadio T="string" Value="@("BYOK")" Color="Color.Primary" Dense="true" Class="mt-2">
-                <MudText Typo="Typo.body1">BYOK - $10/month</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    Bring Your Own Keys, unlimited usage with your API keys
-                </MudText>
-            </MudRadio>
+            @* New Password *@
+            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                <label class="block text-sm font-medium text-white mb-2">New Password</label>
+                <input type="password"
+                       @bind="_newPassword"
+                       class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                       placeholder="Enter new password" />
+            </div>
 
-            <MudRadio T="string" Value="@("Developer")" Color="Color.Primary" Dense="true" Class="mt-2">
-                <MudText Typo="Typo.body1">Developer - $30/month</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    Blazor component generator, API access, priority support
-                </MudText>
-            </MudRadio>
-        </MudRadioGroup>
-    </MudItem>
+            @* Confirm Password *@
+            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                <label class="block text-sm font-medium text-white mb-2">Confirm Password</label>
+                <input type="password"
+                       @bind="_confirmPassword"
+                       class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                       placeholder="Confirm new password" />
+            </div>
 
-    <MudItem xs="12">
-        <MudDivider Class="my-4" />
-    </MudItem>
+            @* Change Password Button *@
+            <div class="flex justify-start">
+                <button @onclick="HandleChangePassword"
+                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-all">
+                    Change Password
+                </button>
+            </div>
+        </div>
+    </div>
 
-    <MudItem xs="12">
-        <MudAlert Severity="Severity.Info">
-            <strong>True Open Source</strong> - No gatekeeping, no "benefactors" model.
-            All tiers get full access to the codebase. Pay if you can, use free if you can't. 🇳🇿
-        </MudAlert>
-    </MudItem>
+    @* Section: Privacy & Data *@
+    <div>
+        <h3 class="text-base md:text-lg font-semibold text-white mb-4">Privacy & Data</h3>
 
-    <MudItem xs="12">
-        <MudButton Variant="Variant.Outlined"
-                  Color="Color.Error"
-                  StartIcon="@Icons.Material.Filled.Delete">
-            Delete Account
-        </MudButton>
-    </MudItem>
-</MudGrid>
+        <div class="space-y-4">
+            @* Allow Analytics Toggle *@
+            <div class="flex items-center justify-between p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                <div class="flex-1">
+                    <div class="text-sm font-medium text-white">Allow Analytics</div>
+                    <div class="text-xs text-gray-400 mt-1">Help improve the app with anonymous usage data</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox"
+                           @bind="_allowAnalytics"
+                           @bind:after="@(() => Dispatcher.Dispatch(new UpdateAllowAnalyticsAction(_allowAnalytics)))"
+                           class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+            </div>
+        </div>
+    </div>
+
+</div>
 
 @code {
-    private string? _username;
-    private string? _email;
-    private string? _avatarUrl;
-    private string _userTier = "Free";
+    private string? _username = "rich";
+    private string? _email = "rich@example.com";
+    private string _currentPassword = "";
+    private string _newPassword = "";
+    private string _confirmPassword = "";
+    private bool _allowAnalytics = true;
 
     protected override void OnParametersSet()
     {
@@ -104,7 +123,21 @@
 
         _username = SettingsState.Value.Username;
         _email = SettingsState.Value.Email;
-        _avatarUrl = SettingsState.Value.AvatarUrl;
-        _userTier = SettingsState.Value.UserTier;
+    }
+
+    private void HandleUpdateProfile()
+    {
+        // TODO: Implement profile update
+    }
+
+    private void HandleChangePassword()
+    {
+        // TODO: Implement password change
+        if (_newPassword != _confirmPassword)
+        {
+            // Show error
+            return;
+        }
+        // Process password change
     }
 }

@@ -4,86 +4,116 @@
 @inject IState<SettingsState> SettingsState
 @inject IDispatcher Dispatcher
 
-<MudText Typo="Typo.h6" Class="mb-4">Interface Settings</MudText>
+@* Mobile-first responsive Interface Settings Tab *@
 
-<MudGrid Spacing="2">
-    <MudItem xs="12" md="6">
-        <MudSelect T="string" Value="@_theme"
-                  Label="Theme"
-                  Variant="Variant.Outlined"
-                  Margin="Margin.Dense"
-                  ValueChanged="@((string value) => { _theme = value; Dispatcher.Dispatch(new UpdateThemeAction(value)); })">
-            <MudSelectItem T="string" Value="@("dark")">Dark (Kiwi Night)</MudSelectItem>
-            <MudSelectItem T="string" Value="@("light")">Light</MudSelectItem>
-            <MudSelectItem T="string" Value="@("auto")">Auto (System)</MudSelectItem>
-        </MudSelect>
-    </MudItem>
+<div class="space-y-6 md:space-y-8">
 
-    <MudItem xs="12" md="6">
-        <MudSelect T="string" Value="@_codeTheme"
-                  Label="Code Theme"
-                  Variant="Variant.Outlined"
-                  Margin="Margin.Dense"
-                  ValueChanged="@((string value) => { _codeTheme = value; Dispatcher.Dispatch(new UpdateCodeThemeAction(value)); })">
-            <MudSelectItem T="string" Value="@("dracula")">Dracula</MudSelectItem>
-            <MudSelectItem T="string" Value="@("monokai")">Monokai</MudSelectItem>
-            <MudSelectItem T="string" Value="@("github")">GitHub</MudSelectItem>
-            <MudSelectItem T="string" Value="@("nord")">Nord</MudSelectItem>
-            <MudSelectItem T="string" Value="@("solarized-dark")">Solarized Dark</MudSelectItem>
-        </MudSelect>
-    </MudItem>
+    @* Section: Theme *@
+    <div>
+        <h3 class="text-base md:text-lg font-semibold text-white mb-4">Theme</h3>
 
-    <MudItem xs="12" md="6">
-        <MudSlider T="int" Value="@_fontSize"
-                  Min="10"
-                  Max="24"
-                  Step="1"
-                  Color="Color.Primary"
-                  ValueChanged="@((int value) => { _fontSize = value; Dispatcher.Dispatch(new UpdateFontSizeAction(value)); })">
-            Font Size: @_fontSize px
-        </MudSlider>
-    </MudItem>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            @* Appearance *@
+            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                <label class="block text-sm font-medium text-white mb-2">Appearance</label>
+                <select @bind="_theme"
+                        @bind:after="@(() => Dispatcher.Dispatch(new UpdateThemeAction(_theme)))"
+                        class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="auto">Auto (System)</option>
+                </select>
+            </div>
 
-    <MudItem xs="12">
-        <MudDivider Class="my-4" />
-    </MudItem>
+            @* Color Theme *@
+            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                <label class="block text-sm font-medium text-white mb-2">Color Theme</label>
+                <select @bind="_colorTheme"
+                        class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="purple">Purple</option>
+                    <option value="blue">Blue</option>
+                    <option value="green">Green</option>
+                    <option value="red">Red</option>
+                    <option value="orange">Orange</option>
+                </select>
+            </div>
 
-    <MudItem xs="12">
-        <MudSwitch T="bool" Value="@_compactMode"
-                  Label="Compact Mode"
-                  Color="Color.Primary"
-                  ValueChanged="@((bool value) => { _compactMode = value; Dispatcher.Dispatch(new UpdateCompactModeAction(value)); })" />
-        <MudText Typo="Typo.caption" Color="Color.Secondary">
-            Reduce spacing and padding for more content density
-        </MudText>
-    </MudItem>
+            @* Font Size *@
+            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                <label class="block text-sm font-medium text-white mb-2">Font Size</label>
+                <select @bind="_fontSizeOption"
+                        @bind:after="@(() => UpdateFontSize())"
+                        class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                </select>
+            </div>
+        </div>
+    </div>
 
-    <MudItem xs="12">
-        <MudSwitch T="bool" Value="@_showLineNumbers"
-                  Label="Show Line Numbers"
-                  Color="Color.Primary"
-                  ValueChanged="@((bool value) => { _showLineNumbers = value; Dispatcher.Dispatch(new UpdateShowLineNumbersAction(value)); })" />
-        <MudText Typo="Typo.caption" Color="Color.Secondary">
-            Display line numbers in code blocks
-        </MudText>
-    </MudItem>
+    @* Section: Chat Display *@
+    <div>
+        <h3 class="text-base md:text-lg font-semibold text-white mb-4">Chat Display</h3>
 
-    <MudItem xs="12">
-        <MudSwitch T="bool" Value="@_enableMarkdownPreview"
-                  Label="Enable Markdown Preview"
-                  Color="Color.Primary"
-                  ValueChanged="@((bool value) => { _enableMarkdownPreview = value; Dispatcher.Dispatch(new UpdateMarkdownPreviewAction(value)); })" />
-        <MudText Typo="Typo.caption" Color="Color.Secondary">
-            Show live preview while typing messages
-        </MudText>
-    </MudItem>
-</MudGrid>
+        <div class="space-y-4">
+            @* Show Timestamps Toggle *@
+            <div class="flex items-center justify-between p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                <div class="flex-1">
+                    <div class="text-sm font-medium text-white">Show timestamps</div>
+                    <div class="text-xs text-gray-400 mt-1">Display message timestamps</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox"
+                           @bind="_showTimestamps"
+                           @bind:after="@(() => Dispatcher.Dispatch(new UpdateShowTimestampsAction(_showTimestamps)))"
+                           class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+            </div>
+
+            @* Syntax Highlighting Toggle *@
+            <div class="flex items-center justify-between p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                <div class="flex-1">
+                    <div class="text-sm font-medium text-white">Syntax highlighting</div>
+                    <div class="text-xs text-gray-400 mt-1">Highlight code in messages</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox"
+                           @bind="_showLineNumbers"
+                           @bind:after="@(() => Dispatcher.Dispatch(new UpdateShowLineNumbersAction(_showLineNumbers)))"
+                           class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+            </div>
+
+            @* Markdown Support Toggle *@
+            <div class="flex items-center justify-between p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                <div class="flex-1">
+                    <div class="text-sm font-medium text-white">Markdown support</div>
+                    <div class="text-xs text-gray-400 mt-1">Render markdown formatting</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox"
+                           @bind="_enableMarkdownPreview"
+                           @bind:after="@(() => Dispatcher.Dispatch(new UpdateMarkdownPreviewAction(_enableMarkdownPreview)))"
+                           class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+            </div>
+        </div>
+    </div>
+
+</div>
 
 @code {
     private string _theme = "dark";
+    private string _colorTheme = "purple";
     private string _codeTheme = "dracula";
+    private string _fontSizeOption = "medium";
     private int _fontSize = 14;
     private bool _compactMode = false;
+    private bool _showTimestamps = true;
     private bool _showLineNumbers = true;
     private bool _enableMarkdownPreview = true;
 
@@ -94,8 +124,25 @@
         _theme = SettingsState.Value.Theme;
         _codeTheme = SettingsState.Value.CodeTheme;
         _fontSize = SettingsState.Value.FontSize;
+        _fontSizeOption = _fontSize switch
+        {
+            <= 12 => "small",
+            >= 16 => "large",
+            _ => "medium"
+        };
         _compactMode = SettingsState.Value.CompactMode;
         _showLineNumbers = SettingsState.Value.ShowLineNumbers;
         _enableMarkdownPreview = SettingsState.Value.EnableMarkdownPreview;
+    }
+
+    private void UpdateFontSize()
+    {
+        _fontSize = _fontSizeOption switch
+        {
+            "small" => 12,
+            "large" => 16,
+            _ => 14
+        };
+        Dispatcher.Dispatch(new UpdateFontSizeAction(_fontSize));
     }
 }

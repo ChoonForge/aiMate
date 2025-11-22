@@ -1,96 +1,108 @@
 @using Fluxor
 @using AiMate.Web.Store.Settings
-@using AiMate.Core.Enums
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @inject IState<SettingsState> SettingsState
 @inject IDispatcher Dispatcher
 
-<MudText Typo="Typo.h6" Class="mb-4">Personalisation Settings</MudText>
+@* Mobile-first responsive Personalisation Settings Tab *@
 
-<MudGrid Spacing="2">
-    <MudItem xs="12" md="6">
-        <MudSelect T="string" Value="@_defaultPersonality"
-                  Label="Default Personality"
-                  Variant="Variant.Outlined"
-                  Margin="Margin.Dense"
-                  ValueChanged="@((string value) => { _defaultPersonality = value; Dispatcher.Dispatch(new UpdateDefaultPersonalityAction(value)); })">
-            <MudSelectItem T="string" Value="@(PersonalityMode.KiwiMate.ToString())">Kiwi Mate (Casual & Friendly)</MudSelectItem>
-            <MudSelectItem T="string" Value="@(PersonalityMode.KiwiProfessional.ToString())">Kiwi Professional</MudSelectItem>
-            <MudSelectItem T="string" Value="@(PersonalityMode.KiwiDev.ToString())">Kiwi Dev (Technical)</MudSelectItem>
-            <MudSelectItem T="string" Value="@(PersonalityMode.TeReoMaori.ToString())">Te Reo Māori</MudSelectItem>
-            <MudSelectItem T="string" Value="@(PersonalityMode.MentalHealthSupport.ToString())">Mental Health Support</MudSelectItem>
-            <MudSelectItem T="string" Value="@(PersonalityMode.Standard.ToString())">Standard AI</MudSelectItem>
-        </MudSelect>
-    </MudItem>
+<div class="space-y-6 md:space-y-8">
 
-    <MudItem xs="12" md="6">
-        <MudSelect T="string" Value="@_defaultModel"
-                  Label="Default Model"
-                  Variant="Variant.Outlined"
-                  Margin="Margin.Dense"
-                  ValueChanged="@((string value) => { _defaultModel = value; Dispatcher.Dispatch(new UpdateDefaultModelAction(value)); })">
-            <MudSelectItem T="string" Value="@("gpt-4")">GPT-4</MudSelectItem>
-            <MudSelectItem T="string" Value="@("gpt-3.5-turbo")">GPT-3.5 Turbo</MudSelectItem>
-            <MudSelectItem T="string" Value="@("claude-3-5-sonnet-20241022")">Claude 3.5 Sonnet</MudSelectItem>
-            <MudSelectItem T="string" Value="@("claude-3-opus-20240229")">Claude 3 Opus</MudSelectItem>
-            <MudSelectItem T="string" Value="@("gemini-pro")">Gemini Pro</MudSelectItem>
-        </MudSelect>
-    </MudItem>
+    @* Section: AI Behavior *@
+    <div>
+        <h3 class="text-base md:text-lg font-semibold text-white mb-4">AI Behavior</h3>
 
-    <MudItem xs="12" md="6">
-        <MudSlider T="double" Value="@_temperature"
-                  Min="0"
-                  Max="2"
-                  Step="0.1"
-                  Color="Color.Primary"
-                  ValueChanged="@((double value) => { _temperature = value; Dispatcher.Dispatch(new UpdateTemperatureAction(value)); })">
-            Temperature: @_temperature.ToString("F1")
-        </MudSlider>
-        <MudText Typo="Typo.caption" Color="Color.Secondary">
-            Lower = more focused, Higher = more creative
-        </MudText>
-    </MudItem>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            @* Creativity Level *@
+            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                <label class="block text-sm font-medium text-white mb-2">Creativity Level</label>
+                <select @bind="_creativityLevel"
+                        @bind:after="@(() => UpdateTemperature())"
+                        class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="balanced">Balanced</option>
+                    <option value="precise">Precise</option>
+                    <option value="creative">Creative</option>
+                </select>
+            </div>
 
-    <MudItem xs="12" md="6">
-        <MudNumericField T="int" Value="@_maxTokens"
-                        Label="Max Tokens"
-                        Variant="Variant.Outlined"
-                        Margin="Margin.Dense"
-                        Min="100"
-                        Max="8000"
-                        Step="100"
-                        ValueChanged="@((int value) => { _maxTokens = value; Dispatcher.Dispatch(new UpdateMaxTokensAction(value)); })" />
-    </MudItem>
+            @* Response Style *@
+            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                <label class="block text-sm font-medium text-white mb-2">Response Style</label>
+                <select @bind="_responseStyle"
+                        class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                    <option value="balanced">Balanced</option>
+                    <option value="concise">Concise</option>
+                    <option value="detailed">Detailed</option>
+                </select>
+            </div>
+        </div>
+    </div>
 
-    <MudItem xs="12">
-        <MudTextField T="string" Value="@_systemPromptOverride"
-                     Label="System Prompt Override (Advanced)"
-                     Variant="Variant.Outlined"
-                     Margin="Margin.Dense"
-                     Lines="5"
-                     Placeholder="Optional: Override the default system prompt"
-                     ValueChanged="@((string value) => { _systemPromptOverride = value; Dispatcher.Dispatch(new UpdateSystemPromptOverrideAction(value)); })" />
-        <MudText Typo="Typo.caption" Color="Color.Secondary">
-            Leave blank to use personality-specific prompts. Advanced users only!
-        </MudText>
-    </MudItem>
-</MudGrid>
+    @* Section: Custom Instructions *@
+    <div>
+        <h3 class="text-base md:text-lg font-semibold text-white mb-4">Custom Instructions</h3>
+
+        <div class="space-y-4">
+            @* Additional Context *@
+            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                <label class="block text-sm font-medium text-white mb-2">Additional Context</label>
+                <div class="text-xs text-gray-400 mb-2">Customize how the AI responds to you</div>
+                <textarea @bind="_customInstructions"
+                          @bind:after="@(() => Dispatcher.Dispatch(new UpdateSystemPromptOverrideAction(_customInstructions)))"
+                          rows="6"
+                          placeholder="e.g., Always respond in a friendly tone, use emojis occasionally..."
+                          class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none">
+                </textarea>
+            </div>
+
+            @* Remember Conversation Context Toggle *@
+            <div class="flex items-center justify-between p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                <div class="flex-1">
+                    <div class="text-sm font-medium text-white">Remember conversation context</div>
+                    <div class="text-xs text-gray-400 mt-1">AI remembers details from previous messages</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox"
+                           @bind="_rememberContext"
+                           @bind:after="@(() => Dispatcher.Dispatch(new UpdateRememberContextAction(_rememberContext)))"
+                           class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+            </div>
+        </div>
+    </div>
+
+</div>
 
 @code {
-    private string _defaultPersonality = PersonalityMode.KiwiMate.ToString();
-    private string _defaultModel = "gpt-4";
+    private string _creativityLevel = "balanced";
+    private string _responseStyle = "balanced";
     private double _temperature = 0.7;
-    private int _maxTokens = 2000;
-    private string _systemPromptOverride = string.Empty;
+    private string _customInstructions = "";
+    private bool _rememberContext = true;
 
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
 
-        _defaultPersonality = SettingsState.Value.DefaultPersonality;
-        _defaultModel = SettingsState.Value.DefaultModel;
         _temperature = SettingsState.Value.Temperature;
-        _maxTokens = SettingsState.Value.MaxTokens;
-        _systemPromptOverride = SettingsState.Value.SystemPromptOverride;
+        _creativityLevel = _temperature switch
+        {
+            <= 0.5 => "precise",
+            >= 1.0 => "creative",
+            _ => "balanced"
+        };
+        _customInstructions = SettingsState.Value.SystemPromptOverride ?? "";
+    }
+
+    private void UpdateTemperature()
+    {
+        _temperature = _creativityLevel switch
+        {
+            "precise" => 0.3,
+            "creative" => 1.2,
+            _ => 0.7
+        };
+        Dispatcher.Dispatch(new UpdateTemperatureAction(_temperature));
     }
 }

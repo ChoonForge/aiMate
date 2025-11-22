@@ -4,141 +4,104 @@
 @inject IState<SettingsState> SettingsState
 @inject IDispatcher Dispatcher
 
-<MudText Typo="Typo.h6" Class="mb-4">Usage & Cost Tracking</MudText>
+@* Mobile-first responsive Usage Settings Tab *@
 
-<MudGrid Spacing="2">
-    <MudItem xs="12">
-        <MudSwitch T="bool" Value="@_trackUsage"
-                  Label="Track Usage"
-                  Color="Color.Primary"
-                  ValueChanged="@((bool value) => { _trackUsage = value; Dispatcher.Dispatch(new UpdateTrackUsageAction(value)); })" />
-        <MudText Typo="Typo.caption" Color="Color.Secondary">
-            Track tokens used and estimated costs
-        </MudText>
-    </MudItem>
+<div class="space-y-6 md:space-y-8">
 
-    <MudItem xs="12">
-        <MudSwitch T="bool" Value="@_showCostEstimates"
-                  Label="Show Cost Estimates"
-                  Color="Color.Primary"
-                  ValueChanged="@((bool value) => { _showCostEstimates = value; Dispatcher.Dispatch(new UpdateShowCostEstimatesAction(value)); })" />
-        <MudText Typo="Typo.caption" Color="Color.Secondary">
-            Display estimated cost for each message
-        </MudText>
-    </MudItem>
+    @* Section: Current Billing Period *@
+    <div>
+        <h3 class="text-base md:text-lg font-semibold text-white mb-4">Current Billing Period</h3>
+        <p class="text-sm text-gray-400 mb-4">Nov 1, 2025 - Nov 30, 2025</p>
 
-    <MudItem xs="12">
-        <MudSwitch T="bool" Value="@_enableUsageAlerts"
-                  Label="Enable Usage Alerts"
-                  Color="Color.Primary"
-                  ValueChanged="@((bool value) => { _enableUsageAlerts = value; Dispatcher.Dispatch(new UpdateUsageAlertsAction(value)); })" />
-        <MudText Typo="Typo.caption" Color="Color.Secondary">
-            Get notified when approaching monthly budget
-        </MudText>
-    </MudItem>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            @* Total Messages Card *@
+            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                <div class="text-xs text-gray-400 mb-1">Total Messages</div>
+                <div class="text-2xl font-semibold text-white">5,262</div>
+            </div>
 
-    <MudItem xs="12">
-        <MudDivider Class="my-4" />
-    </MudItem>
+            @* Total Tokens Card *@
+            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                <div class="text-xs text-gray-400 mb-1">Total Tokens</div>
+                <div class="text-2xl font-semibold text-white">1558.1K</div>
+            </div>
 
-    <MudItem xs="12" md="6">
-        <MudNumericField T="int" Value="@_monthlyBudget"
-                        Label="Monthly Budget (NZD)"
-                        Variant="Variant.Outlined"
-                        Margin="Margin.Dense"
-                        Min="0"
-                        Max="1000"
-                        Step="10"
-                        ValueChanged="@((int value) => { _monthlyBudget = value; Dispatcher.Dispatch(new UpdateMonthlyBudgetAction(value)); })" />
-        <MudText Typo="Typo.caption" Color="Color.Secondary">
-            0 = unlimited (for BYOK users)
-        </MudText>
-    </MudItem>
+            @* Total Cost Card *@
+            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                <div class="text-xs text-gray-400 mb-1">Total Cost</div>
+                <div class="text-2xl font-semibold text-purple-400">$41.87</div>
+            </div>
+        </div>
 
-    <MudItem xs="12">
-        <MudDivider Class="my-4" />
-    </MudItem>
+        @* View Detailed Analytics Button *@
+        <div class="mt-4">
+            <button @onclick="HandleViewAnalytics"
+                    class="w-full md:w-auto px-4 py-2 bg-[#0F0F0F] hover:bg-[#2A2A2A] border border-[#2A2A2A] text-white text-sm font-medium rounded-lg transition-all">
+                View Detailed Analytics
+            </button>
+        </div>
+    </div>
 
-    <MudItem xs="12">
-        <MudText Typo="Typo.subtitle1" Class="mb-2">Current Month Usage</MudText>
-    </MudItem>
+    @* Section: Usage by Model *@
+    <div>
+        <h3 class="text-base md:text-lg font-semibold text-white mb-4">Usage by Model</h3>
 
-    <MudItem xs="12">
-        <MudPaper Class="pa-4" Elevation="0">
-            <MudGrid Spacing="2">
-                <MudItem xs="12" md="4">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Tokens Used</MudText>
-                    <MudText Typo="Typo.h5">147,532</MudText>
-                    <MudProgressLinear Value="60" Color="Color.Primary" Class="mt-2" />
-                </MudItem>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-[#2A2A2A]">
+                        <th class="text-left text-gray-400 font-medium py-3 px-4">Model</th>
+                        <th class="text-left text-gray-400 font-medium py-3 px-4">Connection</th>
+                        <th class="text-right text-gray-400 font-medium py-3 px-4">Messages</th>
+                        <th class="text-right text-gray-400 font-medium py-3 px-4">Tokens</th>
+                        <th class="text-right text-gray-400 font-medium py-3 px-4">Cost</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var usage in usageData)
+                    {
+                        <tr class="border-b border-[#2A2A2A] hover:bg-[#0F0F0F] transition-colors">
+                            <td class="py-3 px-4">
+                                <div class="text-white font-medium" style="color: @usage.Color">@usage.Model</div>
+                            </td>
+                            <td class="py-3 px-4 text-gray-300">@usage.Connection</td>
+                            <td class="py-3 px-4 text-right text-gray-300">@usage.Messages</td>
+                            <td class="py-3 px-4 text-right text-gray-300">@usage.Tokens</td>
+                            <td class="py-3 px-4 text-right text-gray-300">@usage.Cost</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-                <MudItem xs="12" md="4">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Estimated Cost</MudText>
-                    <MudText Typo="Typo.h5">$4.23 NZD</MudText>
-                    <MudProgressLinear Value="42" Color="Color.Success" Class="mt-2" />
-                </MudItem>
-
-                <MudItem xs="12" md="4">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Conversations</MudText>
-                    <MudText Typo="Typo.h5">23</MudText>
-                </MudItem>
-            </MudGrid>
-        </MudPaper>
-    </MudItem>
-
-    <MudItem xs="12">
-        <MudText Typo="Typo.subtitle2" Class="mb-2">Usage by Model</MudText>
-
-        <MudSimpleTable Hover="true" Dense="true">
-            <thead>
-                <tr>
-                    <th>Model</th>
-                    <th>Tokens</th>
-                    <th>Cost</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>GPT-4</td>
-                    <td>82,145</td>
-                    <td>$2.87</td>
-                </tr>
-                <tr>
-                    <td>Claude 3.5 Sonnet</td>
-                    <td>45,231</td>
-                    <td>$1.12</td>
-                </tr>
-                <tr>
-                    <td>GPT-3.5 Turbo</td>
-                    <td>20,156</td>
-                    <td>$0.24</td>
-                </tr>
-            </tbody>
-        </MudSimpleTable>
-    </MudItem>
-
-    <MudItem xs="12">
-        <MudButton Variant="Variant.Text"
-                  Color="Color.Primary"
-                  StartIcon="@Icons.Material.Filled.Download">
-            Export Usage Data
-        </MudButton>
-    </MudItem>
-</MudGrid>
+</div>
 
 @code {
-    private bool _trackUsage = true;
-    private bool _showCostEstimates = true;
-    private bool _enableUsageAlerts = true;
-    private int _monthlyBudget = 0;
+    private List<UsageData> usageData = new()
+    {
+        new UsageData { Model = "GPT-4", Connection = "OpenAI", Messages = 2847, Tokens = "771.5K", Cost = "$23.14", Color = "#A855F7" },
+        new UsageData { Model = "Claude 3 Opus", Connection = "Anthropic", Messages = 892, Tokens = "300.5K", Cost = "$9.01", Color = "#F97316" },
+        new UsageData { Model = "GPT-4 Turbo", Connection = "OpenAI", Messages = 1523, Tokens = "486.1K", Cost = "$9.72", Color = "#A855F7" }
+    };
 
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
+    }
 
-        _trackUsage = SettingsState.Value.TrackUsage;
-        _showCostEstimates = SettingsState.Value.ShowCostEstimates;
-        _enableUsageAlerts = SettingsState.Value.EnableUsageAlerts;
-        _monthlyBudget = SettingsState.Value.MonthlyBudget;
+    private void HandleViewAnalytics()
+    {
+        // TODO: Navigate to detailed analytics page
+    }
+
+    public class UsageData
+    {
+        public string Model { get; set; } = "";
+        public string Connection { get; set; } = "";
+        public int Messages { get; set; }
+        public string Tokens { get; set; } = "";
+        public string Cost { get; set; } = "";
+        public string Color { get; set; } = "";
     }
 }
