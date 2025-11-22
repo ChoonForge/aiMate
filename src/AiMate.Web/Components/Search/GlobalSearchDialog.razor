@@ -1,5 +1,6 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
+@inject HttpClient Http
 
 <MudDialog Style="min-width: 700px; max-width: 900px;">
     <DialogContent>
@@ -210,33 +211,64 @@
     private bool _includeNotes = true;
     private bool _includeKnowledge = true;
 
-    // IMPLEMENTATION NEEDED: Create ISearchService with methods:
-    // - Task<List<SearchResult>> SearchAsync(string query, SearchFilters filters)
-    // Inject service in constructor and populate _allResults from actual data
     private List<SearchResult> _allResults = new();
+    private CancellationTokenSource? _searchCts;
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        // IMPLEMENTATION NEEDED: Remove GenerateMockResults() and load from ISearchService
-        GenerateMockResults();
+        // Ready for real-time search via API
     }
 
     private async Task OnSearchQueryChanged(string query)
     {
         _searchQuery = query;
+
+        // Clear results if query is empty
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            _allResults.Clear();
+            StateHasChanged();
+            return;
+        }
+
+        // Cancel previous search
+        _searchCts?.Cancel();
+        _searchCts = new CancellationTokenSource();
+
         _isSearching = true;
         StateHasChanged();
 
-        // Simulate search delay
-        await Task.Delay(300);
+        try
+        {
+            // Debounce 300ms
+            await Task.Delay(300, _searchCts.Token);
 
-        // IMPLEMENTATION NEEDED: Replace with actual search service call
-        // Example: _allResults = await _searchService.SearchAsync(query, BuildSearchFilters());
+            // Call global search API
+            var response = await Http.GetFromJsonAsync<GlobalSearchResults>(
+                $"/api/v1/search?query={Uri.EscapeDataString(query)}&limit=50",
+                _searchCts.Token);
 
-        _isSearching = false;
-        _selectedIndex = 0;
-        StateHasChanged();
+            if (response != null)
+            {
+                _allResults = MapToSearchResults(response);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            // Debounce cancelled - ignore
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Search failed: {ex.Message}", Severity.Error);
+            _allResults.Clear();
+        }
+        finally
+        {
+            _isSearching = false;
+            _selectedIndex = 0;
+            StateHasChanged();
+        }
     }
 
     private void HandleKeyDown(KeyboardEventArgs e)
@@ -376,31 +408,102 @@
         MudDialog.Close();
     }
 
-    private void GenerateMockResults()
+    private List<SearchResult> MapToSearchResults(GlobalSearchResults apiResponse)
     {
-        // MOCK IMPLEMENTATION: For demonstration only - replace with ISearchService
-        _allResults = new List<SearchResult>
+        var results = new List<SearchResult>();
+
+        // Map conversations
+        if (apiResponse.Conversations != null)
         {
-            // Chats
-            new() { Type = "Chats", Title = "Discussion about Blazor components", Preview = "We talked about MudBlazor and component architecture...", Location = "Workspace: Development", UpdatedAt = DateTime.Now.AddDays(-1), Url = "/chat/1" },
-            new() { Type = "Chats", Title = "Planning the new feature", Preview = "Discussed requirements for BYOK implementation...", Location = "Workspace: Planning", UpdatedAt = DateTime.Now.AddDays(-2), Url = "/chat/2" },
+            results.AddRange(apiResponse.Conversations.Select(c => new SearchResult
+            {
+                Type = "Chats",
+                Title = c.Item?.Title ?? "Untitled Conversation",
+                Preview = c.Highlight ?? c.Item?.Messages?.FirstOrDefault()?.Content?.Substring(0, Math.Min(100, c.Item?.Messages?.FirstOrDefault()?.Content?.Length ?? 0)) ?? "No preview available",
+                Location = c.Item?.Workspace?.Name ?? "Unknown Workspace",
+                UpdatedAt = c.Item?.UpdatedAt ?? DateTime.Now,
+                Url = $"/chat/{c.Item?.Id}"
+            }));
+        }
 
-            // Files
-            new() { Type = "Files", Title = "Architecture Diagram.png", Preview = "System architecture overview", Location = "Documents/Design", UpdatedAt = DateTime.Now.AddDays(-3), Url = "/files/1" },
-            new() { Type = "Files", Title = "API Documentation.md", Preview = "REST API endpoint reference", Location = "Documents/API", UpdatedAt = DateTime.Now.AddDays(-5), Url = "/files/2" },
+        // Map messages
+        if (apiResponse.Messages != null)
+        {
+            results.AddRange(apiResponse.Messages.Select(m => new SearchResult
+            {
+                Type = "Chats",
+                Title = m.Item?.Content?.Substring(0, Math.Min(50, m.Item?.Content?.Length ?? 0)) + "..." ?? "Message",
+                Preview = m.Highlight ?? m.Item?.Content ?? "No content",
+                Location = "Message",
+                UpdatedAt = m.Item?.CreatedAt ?? DateTime.Now,
+                Url = $"/chat/{m.Item?.ConversationId}"
+            }));
+        }
 
-            // Artifacts
-            new() { Type = "Artifacts", Title = "UserService.cs", Preview = "public class UserService : IUserService {...", Location = "Generated Code", UpdatedAt = DateTime.Now.AddDays(-1), Url = "/artifacts/1" },
-            new() { Type = "Artifacts", Title = "Database Migration Script", Preview = "CREATE TABLE Users (...", Location = "SQL Scripts", UpdatedAt = DateTime.Now.AddDays(-4), Url = "/artifacts/2" },
+        // Map knowledge items
+        if (apiResponse.KnowledgeItems != null)
+        {
+            results.AddRange(apiResponse.KnowledgeItems.Select(k => new SearchResult
+            {
+                Type = "Knowledge",
+                Title = k.Item?.Title ?? "Untitled Knowledge",
+                Preview = k.Highlight ?? k.Item?.Content?.Substring(0, Math.Min(100, k.Item?.Content?.Length ?? 0)) ?? "No content",
+                Location = "Knowledge Base",
+                UpdatedAt = k.Item?.UpdatedAt ?? DateTime.Now,
+                Url = $"/knowledge/{k.Item?.Id}"
+            }));
+        }
 
-            // Notes
-            new() { Type = "Notes", Title = "Meeting Notes - Sprint Planning", Preview = "Discussed priorities for next sprint...", Location = "Collection: Meetings", UpdatedAt = DateTime.Now.AddHours(-6), Url = "/notes/1" },
-            new() { Type = "Notes", Title = "Research: Authentication Patterns", Preview = "OAuth 2.0, JWT, Session-based auth comparison...", Location = "Collection: Research", UpdatedAt = DateTime.Now.AddDays(-7), Url = "/notes/2" },
+        return results;
+    }
 
-            // Knowledge
-            new() { Type = "Knowledge", Title = "C# Best Practices", Preview = "Guidelines for writing clean C# code...", Location = "Category: Programming", UpdatedAt = DateTime.Now.AddDays(-10), Url = "/knowledge/1" },
-            new() { Type = "Knowledge", Title = "Blazor Component Patterns", Preview = "Common patterns for building Blazor components...", Location = "Category: Blazor", UpdatedAt = DateTime.Now.AddDays(-15), Url = "/knowledge/2" }
-        };
+    // API Response Models
+    public class GlobalSearchResults
+    {
+        public List<SearchResultWrapper<Conversation>>? Conversations { get; set; }
+        public List<SearchResultWrapper<Message>>? Messages { get; set; }
+        public List<SearchResultWrapper<KnowledgeItem>>? KnowledgeItems { get; set; }
+        public int TotalResults { get; set; }
+        public string? Query { get; set; }
+        public long QueryTimeMs { get; set; }
+    }
+
+    public class SearchResultWrapper<T>
+    {
+        public T? Item { get; set; }
+        public double Score { get; set; }
+        public string? Highlight { get; set; }
+    }
+
+    public class Conversation
+    {
+        public Guid Id { get; set; }
+        public string? Title { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public Workspace? Workspace { get; set; }
+        public List<Message>? Messages { get; set; }
+    }
+
+    public class Message
+    {
+        public Guid Id { get; set; }
+        public Guid ConversationId { get; set; }
+        public string? Content { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class KnowledgeItem
+    {
+        public Guid Id { get; set; }
+        public string? Title { get; set; }
+        public string? Content { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    public class Workspace
+    {
+        public Guid Id { get; set; }
+        public string? Name { get; set; }
     }
 
     public class SearchResult
