@@ -1,0 +1,155 @@
+@* Reusable form dialog wrapper for create/edit operations *@
+
+<BaseDialog IsOpen="@IsOpen"
+            IsOpenChanged="@IsOpenChanged"
+            Title="@Title"
+            Size="@Size"
+            ShowCloseButton="@ShowCloseButton"
+            CloseOnBackdropClick="@(!PreventClose)"
+            CloseOnEscape="@(!PreventClose)"
+            OnClose="@HandleCancel"
+            BodyPadding="@BodyPadding">
+    <ChildContent>
+        @if (ShowDescription && !string.IsNullOrEmpty(Description))
+        {
+            <div class="mb-4 text-sm text-gray-400">
+                @Description
+            </div>
+        }
+
+        @if (ErrorMessage != null && !string.IsNullOrEmpty(errorMessageText))
+        {
+            <div class="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                <div class="flex items-start gap-2">
+                    <svg class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div class="flex-1">
+                        <p class="text-sm text-red-400">@errorMessageText</p>
+                    </div>
+                    <button @onclick="ClearError"
+                            class="text-red-400 hover:text-red-300 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        }
+
+        @ChildContent
+    </ChildContent>
+
+    <Actions>
+        @if (CustomActions != null)
+        {
+            @CustomActions
+        }
+        else
+        {
+            <button @onclick="HandleCancel"
+                    disabled="@IsProcessing"
+                    class="flex-1 px-4 py-2 bg-[#0F0F0F] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed text-gray-300 rounded-lg transition-all">
+                @CancelText
+            </button>
+            <button @onclick="HandleSubmit"
+                    disabled="@(!CanSubmit || IsProcessing)"
+                    class="flex-1 px-4 py-2 @SubmitButtonClass disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-all font-medium">
+                @if (IsProcessing)
+                {
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                }
+                @SubmitText
+            </button>
+        }
+    </Actions>
+</BaseDialog>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    [Parameter] public string Title { get; set; } = "Form";
+    [Parameter] public string Description { get; set; } = string.Empty;
+    [Parameter] public bool ShowDescription { get; set; } = true;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter] public BaseDialog.DialogSize Size { get; set; } = BaseDialog.DialogSize.Medium;
+    [Parameter] public bool ShowCloseButton { get; set; } = true;
+    [Parameter] public string BodyPadding { get; set; } = "p-6";
+
+    [Parameter] public string SubmitText { get; set; } = "Save";
+    [Parameter] public string CancelText { get; set; } = "Cancel";
+    [Parameter] public RenderFragment? CustomActions { get; set; }
+
+    [Parameter] public bool CanSubmit { get; set; } = true;
+    [Parameter] public bool IsProcessing { get; set; } = false;
+    [Parameter] public bool PreventClose { get; set; } = false;
+    [Parameter] public FormDialogStyle Style { get; set; } = FormDialogStyle.Primary;
+
+    [Parameter] public Func<string>? ErrorMessage { get; set; }
+
+    [Parameter] public EventCallback OnSubmit { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string errorMessageText = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (ErrorMessage != null)
+        {
+            errorMessageText = ErrorMessage() ?? string.Empty;
+        }
+    }
+
+    private string SubmitButtonClass => Style switch
+    {
+        FormDialogStyle.Primary => "bg-purple-600 hover:bg-purple-700 text-white",
+        FormDialogStyle.Success => "bg-green-600 hover:bg-green-700 text-white",
+        FormDialogStyle.Warning => "bg-yellow-600 hover:bg-yellow-700 text-white",
+        FormDialogStyle.Danger => "bg-red-600 hover:bg-red-700 text-white",
+        _ => "bg-purple-600 hover:bg-purple-700 text-white"
+    };
+
+    private async Task HandleSubmit()
+    {
+        if (CanSubmit && !IsProcessing)
+        {
+            if (OnSubmit.HasDelegate)
+            {
+                await OnSubmit.InvokeAsync();
+            }
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        if (!PreventClose)
+        {
+            ClearError();
+
+            if (OnCancel.HasDelegate)
+            {
+                await OnCancel.InvokeAsync();
+            }
+
+            await IsOpenChanged.InvokeAsync(false);
+        }
+    }
+
+    private void ClearError()
+    {
+        errorMessageText = string.Empty;
+    }
+
+    public enum FormDialogStyle
+    {
+        Primary,
+        Success,
+        Warning,
+        Danger
+    }
+}

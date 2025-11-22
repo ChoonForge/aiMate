@@ -1,0 +1,266 @@
+@inject IJSRuntime JSRuntime
+
+@* Share dialog with link generation and copy functionality *@
+
+<BaseDialog IsOpen="@IsOpen"
+            IsOpenChanged="@IsOpenChanged"
+            Title="@Title"
+            Size="BaseDialog.DialogSize.Large"
+            ShowCloseButton="true"
+            OnClose="@HandleClose">
+    <ChildContent>
+        @* Item preview *@
+        @if (!string.IsNullOrEmpty(ItemName) || ItemPreview != null)
+        {
+            <div class="mb-4 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                @if (ItemPreview != null)
+                {
+                    @ItemPreview
+                }
+                else
+                {
+                    <div class="flex items-center gap-3">
+                        <div class="flex-shrink-0">
+                            @if (!string.IsNullOrEmpty(ItemIcon))
+                            {
+                                <span class="text-2xl">@ItemIcon</span>
+                            }
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-white truncate">@ItemName</p>
+                            @if (!string.IsNullOrEmpty(ItemDescription))
+                            {
+                                <p class="text-xs text-gray-400">@ItemDescription</p>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @* Share options *@
+        @if (ShowShareOptions)
+        {
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-300 mb-3">Share options</label>
+                <div class="space-y-2">
+                    <label class="flex items-center gap-3 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg hover:border-purple-500/50 cursor-pointer transition-all">
+                        <input type="radio"
+                               name="shareType"
+                               checked="@(shareType == ShareType.Public)"
+                               @onchange="@(() => shareType = ShareType.Public)"
+                               class="w-4 h-4 text-purple-600 bg-[#0F0F0F] border-[#2A2A2A] focus:ring-2 focus:ring-purple-500">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-white">Public link</p>
+                            <p class="text-xs text-gray-400">Anyone with the link can view</p>
+                        </div>
+                    </label>
+
+                    <label class="flex items-center gap-3 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg hover:border-purple-500/50 cursor-pointer transition-all">
+                        <input type="radio"
+                               name="shareType"
+                               checked="@(shareType == ShareType.Private)"
+                               @onchange="@(() => shareType = ShareType.Private)"
+                               class="w-4 h-4 text-purple-600 bg-[#0F0F0F] border-[#2A2A2A] focus:ring-2 focus:ring-purple-500">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-white">Private link</p>
+                            <p class="text-xs text-gray-400">Only you can view (requires login)</p>
+                        </div>
+                    </label>
+
+                    @if (AllowExpiration)
+                    {
+                        <label class="flex items-center gap-3 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg hover:border-purple-500/50 cursor-pointer transition-all">
+                            <input type="radio"
+                                   name="shareType"
+                                   checked="@(shareType == ShareType.Expiring)"
+                                   @onchange="@(() => shareType = ShareType.Expiring)"
+                                   class="w-4 h-4 text-purple-600 bg-[#0F0F0F] border-[#2A2A2A] focus:ring-2 focus:ring-purple-500">
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-white">Expiring link</p>
+                                <p class="text-xs text-gray-400">Link expires after 7 days</p>
+                            </div>
+                        </label>
+                    }
+                </div>
+            </div>
+        }
+
+        @* Generated share link *@
+        @if (!string.IsNullOrEmpty(shareUrl))
+        {
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Share link</label>
+                <div class="flex gap-2">
+                    <div class="flex-1 relative">
+                        <input type="text"
+                               value="@shareUrl"
+                               readonly
+                               class="w-full px-3 py-2 pr-10 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-text select-all">
+                        @if (linkCopied)
+                        {
+                            <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 text-green-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M5 13l4 4L19 7"/>
+                                </svg>
+                                <span class="text-xs">Copied!</span>
+                            </div>
+                        }
+                    </div>
+                    <button @onclick="CopyLink"
+                            class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all flex items-center gap-2 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                        Copy
+                    </button>
+                </div>
+            </div>
+
+            @* Share statistics (optional) *@
+            @if (ShowStatistics && (ViewCount > 0 || !string.IsNullOrEmpty(CreatedDate)))
+            {
+                <div class="mb-4 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                    <div class="flex items-center justify-between text-sm">
+                        @if (ViewCount > 0)
+                        {
+                            <div class="flex items-center gap-2 text-gray-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                <span>@ViewCount views</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(CreatedDate))
+                        {
+                            <div class="text-gray-400">
+                                Shared @CreatedDate
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        }
+        else if (IsGenerating)
+        {
+            <div class="mb-4 flex items-center justify-center py-8">
+                <div class="flex items-center gap-3 text-gray-400">
+                    <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Generating share link...</span>
+                </div>
+            </div>
+        }
+    </ChildContent>
+
+    <Actions>
+        <button @onclick="HandleClose"
+                class="flex-1 px-4 py-2 bg-[#0F0F0F] hover:bg-[#2A2A2A] text-gray-300 rounded-lg transition-all">
+            @(string.IsNullOrEmpty(shareUrl) ? "Cancel" : "Done")
+        </button>
+        @if (string.IsNullOrEmpty(shareUrl) && !IsGenerating)
+        {
+            <button @onclick="GenerateLink"
+                    class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all font-medium">
+                Generate Link
+            </button>
+        }
+    </Actions>
+</BaseDialog>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    [Parameter] public string Title { get; set; } = "Share";
+    [Parameter] public string ItemName { get; set; } = string.Empty;
+    [Parameter] public string ItemDescription { get; set; } = string.Empty;
+    [Parameter] public string ItemIcon { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ItemPreview { get; set; }
+
+    [Parameter] public bool ShowShareOptions { get; set; } = true;
+    [Parameter] public bool AllowExpiration { get; set; } = true;
+    [Parameter] public bool ShowStatistics { get; set; } = false;
+    [Parameter] public int ViewCount { get; set; } = 0;
+    [Parameter] public string CreatedDate { get; set; } = string.Empty;
+
+    [Parameter] public EventCallback<ShareType> OnGenerateLink { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private ShareType shareType = ShareType.Public;
+    private string shareUrl = string.Empty;
+    private bool linkCopied = false;
+    private bool IsGenerating = false;
+
+    protected override void OnParametersSet()
+    {
+        if (!IsOpen)
+        {
+            shareUrl = string.Empty;
+            linkCopied = false;
+            shareType = ShareType.Public;
+        }
+    }
+
+    private async Task GenerateLink()
+    {
+        IsGenerating = true;
+        linkCopied = false;
+
+        try
+        {
+            if (OnGenerateLink.HasDelegate)
+            {
+                await OnGenerateLink.InvokeAsync(shareType);
+            }
+
+            // Simulate link generation (replace with actual implementation)
+            await Task.Delay(500);
+
+            // Generate a sample share URL (replace with actual URL from server)
+            var baseUrl = "https://app.example.com/share";
+            var shareId = Guid.NewGuid().ToString("N").Substring(0, 12);
+            shareUrl = $"{baseUrl}/{shareId}";
+        }
+        finally
+        {
+            IsGenerating = false;
+        }
+    }
+
+    private async Task CopyLink()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", shareUrl);
+            linkCopied = true;
+
+            // Reset copied state after 2 seconds
+            await Task.Delay(2000);
+            linkCopied = false;
+        }
+        catch
+        {
+            // Fallback or error handling
+        }
+    }
+
+    private async Task HandleClose()
+    {
+        if (OnClose.HasDelegate)
+        {
+            await OnClose.InvokeAsync();
+        }
+        await IsOpenChanged.InvokeAsync(false);
+    }
+
+    public enum ShareType
+    {
+        Public,
+        Private,
+        Expiring
+    }
+}

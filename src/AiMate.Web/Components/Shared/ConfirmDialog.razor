@@ -1,0 +1,175 @@
+@* Reusable confirmation/alert dialog *@
+
+<BaseDialog IsOpen="@IsOpen"
+            IsOpenChanged="@IsOpenChanged"
+            Title="@Title"
+            Size="@Size"
+            ShowCloseButton="@ShowCloseButton"
+            CloseOnBackdropClick="@(!RequireExplicitAction)"
+            CloseOnEscape="@(!RequireExplicitAction)"
+            OnClose="@HandleCancel">
+    <ChildContent>
+        @* Icon *@
+        @if (Type != ConfirmDialogType.None)
+        {
+            <div class="flex justify-center mb-4">
+                <div class="@IconContainerClass">
+                    @switch (Type)
+                    {
+                        case ConfirmDialogType.Warning:
+                            <svg class="@IconClass" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            break;
+                        case ConfirmDialogType.Error:
+                            <svg class="@IconClass" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            break;
+                        case ConfirmDialogType.Success:
+                            <svg class="@IconClass" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            break;
+                        case ConfirmDialogType.Info:
+                            <svg class="@IconClass" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            break;
+                        case ConfirmDialogType.Question:
+                            <svg class="@IconClass" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            break;
+                    }
+                </div>
+            </div>
+        }
+
+        @* Message *@
+        <div class="text-center text-gray-300">
+            @if (!string.IsNullOrEmpty(Message))
+            {
+                <p class="text-base">@Message</p>
+            }
+            @if (MessageContent != null)
+            {
+                @MessageContent
+            }
+        </div>
+
+        @* Additional details *@
+        @if (!string.IsNullOrEmpty(Details))
+        {
+            <div class="mt-3 p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                <p class="text-sm text-gray-400">@Details</p>
+            </div>
+        }
+    </ChildContent>
+
+    <Actions>
+        @if (!HideCancelButton)
+        {
+            <button @onclick="HandleCancel"
+                    disabled="@IsProcessing"
+                    class="@CancelButtonClass">
+                @CancelText
+            </button>
+        }
+        <button @onclick="HandleConfirm"
+                disabled="@IsProcessing"
+                class="@ConfirmButtonClass">
+            @if (IsProcessing)
+            {
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            }
+            @ConfirmText
+        </button>
+    </Actions>
+</BaseDialog>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    [Parameter] public string Title { get; set; } = "Confirm";
+    [Parameter] public string Message { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? MessageContent { get; set; }
+    [Parameter] public string Details { get; set; } = string.Empty;
+
+    [Parameter] public ConfirmDialogType Type { get; set; } = ConfirmDialogType.Question;
+    [Parameter] public BaseDialog.DialogSize Size { get; set; } = BaseDialog.DialogSize.Small;
+
+    [Parameter] public string ConfirmText { get; set; } = "Confirm";
+    [Parameter] public string CancelText { get; set; } = "Cancel";
+    [Parameter] public bool HideCancelButton { get; set; } = false;
+    [Parameter] public bool ShowCloseButton { get; set; } = true;
+
+    [Parameter] public bool IsProcessing { get; set; } = false;
+    [Parameter] public bool RequireExplicitAction { get; set; } = false;
+
+    [Parameter] public EventCallback OnConfirm { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    private string IconContainerClass => Type switch
+    {
+        ConfirmDialogType.Warning => "w-16 h-16 rounded-full bg-yellow-500/10 flex items-center justify-center",
+        ConfirmDialogType.Error => "w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center",
+        ConfirmDialogType.Success => "w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center",
+        ConfirmDialogType.Info => "w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center",
+        ConfirmDialogType.Question => "w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center",
+        _ => string.Empty
+    };
+
+    private string IconClass => Type switch
+    {
+        ConfirmDialogType.Warning => "w-8 h-8 text-yellow-500",
+        ConfirmDialogType.Error => "w-8 h-8 text-red-500",
+        ConfirmDialogType.Success => "w-8 h-8 text-green-500",
+        ConfirmDialogType.Info => "w-8 h-8 text-blue-500",
+        ConfirmDialogType.Question => "w-8 h-8 text-purple-500",
+        _ => string.Empty
+    };
+
+    private string ConfirmButtonClass => Type switch
+    {
+        ConfirmDialogType.Error or ConfirmDialogType.Warning =>
+            "flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded-lg transition-all font-medium",
+        _ =>
+            "flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:cursor-not-allowed text-white rounded-lg transition-all font-medium"
+    };
+
+    private string CancelButtonClass =>
+        "flex-1 px-4 py-2 bg-[#0F0F0F] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed text-gray-300 rounded-lg transition-all";
+
+    private async Task HandleConfirm()
+    {
+        if (OnConfirm.HasDelegate)
+        {
+            await OnConfirm.InvokeAsync();
+        }
+        await IsOpenChanged.InvokeAsync(false);
+    }
+
+    private async Task HandleCancel()
+    {
+        if (OnCancel.HasDelegate)
+        {
+            await OnCancel.InvokeAsync();
+        }
+        await IsOpenChanged.InvokeAsync(false);
+    }
+
+    public enum ConfirmDialogType
+    {
+        None,
+        Question,
+        Warning,
+        Error,
+        Success,
+        Info
+    }
+}
