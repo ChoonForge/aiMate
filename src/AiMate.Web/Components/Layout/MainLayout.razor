@@ -6,28 +6,33 @@
 @inject IState<AuthState> AuthState
 @inject NavigationManager Navigation
 
-<MudThemeProvider Theme="@_theme" />
-<MudDialogProvider />
-<MudSnackbarProvider />
-<MudPopoverProvider />
+@* Clean Tailwind-based layout - No MudBlazor *@
 
-<div class="main-layout">
-    @if (AuthState.Value.IsAuthenticated && !IsLoginPage)
-    {
+@if (AuthState.Value.IsAuthenticated && !IsLoginPage)
+{
+    <div class="flex h-screen bg-[#0F0F0F] text-white overflow-hidden">
+        @* Sidebar *@
         <Sidebar />
-    }
 
-    <div class="main-content" style="@(AuthState.Value.IsAuthenticated && !IsLoginPage ? "" : "width: 100%;")">
-        @if (AuthState.Value.IsAuthenticated && !IsLoginPage)
-        {
+        @* Main Content Area *@
+        <div class="flex-1 flex flex-col overflow-hidden">
+            @* Top Bar *@
             <TopBar />
-        }
 
-        <div class="chat-container">
-            @Body
+            @* Chat Container *@
+            <main class="flex-1 overflow-hidden">
+                @Body
+            </main>
         </div>
     </div>
-</div>
+}
+else
+{
+    @* Login page - full width *@
+    <div class="w-full h-screen">
+        @Body
+    </div>
+}
 
 @code {
     private bool IsLoginPage => Navigation.Uri.Contains("/login", StringComparison.OrdinalIgnoreCase);
@@ -43,68 +48,8 @@
         Dispatcher.Dispatch(new CheckAuthAction());
     }
 
-    private void OnAuthStateChanged(object? sender, EventArgs e)
-    {
-        var state = AuthState.Value;
-
-        // Redirect to login if not authenticated and not already on login page
-        if (!state.IsAuthenticated && !IsLoginPage)
-        {
-            Navigation.NavigateTo("/login", forceLoad: false);
-        }
-        else if (state.IsAuthenticated && IsLoginPage)
-        {
-            // Redirect to home if authenticated and on login page
-            Navigation.NavigateTo("/", forceLoad: false);
-        }
-
-        StateHasChanged();
-    }
-
     public void Dispose()
     {
         AuthState.StateChanged -= OnAuthStateChanged;
     }
-
-    private MudTheme _theme = new()
-    {
-        PaletteLight = new PaletteLight
-        {
-            Primary = "#8B5CF6",
-            Secondary = "#3B82F6",
-            AppbarBackground = "#1A1A1A",
-            Background = "#0F0F0F",
-            BackgroundGray = "#1A1A1A",
-            Surface = "#242424",
-            DrawerBackground = "#1A1A1A",
-            DrawerText = "rgba(255,255,255, 0.70)",
-            AppbarText = "rgba(255,255,255, 0.90)",
-            TextPrimary = "#FFFFFF",
-            TextSecondary = "#A0A0A0",
-            TextDisabled = "#707070",
-            ActionDefault = "#A0A0A0",
-            ActionDisabled = "#707070",
-            ActionDisabledBackground = "#2A2A2A",
-            Divider = "#2A2A2A",
-            DividerLight = "#1A1A1A",
-            TableLines = "#2A2A2A",
-            LinesDefault = "#2A2A2A",
-            LinesInputs = "#2A2A2A",
-            Success = "#10B981",
-            Error = "#EF4444",
-            Warning = "#F59E0B",
-            Info = "#3B82F6",
-            Dark = "#0F0F0F",
-            HoverOpacity = 0.06,
-        },
-        Typography = new Typography
-        {
-            Default = new DefaultTypography
-            {
-                FontFamily = new[] { "Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif" },
-                FontSize = "14px",
-                LineHeight = "1.5",
-            }
-        }
-    };
 }

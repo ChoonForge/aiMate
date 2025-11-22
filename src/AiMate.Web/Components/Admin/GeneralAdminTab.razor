@@ -1,0 +1,110 @@
+@* Mobile-first responsive admin tab *@
+
+<div class="space-y-6 md:space-y-8">
+
+    @* Section: General Settings *@
+    <div>
+        <h3 class="text-base md:text-lg font-semibold text-white mb-4">General Settings</h3>
+        <div class="space-y-4">
+
+            @* Enable Admin Panel Toggle *@
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 md:p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg gap-3 sm:gap-0">
+                <div class="flex-1">
+                    <div class="text-sm md:text-base font-medium text-white">Enable Admin Panel</div>
+                    <div class="text-xs md:text-sm text-gray-400 mt-1">Allow access to administrator features</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                    <input type="checkbox" @bind="enableAdminPanel" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+            </div>
+
+            @* Allow User Registration Toggle *@
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 md:p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg gap-3 sm:gap-0">
+                <div class="flex-1">
+                    <div class="text-sm md:text-base font-medium text-white">Allow User Registration</div>
+                    <div class="text-xs md:text-sm text-gray-400 mt-1">Let new users create accounts</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                    <input type="checkbox" @bind="allowUserRegistration" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+            </div>
+
+            @* Enable API Access Toggle *@
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 md:p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg gap-3 sm:gap-0">
+                <div class="flex-1">
+                    <div class="text-sm md:text-base font-medium text-white">Enable API Access</div>
+                    <div class="text-xs md:text-sm text-gray-400 mt-1">Allow external API requests</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                    <input type="checkbox" @bind="enableApiAccess" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    @* Section: Developer Settings *@
+    <div>
+        <h3 class="text-base md:text-lg font-semibold text-white mb-4">Developer Settings</h3>
+        <div class="space-y-4">
+
+            @* Debug Mode Toggle *@
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 md:p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg gap-3 sm:gap-0">
+                <div class="flex-1">
+                    <div class="text-sm md:text-base font-medium text-white">Debug Mode</div>
+                    <div class="text-xs md:text-sm text-gray-400 mt-1">Display debug console with API calls and payloads</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer flex-shrink-0">
+                    <input type="checkbox" @bind="debugMode" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    @* Section: Application Info *@
+    <div>
+        <h3 class="text-base md:text-lg font-semibold text-white mb-4">Application Information</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+            <div class="p-3 md:p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                <div class="text-xs md:text-sm text-gray-400 mb-1">Version</div>
+                <div class="text-sm md:text-base font-medium text-white">1.0.0</div>
+            </div>
+            <div class="p-3 md:p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                <div class="text-xs md:text-sm text-gray-400 mb-1">Environment</div>
+                <div class="text-sm md:text-base font-medium text-white">Production</div>
+            </div>
+            <div class="p-3 md:p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                <div class="text-xs md:text-sm text-gray-400 mb-1">Total Users</div>
+                <div class="text-sm md:text-base font-medium text-white">1,247</div>
+            </div>
+            <div class="p-3 md:p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                <div class="text-xs md:text-sm text-gray-400 mb-1">Active Sessions</div>
+                <div class="text-sm md:text-base font-medium text-white">342</div>
+            </div>
+        </div>
+    </div>
+
+    @* Save Button - Sticky on mobile *@
+    <div class="sticky bottom-0 left-0 right-0 bg-[#1A1A1A] pt-4 pb-2 border-t border-[#2A2A2A] -mx-6 px-6 sm:static sm:border-t-0 sm:mx-0 sm:px-0 sm:pb-0">
+        <button @onclick="HandleSave"
+                class="w-full sm:w-auto px-6 py-2.5 md:py-3 bg-purple-600 hover:bg-purple-700 text-white text-sm md:text-base font-medium rounded-lg transition-all">
+            Save Changes
+        </button>
+    </div>
+</div>
+
+@code {
+    private bool enableAdminPanel = true;
+    private bool allowUserRegistration = true;
+    private bool enableApiAccess = false;
+    private bool debugMode = true;
+
+    private async Task HandleSave()
+    {
+        // TODO: Save settings
+        await Task.CompletedTask;
+    }
+}

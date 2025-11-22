@@ -1,128 +1,409 @@
-@using Fluxor
-@using AiMate.Web.Store.Admin
-@using AiMate.Web.Components.Dialogs
-@inherits Fluxor.Blazor.Web.Components.FluxorComponent
-@inject IState<AdminState> AdminState
-@inject IDispatcher Dispatcher
-@inject IDialogService DialogService
+@* Mobile-first MCP (Model Context Protocol) connectors configuration *@
 
-<MudStack Spacing="3">
-    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-        <MudText Typo="Typo.h6">Model Context Protocol Servers</MudText>
-        <MudButton Variant="Variant.Filled"
-                  Color="Color.Primary"
-                  StartIcon="@Icons.Material.Filled.Add"
-                  OnClick="@HandleAddMcpServer">
-            Add MCP Server
-        </MudButton>
-    </MudStack>
-    <MudDivider />
+<div class="space-y-4 md:space-y-6">
 
-    <MudAlert Severity="Severity.Info">
-        MCP servers provide tools and capabilities to AI models. Configure global servers here.
-    </MudAlert>
+    @* Header with Actions *@
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h3 class="text-base md:text-lg font-semibold text-white">MCP Connectors</h3>
+            <p class="text-xs md:text-sm text-gray-400 mt-1">Model Context Protocol integrations and tools</p>
+        </div>
+        <button @onclick="OpenAddMcpModal"
+                class="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <span>Add Connector</span>
+        </button>
+    </div>
 
-    @if (AdminState.Value.McpServers.Any())
+    @* Filter Tabs *@
+    <div class="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-[#2A2A2A]">
+        <button @onclick="@(() => filterType = "all")"
+                class="px-3 py-1.5 text-xs md:text-sm font-medium rounded-lg transition-all whitespace-nowrap
+                       @(filterType == "all" ? "bg-purple-600 text-white" : "bg-[#0F0F0F] text-gray-400 hover:text-white")">
+            All (@mcpConnectors.Count)
+        </button>
+        <button @onclick="@(() => filterType = "enabled")"
+                class="px-3 py-1.5 text-xs md:text-sm font-medium rounded-lg transition-all whitespace-nowrap
+                       @(filterType == "enabled" ? "bg-purple-600 text-white" : "bg-[#0F0F0F] text-gray-400 hover:text-white")">
+            Enabled (@mcpConnectors.Count(m => m.IsEnabled))
+        </button>
+        <button @onclick="@(() => filterType = "disabled")"
+                class="px-3 py-1.5 text-xs md:text-sm font-medium rounded-lg transition-all whitespace-nowrap
+                       @(filterType == "disabled" ? "bg-purple-600 text-white" : "bg-[#0F0F0F] text-gray-400 hover:text-white")">
+            Disabled (@mcpConnectors.Count(m => !m.IsEnabled))
+        </button>
+    </div>
+
+    @* MCP Connectors Grid *@
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+        @foreach (var mcp in GetFilteredConnectors())
+        {
+            <div class="p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg hover:border-purple-500/50 transition-all @(mcp.IsEnabled ? "" : "opacity-60")">
+
+                @* Header *@
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-3 flex-1 min-w-0">
+                        @* Icon *@
+                        <div class="w-10 h-10 rounded-lg @GetConnectorBgClass(mcp.Type) flex items-center justify-center flex-shrink-0">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                @((MarkupString)GetConnectorIcon(mcp.Type))
+                            </svg>
+                        </div>
+
+                        @* Info *@
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <h4 class="text-white font-medium text-sm md:text-base truncate">@mcp.Name</h4>
+                                @if (mcp.IsEnabled)
+                                {
+                                    <span class="px-2 py-0.5 bg-green-500/10 text-green-400 text-xs font-medium rounded flex-shrink-0">
+                                        Active
+                                    </span>
+                                }
+                            </div>
+                            <p class="text-gray-400 text-xs">@mcp.Type</p>
+                        </div>
+                    </div>
+
+                    @* Actions *@
+                    <div class="flex items-center gap-1 flex-shrink-0">
+                        <button @onclick="@(() => ToggleMcp(mcp))"
+                                class="p-2 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all"
+                                title="@(mcp.IsEnabled ? "Disable" : "Enable")">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                @if (mcp.IsEnabled)
+                                {
+                                    <path d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"/>
+                                }
+                                else
+                                {
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M12 6v6l4 2"/>
+                                }
+                            </svg>
+                        </button>
+                        <button @onclick="@(() => OpenEditMcpModal(mcp))"
+                                class="p-2 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all"
+                                title="Edit">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                @* Description *@
+                @if (!string.IsNullOrEmpty(mcp.Description))
+                {
+                    <p class="text-gray-400 text-xs md:text-sm mb-3 line-clamp-2">@mcp.Description</p>
+                }
+
+                @* Configuration Preview *@
+                <div class="space-y-2 pb-3 mb-3 border-b border-[#2A2A2A]">
+                    @if (!string.IsNullOrEmpty(mcp.Endpoint))
+                    {
+                        <div class="flex items-center gap-2">
+                            <svg class="w-3 h-3 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            </svg>
+                            <span class="text-xs text-gray-500 font-mono truncate">@mcp.Endpoint</span>
+                        </div>
+                    }
+                    @if (mcp.RequiresAuth)
+                    {
+                        <div class="flex items-center gap-2">
+                            <svg class="w-3 h-3 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            <span class="text-xs text-gray-500">Authentication required</span>
+                        </div>
+                    }
+                </div>
+
+                @* Tools/Capabilities *@
+                @if (mcp.Tools?.Any() == true)
+                {
+                    <div>
+                        <div class="text-xs text-gray-500 mb-2">Available Tools (@mcp.Tools.Count)</div>
+                        <div class="flex flex-wrap gap-1.5">
+                            @foreach (var tool in mcp.Tools.Take(3))
+                            {
+                                <span class="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs rounded">
+                                    @tool
+                                </span>
+                            }
+                            @if (mcp.Tools.Count > 3)
+                            {
+                                <span class="px-2 py-1 bg-gray-500/10 text-gray-400 text-xs rounded">
+                                    +@(mcp.Tools.Count - 3) more
+                                </span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @if (!GetFilteredConnectors().Any())
     {
-        <MudTable T="MCPServerConfig" Items="@AdminState.Value.McpServers" Hover="true" Striped="true" Dense="true">
-            <HeaderContent>
-                <MudTh>Name</MudTh>
-                <MudTh>Type</MudTh>
-                <MudTh>Status</MudTh>
-                <MudTh>Tools</MudTh>
-                <MudTh>Actions</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Name">@context.Name</MudTd>
-                <MudTd DataLabel="Type">
-                    <MudChip T="string" Size="Size.Small">@context.Type</MudChip>
-                </MudTd>
-                <MudTd DataLabel="Status">
-                    <MudChip T="string" Size="Size.Small" Color="@(context.Connected ? Color.Success : Color.Error)">
-                        @(context.Connected ? "Connected" : "Disconnected")
-                    </MudChip>
-                </MudTd>
-                <MudTd DataLabel="Tools">@context.ToolCount tools</MudTd>
-                <MudTd DataLabel="Actions">
-                    <MudStack Row="true" Spacing="1">
-                        <MudIconButton Icon="@Icons.Material.Filled.Refresh"
-                                      Size="Size.Small"
-                                      Title="Reconnect"
-                                      OnClick="@(() => HandleReconnect(context.Id))" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                      Size="Size.Small"
-                                      OnClick="@(() => HandleEditMcpServer(context))" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                      Size="Size.Small"
-                                      Color="Color.Error"
-                                      OnClick="@(() => HandleDeleteMcpServer(context.Id))" />
-                    </MudStack>
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
+        <div class="text-center py-12">
+            <svg class="w-12 h-12 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+            <p class="text-gray-400">No @filterType MCP connectors</p>
+        </div>
     }
-    else
-    {
-        <MudPaper Class="pa-8" Elevation="0" Style="text-align: center;">
-            <MudIcon Icon="@Icons.Material.Filled.Extension" Size="Size.Large" Color="Color.Secondary" />
-            <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">
-                No MCP Servers Configured
-            </MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                Add MCP servers to extend AI capabilities with custom tools
-            </MudText>
-        </MudPaper>
-    }
-</MudStack>
+</div>
+
+@* Add/Edit MCP Modal *@
+@if (showMcpModal)
+{
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+         @onclick="CloseMcpModal">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+             @onclick:stopPropagation="true">
+            <div class="sticky top-0 bg-[#1A1A1A] px-6 py-4 border-b border-[#2A2A2A] z-10">
+                <h3 class="text-lg font-semibold text-white">@(isEditMode ? "Edit MCP Connector" : "Add MCP Connector")</h3>
+            </div>
+            <div class="p-6 space-y-4">
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Connector Type</label>
+                    <select @bind="editingMcp.Type"
+                            class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <option value="Filesystem">Filesystem</option>
+                        <option value="Database">Database</option>
+                        <option value="API">API</option>
+                        <option value="Web">Web Scraper</option>
+                        <option value="Git">Git Repository</option>
+                        <option value="Custom">Custom Protocol</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Connector Name</label>
+                    <input type="text"
+                           @bind="editingMcp.Name"
+                           class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                           placeholder="My Knowledge Base">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                    <textarea @bind="editingMcp.Description"
+                              class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+                              rows="3"
+                              placeholder="Describe what this connector does..."></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Endpoint/Path</label>
+                    <input type="text"
+                           @bind="editingMcp.Endpoint"
+                           class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                           placeholder="/path/to/data or https://api.example.com">
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <label class="text-sm font-medium text-gray-300">Requires Authentication</label>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" @bind="editingMcp.RequiresAuth" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+
+                @if (editingMcp.RequiresAuth)
+                {
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Authentication Token</label>
+                        <input type="password"
+                               @bind="editingMcp.AuthToken"
+                               class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                               placeholder="Bearer token or API key">
+                    </div>
+                }
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Available Tools (comma-separated)</label>
+                    <input type="text"
+                           @bind="toolsInput"
+                           class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                           placeholder="search, read, write, query">
+                </div>
+
+                <div class="flex items-center justify-between pt-2">
+                    <label class="text-sm font-medium text-gray-300">Enabled</label>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" @bind="editingMcp.IsEnabled" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+            </div>
+            <div class="sticky bottom-0 bg-[#1A1A1A] px-6 py-4 border-t border-[#2A2A2A] flex gap-3">
+                <button @onclick="CloseMcpModal"
+                        class="flex-1 px-4 py-2 bg-[#0F0F0F] hover:bg-[#2A2A2A] text-gray-300 rounded-lg transition-all">
+                    Cancel
+                </button>
+                <button @onclick="HandleSaveMcp"
+                        class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
-    private async Task HandleAddMcpServer()
+    private bool showMcpModal = false;
+    private bool isEditMode = false;
+    private string filterType = "all";
+    private string toolsInput = string.Empty;
+    private McpConnector editingMcp = new();
+
+    private List<McpConnector> mcpConnectors = new()
     {
-        var parameters = new DialogParameters();
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-
-        var dialog = await DialogService.ShowAsync<AddMcpServerDialog>("Add MCP Server", parameters, options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is MCPServerConfig server)
+        new McpConnector
         {
-            Dispatcher.Dispatch(new AddMcpServerAction(server));
+            Id = "1",
+            Name = "Documentation Files",
+            Type = "Filesystem",
+            Description = "Access to project documentation and markdown files",
+            Endpoint = "/docs",
+            IsEnabled = true,
+            RequiresAuth = false,
+            Tools = new() { "read", "search", "list" }
+        },
+        new McpConnector
+        {
+            Id = "2",
+            Name = "PostgreSQL Database",
+            Type = "Database",
+            Description = "Query production database for user data",
+            Endpoint = "postgresql://localhost:5432/aimate",
+            IsEnabled = true,
+            RequiresAuth = true,
+            Tools = new() { "query", "schema", "analyze" }
+        },
+        new McpConnector
+        {
+            Id = "3",
+            Name = "GitHub Repository",
+            Type = "Git",
+            Description = "Access to source code and commit history",
+            Endpoint = "https://github.com/ChoonForge/aiMate",
+            IsEnabled = false,
+            RequiresAuth = true,
+            Tools = new() { "search", "read", "blame", "diff", "log" }
+        },
+        new McpConnector
+        {
+            Id = "4",
+            Name = "Web Search",
+            Type = "API",
+            Description = "Real-time web search capabilities",
+            Endpoint = "https://api.search.example.com/v1",
+            IsEnabled = true,
+            RequiresAuth = true,
+            Tools = new() { "search", "summarize" }
         }
+    };
+
+    private void OpenAddMcpModal()
+    {
+        isEditMode = false;
+        toolsInput = string.Empty;
+        editingMcp = new McpConnector { IsEnabled = true };
+        showMcpModal = true;
     }
 
-    private async Task HandleEditMcpServer(MCPServerConfig server)
+    private void OpenEditMcpModal(McpConnector mcp)
     {
-        var parameters = new DialogParameters
+        isEditMode = true;
+        toolsInput = mcp.Tools != null ? string.Join(", ", mcp.Tools) : string.Empty;
+        editingMcp = new McpConnector
         {
-            { "Server", server }
+            Id = mcp.Id,
+            Name = mcp.Name,
+            Type = mcp.Type,
+            Description = mcp.Description,
+            Endpoint = mcp.Endpoint,
+            IsEnabled = mcp.IsEnabled,
+            RequiresAuth = mcp.RequiresAuth,
+            AuthToken = mcp.AuthToken,
+            Tools = mcp.Tools?.ToList()
         };
-        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
-
-        var dialog = await DialogService.ShowAsync<AddMcpServerDialog>("Edit MCP Server", parameters, options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is MCPServerConfig updatedServer)
-        {
-            Dispatcher.Dispatch(new UpdateMcpServerAction(updatedServer));
-        }
+        showMcpModal = true;
     }
 
-    private void HandleReconnect(string serverId)
+    private void CloseMcpModal()
     {
-        Dispatcher.Dispatch(new ReconnectMcpServerAction(serverId));
+        showMcpModal = false;
     }
 
-    private async Task HandleDeleteMcpServer(string serverId)
+    private async Task HandleSaveMcp()
     {
-        var confirmed = await DialogService.ShowMessageBox(
-            "Confirm Delete",
-            "Are you sure you want to delete this MCP server?",
-            yesText: "Delete",
-            cancelText: "Cancel");
-
-        if (confirmed == true)
+        // Parse tools from comma-separated input
+        if (!string.IsNullOrWhiteSpace(toolsInput))
         {
-            Dispatcher.Dispatch(new DeleteMcpServerAction(serverId));
+            editingMcp.Tools = toolsInput.Split(',')
+                .Select(t => t.Trim())
+                .Where(t => !string.IsNullOrEmpty(t))
+                .ToList();
         }
+
+        // TODO: Save MCP connector
+        CloseMcpModal();
+        await Task.CompletedTask;
+    }
+
+    private void ToggleMcp(McpConnector mcp)
+    {
+        mcp.IsEnabled = !mcp.IsEnabled;
+    }
+
+    private List<McpConnector> GetFilteredConnectors() => filterType switch
+    {
+        "enabled" => mcpConnectors.Where(m => m.IsEnabled).ToList(),
+        "disabled" => mcpConnectors.Where(m => !m.IsEnabled).ToList(),
+        _ => mcpConnectors
+    };
+
+    private string GetConnectorBgClass(string type) => type switch
+    {
+        "Filesystem" => "bg-gradient-to-br from-yellow-500 to-orange-600",
+        "Database" => "bg-gradient-to-br from-blue-500 to-cyan-600",
+        "API" => "bg-gradient-to-br from-green-500 to-emerald-600",
+        "Web" => "bg-gradient-to-br from-purple-500 to-pink-600",
+        "Git" => "bg-gradient-to-br from-orange-500 to-red-600",
+        _ => "bg-gradient-to-br from-gray-500 to-gray-600"
+    };
+
+    private string GetConnectorIcon(string type) => type switch
+    {
+        "Filesystem" => "<path d=\"M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z\"/>",
+        "Database" => "<path d=\"M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>",
+        "API" => "<path d=\"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71\"/><path d=\"M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71\"/>",
+        "Web" => "<circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"2\" y1=\"12\" x2=\"22\" y2=\"12\"/><path d=\"M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z\"/>",
+        "Git" => "<path d=\"M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22\"/>",
+        _ => "<path d=\"M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z\"/>"
+    };
+
+    public class McpConnector
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Type { get; set; } = "Custom";
+        public string Description { get; set; } = string.Empty;
+        public string Endpoint { get; set; } = string.Empty;
+        public bool IsEnabled { get; set; }
+        public bool RequiresAuth { get; set; }
+        public string AuthToken { get; set; } = string.Empty;
+        public List<string>? Tools { get; set; }
     }
 }

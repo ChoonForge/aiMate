@@ -1,0 +1,121 @@
+@using static AiMate.Web.Components.Admin.ModelsAdminTab
+
+@* Reusable Model Card - works in both admin and user settings *@
+
+<div class="p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg hover:border-purple-500/50 transition-all @(Model.IsEnabled ? "" : "opacity-60")">
+    @* Header with Provider Badge *@
+    <div class="flex items-start justify-between mb-3">
+        <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1">
+                <h4 class="text-white font-medium text-sm md:text-base">@Model.DisplayName</h4>
+                @if (Model.IsEnabled)
+                {
+                    <span class="px-2 py-0.5 bg-green-500/10 text-green-400 text-xs font-medium rounded">
+                        Active
+                    </span>
+                }
+            </div>
+            <p class="text-gray-400 text-xs md:text-sm">@Model.Provider</p>
+        </div>
+
+        @* Actions Dropdown *@
+        <div class="flex items-center gap-1">
+            <button @onclick="@(() => OnToggle.InvokeAsync())"
+                    class="p-2 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all"
+                    title="@(Model.IsEnabled ? "Disable" : "Enable")">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    @if (Model.IsEnabled)
+                    {
+                        <path d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"/>
+                    }
+                    else
+                    {
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    }
+                </svg>
+            </button>
+            <button @onclick="@(() => OnEdit.InvokeAsync())"
+                    class="p-2 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all"
+                    title="Edit">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    @* Description *@
+    @if (!string.IsNullOrEmpty(Model.Description))
+    {
+        <p class="text-gray-400 text-xs md:text-sm mb-3 line-clamp-2">@Model.Description</p>
+    }
+
+    @* Specs Grid *@
+    <div class="grid grid-cols-2 gap-2 mb-3 pb-3 border-b border-[#2A2A2A]">
+        <div>
+            <div class="text-xs text-gray-500">Context</div>
+            <div class="text-sm text-gray-300 font-medium">@FormatNumber(Model.ContextWindow)</div>
+        </div>
+        <div>
+            <div class="text-xs text-gray-500">Max Tokens</div>
+            <div class="text-sm text-gray-300 font-medium">@FormatNumber(Model.MaxTokens)</div>
+        </div>
+    </div>
+
+    @* Capabilities Badges *@
+    <div class="flex flex-wrap gap-1.5">
+        @if (Model.SupportsVision)
+        {
+            <span class="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs rounded flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+                Vision
+            </span>
+        }
+        @if (Model.SupportsStreaming)
+        {
+            <span class="px-2 py-1 bg-blue-500/10 text-blue-400 text-xs rounded flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M5 12h14m-7-7l7 7-7 7"/>
+                </svg>
+                Stream
+            </span>
+        }
+        @if (Model.SupportsFunctionCalling)
+        {
+            <span class="px-2 py-1 bg-green-500/10 text-green-400 text-xs rounded flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                </svg>
+                Functions
+            </span>
+        }
+        @if (Model.SupportsJson)
+        {
+            <span class="px-2 py-1 bg-orange-500/10 text-orange-400 text-xs rounded flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+                JSON
+            </span>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public AIModelConfig Model { get; set; } = new();
+    [Parameter] public EventCallback OnEdit { get; set; }
+    [Parameter] public EventCallback OnToggle { get; set; }
+
+    private string FormatNumber(int number)
+    {
+        if (number >= 1000000)
+            return $"{number / 1000000.0:0.#}M";
+        if (number >= 1000)
+            return $"{number / 1000.0:0.#}K";
+        return number.ToString();
+    }
+}

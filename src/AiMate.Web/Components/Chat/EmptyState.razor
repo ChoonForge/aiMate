@@ -1,0 +1,109 @@
+@inject NavigationManager Navigation
+
+<div class="flex flex-col items-center justify-center h-full px-6 py-12">
+    @* Logo and Welcome *@
+    <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 mb-4">
+            <svg class="w-10 h-10 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 18c-3.87-.96-7-5.38-7-10V8.3l7-3.89 7 3.89V10c0 4.62-3.13 9.04-7 10z"/>
+                <path d="M10.9 11.9l-1.4 1.4 4.2 4.2 5.6-5.6-1.4-1.4-4.2 4.2z"/>
+            </svg>
+        </div>
+        <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-2">
+            Kia ora! I'm aiMate
+        </h1>
+        <p class="text-gray-400 text-lg">
+            Your friendly AI assistant. How can I help you today?
+        </p>
+    </div>
+
+    @* Example Prompts *@
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-3xl w-full mb-8">
+        @foreach (var example in examplePrompts)
+        {
+            <button @onclick="@(() => OnExampleClick.InvokeAsync(example.Prompt))"
+                    class="group p-4 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg hover:border-purple-500/50 hover:bg-[#242424] transition-all text-left">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
+                        <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            @((MarkupString)example.Icon)
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-white font-medium mb-1">@example.Title</h3>
+                        <p class="text-sm text-gray-400">@example.Description</p>
+                    </div>
+                    <svg class="w-5 h-5 text-gray-600 group-hover:text-purple-400 transition-colors" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M5 12h14m-7-7l7 7-7 7"/>
+                    </svg>
+                </div>
+            </button>
+        }
+    </div>
+
+    @* Features *@
+    <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-500 max-w-2xl">
+        <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+            </svg>
+            <span>Free for NZ users</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"/>
+            </svg>
+            <span>Privacy focused</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/>
+            </svg>
+            <span>Multiple AI models</span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback<string> OnExampleClick { get; set; }
+
+    private List<ExamplePrompt> examplePrompts = new()
+    {
+        new ExamplePrompt
+        {
+            Title = "Plan a project",
+            Description = "Help me create a project plan with milestones",
+            Prompt = "Help me create a project plan for building a web application with clear milestones and tasks",
+            Icon = "<path d=\"M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9l2 2 4-4\"/>"
+        },
+        new ExamplePrompt
+        {
+            Title = "Write code",
+            Description = "Generate clean, well-documented code",
+            Prompt = "Write a TypeScript function that validates email addresses with proper error handling",
+            Icon = "<path d=\"M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4\"/>"
+        },
+        new ExamplePrompt
+        {
+            Title = "Analyze data",
+            Description = "Get insights from your information",
+            Prompt = "Help me analyze customer feedback data and identify key trends and patterns",
+            Icon = "<path d=\"M9 19v-6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2zm0 0V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v10m-6 0a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2m0 0V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z\"/>"
+        },
+        new ExamplePrompt
+        {
+            Title = "Learn Te Reo",
+            Description = "Practice Māori language phrases",
+            Prompt = "Teach me some common Te Reo Māori greetings and phrases with pronunciation",
+            Icon = "<path d=\"M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253\"/>"
+        }
+    };
+
+    public class ExamplePrompt
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Prompt { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+    }
+}

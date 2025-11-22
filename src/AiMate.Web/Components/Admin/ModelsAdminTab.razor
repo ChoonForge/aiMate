@@ -1,210 +1,257 @@
-@using Fluxor
-@using AiMate.Web.Store.Admin
-@using AiMate.Shared.Models
-@using AiMate.Core.Enums
-@using AiMate.Web.Components.Dialogs
-@inherits Fluxor.Blazor.Web.Components.FluxorComponent
-@inject IState<AdminState> AdminState
-@inject IDispatcher Dispatcher
-@inject IDialogService DialogService
+@* Mobile-first AI Models configuration *@
 
-<MudStack Spacing="3">
-    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-        <MudText Typo="Typo.h6">Global Model Configuration</MudText>
-        <MudButton Variant="Variant.Filled"
-                  Color="Color.Primary"
-                  StartIcon="@Icons.Material.Filled.Add"
-                  OnClick="@HandleAddModel">
-            Add Model
-        </MudButton>
-    </MudStack>
-    <MudDivider />
+<div class="space-y-4 md:space-y-6">
 
-    <MudAlert Severity="Severity.Info">
-        Configure models available to all users. Users can select their preferred model from this list.
-    </MudAlert>
+    @* Header with Actions *@
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h3 class="text-base md:text-lg font-semibold text-white">AI Models</h3>
+            <p class="text-xs md:text-sm text-gray-400 mt-1">Configure available AI models and providers</p>
+        </div>
+        <button @onclick="OpenAddModelModal"
+                class="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <span>Add Model</span>
+        </button>
+    </div>
 
-    @if (AdminState.Value.Models.Any())
-    {
-        <MudTable T="AIModelConfig" Items="@AdminState.Value.Models" Hover="true" Dense="true">
-            <HeaderContent>
-                <MudTh>Model</MudTh>
-                <MudTh>Provider</MudTh>
-                <MudTh>Status</MudTh>
-                <MudTh>Max Tokens</MudTh>
-                <MudTh>Actions</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Model">
-                    <MudStack Spacing="0">
-                        <MudText Typo="Typo.body2"><strong>@context.Name</strong></MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Id</MudText>
-                    </MudStack>
-                </MudTd>
-                <MudTd DataLabel="Provider">
-                    <MudChip T="string" Size="Size.Small">@context.Provider</MudChip>
-                </MudTd>
-                <MudTd DataLabel="Status">
-                    <MudSwitch T="bool" Value="@context.IsEnabled"
-                              Color="Color.Success"
-                              ValueChanged="@((bool val) => HandleToggleModel(context.Id))" />
-                </MudTd>
-                <MudTd DataLabel="Max Tokens">@context.MaxTokens</MudTd>
-                <MudTd DataLabel="Actions">
-                    <MudStack Row="true" Spacing="1">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                      Size="Size.Small"
-                                      OnClick="@(() => HandleEditModel(context))" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                      Size="Size.Small"
-                                      Color="Color.Error"
-                                      OnClick="@(() => HandleDeleteModel(context.Id))" />
-                    </MudStack>
-                </MudTd>
-            </RowTemplate>
-        </MudTable>
-    }
-    else
-    {
-        <MudAlert Severity="Severity.Warning">No models configured. Add models to enable AI functionality.</MudAlert>
-    }
-</MudStack>
+    @* Model Cards Grid - Responsive *@
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+        @foreach (var model in models)
+        {
+            <ModelCard Model="model"
+                      OnEdit="@(() => OpenEditModelModal(model))"
+                      OnToggle="@(() => ToggleModelStatus(model))" />
+        }
+    </div>
+</div>
+
+@* Add/Edit Model Modal *@
+@if (showModelModal)
+{
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+         @onclick="CloseModelModal">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+             @onclick:stopPropagation="true">
+            <div class="sticky top-0 bg-[#1A1A1A] px-6 py-4 border-b border-[#2A2A2A] z-10">
+                <h3 class="text-lg font-semibold text-white">@(isEditMode ? "Edit Model" : "Add New Model")</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Provider</label>
+                    <select @bind="editingModel.Provider"
+                            class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <option value="OpenAI">OpenAI</option>
+                        <option value="Anthropic">Anthropic</option>
+                        <option value="Google">Google</option>
+                        <option value="Azure">Azure OpenAI</option>
+                        <option value="Custom">Custom</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Model Name</label>
+                    <input type="text"
+                           @bind="editingModel.Name"
+                           class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                           placeholder="gpt-4, claude-3-5-sonnet, etc.">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Display Name</label>
+                    <input type="text"
+                           @bind="editingModel.DisplayName"
+                           class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                           placeholder="GPT-4, Claude 3.5 Sonnet, etc.">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                    <textarea @bind="editingModel.Description"
+                              class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white resize-none focus:outline-none focus:ring-2 focus:ring-purple-500"
+                              rows="3"
+                              placeholder="Describe the model's capabilities..."></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Max Tokens</label>
+                        <input type="number"
+                               @bind="editingModel.MaxTokens"
+                               class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                               placeholder="128000">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Context Window</label>
+                        <input type="number"
+                               @bind="editingModel.ContextWindow"
+                               class="w-full px-3 py-2 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                               placeholder="128000">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Capabilities</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                            <input type="checkbox" @bind="editingModel.SupportsVision"
+                                   class="w-4 h-4 bg-[#0F0F0F] border-gray-600 rounded text-purple-600 focus:ring-purple-500">
+                            <span>Vision</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                            <input type="checkbox" @bind="editingModel.SupportsStreaming"
+                                   class="w-4 h-4 bg-[#0F0F0F] border-gray-600 rounded text-purple-600 focus:ring-purple-500">
+                            <span>Streaming</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                            <input type="checkbox" @bind="editingModel.SupportsFunctionCalling"
+                                   class="w-4 h-4 bg-[#0F0F0F] border-gray-600 rounded text-purple-600 focus:ring-purple-500">
+                            <span>Function Calling</span>
+                        </label>
+                        <label class="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+                            <input type="checkbox" @bind="editingModel.SupportsJson"
+                                   class="w-4 h-4 bg-[#0F0F0F] border-gray-600 rounded text-purple-600 focus:ring-purple-500">
+                            <span>JSON Mode</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-2">
+                    <label class="text-sm font-medium text-gray-300">Enabled</label>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" @bind="editingModel.IsEnabled" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+            </div>
+            <div class="sticky bottom-0 bg-[#1A1A1A] px-6 py-4 border-t border-[#2A2A2A] flex gap-3">
+                <button @onclick="CloseModelModal"
+                        class="flex-1 px-4 py-2 bg-[#0F0F0F] hover:bg-[#2A2A2A] text-gray-300 rounded-lg transition-all">
+                    Cancel
+                </button>
+                <button @onclick="HandleSaveModel"
+                        class="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
-    private async Task HandleAddModel()
+    private bool showModelModal = false;
+    private bool isEditMode = false;
+    private AIModelConfig editingModel = new();
+
+    private List<AIModelConfig> models = new()
     {
-        // Create new empty model DTO for admin (has full permissions)
-        var newModel = new AIModelDto
+        new AIModelConfig
         {
-            Id = Guid.NewGuid().ToString(),
-            Name = "",
-            ModelId = "",
-            Description = "",
-            Connection = "default",
+            Id = "1",
             Provider = "OpenAI",
+            Name = "gpt-4",
+            DisplayName = "GPT-4",
+            Description = "Most capable GPT-4 model for complex tasks",
+            MaxTokens = 8192,
+            ContextWindow = 128000,
             IsEnabled = true,
-            ContextWindow = 8192,
-            MaxTokens = 4096,
-            Temperature = 0.7,
-            TopP = 1.0,
-            FrequencyPenalty = 0.0,
-            PresencePenalty = 0.0,
-            Visibility = "Public", // Admin models are public by default
-            AllowedGroups = new List<string>()
-        };
-
-        var parameters = new DialogParameters
+            SupportsVision = true,
+            SupportsStreaming = true,
+            SupportsFunctionCalling = true,
+            SupportsJson = true
+        },
+        new AIModelConfig
         {
-            ["Model"] = newModel,
-            ["UserTier"] = UserTier.Admin, // Admin has full access
-            ["IsNew"] = true
-        };
-
-        var options = new DialogOptions
+            Id = "2",
+            Provider = "Anthropic",
+            Name = "claude-3-5-sonnet-20241022",
+            DisplayName = "Claude 3.5 Sonnet",
+            Description = "Anthropic's most intelligent model",
+            MaxTokens = 8192,
+            ContextWindow = 200000,
+            IsEnabled = true,
+            SupportsVision = true,
+            SupportsStreaming = true,
+            SupportsFunctionCalling = true,
+            SupportsJson = false
+        },
+        new AIModelConfig
         {
-            MaxWidth = MaxWidth.Large,
-            FullWidth = true,
-            CloseButton = true,
-            BackdropClick = false
-        };
-
-        var dialog = await DialogService.ShowAsync<EditModelDialog>("Add New Model", parameters, options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is AIModelDto modelDto)
-        {
-            // Convert DTO back to AIModelConfig for AdminState
-            var modelConfig = new AIModelConfig
-            {
-                Id = modelDto.Id,
-                Name = modelDto.Name,
-                Provider = modelDto.Provider,
-                IsEnabled = modelDto.IsEnabled,
-                MaxTokens = modelDto.MaxTokens,
-                Description = modelDto.Description
-            };
-
-            Dispatcher.Dispatch(new AddModelAction(modelConfig));
+            Id = "3",
+            Provider = "Google",
+            Name = "gemini-pro",
+            DisplayName = "Gemini Pro",
+            Description = "Google's advanced reasoning model",
+            MaxTokens = 8192,
+            ContextWindow = 32000,
+            IsEnabled = false,
+            SupportsVision = false,
+            SupportsStreaming = true,
+            SupportsFunctionCalling = true,
+            SupportsJson = true
         }
+    };
+
+    private void OpenAddModelModal()
+    {
+        isEditMode = false;
+        editingModel = new AIModelConfig { IsEnabled = true, SupportsStreaming = true };
+        showModelModal = true;
     }
 
-    private async Task HandleEditModel(AIModelConfig model)
+    private void OpenEditModelModal(AIModelConfig model)
     {
-        // Convert AIModelConfig to AIModelDto for the comprehensive dialog
-        var modelDto = new AIModelDto
+        isEditMode = true;
+        editingModel = new AIModelConfig
         {
             Id = model.Id,
-            Name = model.Name,
-            ModelId = model.Id, // Use Id as ModelId if not specified
-            Description = model.Description ?? "",
-            Connection = "default",
             Provider = model.Provider,
-            IsEnabled = model.IsEnabled,
-            ContextWindow = 8192, // Default values since AIModelConfig doesn't store these
+            Name = model.Name,
+            DisplayName = model.DisplayName,
+            Description = model.Description,
             MaxTokens = model.MaxTokens,
-            Temperature = 0.7,
-            TopP = 1.0,
-            FrequencyPenalty = 0.0,
-            PresencePenalty = 0.0,
-            SupportsVision = false,
-            SupportsWebSearch = false,
-            SupportsFileUpload = false,
-            SupportsImageGeneration = false,
-            Visibility = "Public", // Admin models are public
-            AllowedGroups = new List<string>()
+            ContextWindow = model.ContextWindow,
+            IsEnabled = model.IsEnabled,
+            SupportsVision = model.SupportsVision,
+            SupportsStreaming = model.SupportsStreaming,
+            SupportsFunctionCalling = model.SupportsFunctionCalling,
+            SupportsJson = model.SupportsJson
         };
-
-        var parameters = new DialogParameters
-        {
-            ["Model"] = modelDto,
-            ["UserTier"] = UserTier.Admin,
-            ["IsNew"] = false
-        };
-
-        var options = new DialogOptions
-        {
-            MaxWidth = MaxWidth.Large,
-            FullWidth = true,
-            CloseButton = true,
-            BackdropClick = false
-        };
-
-        var dialog = await DialogService.ShowAsync<EditModelDialog>("Edit Model", parameters, options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled && result.Data is AIModelDto updatedDto)
-        {
-            // Convert back to AIModelConfig
-            var updatedConfig = new AIModelConfig
-            {
-                Id = updatedDto.Id,
-                Name = updatedDto.Name,
-                Provider = updatedDto.Provider,
-                IsEnabled = updatedDto.IsEnabled,
-                MaxTokens = updatedDto.MaxTokens,
-                Description = updatedDto.Description
-            };
-
-            Dispatcher.Dispatch(new UpdateModelAction(updatedConfig));
-        }
+        showModelModal = true;
     }
 
-    private void HandleToggleModel(string modelId)
+    private void CloseModelModal()
     {
-        Dispatcher.Dispatch(new ToggleModelAction(modelId));
+        showModelModal = false;
     }
 
-    private async Task HandleDeleteModel(string modelId)
+    private async Task HandleSaveModel()
     {
-        var confirmed = await DialogService.ShowMessageBox(
-            "Confirm Delete",
-            "Are you sure you want to delete this model? Users will no longer be able to select it.",
-            yesText: "Delete",
-            cancelText: "Cancel");
+        // TODO: Save model configuration
+        CloseModelModal();
+        await Task.CompletedTask;
+    }
 
-        if (confirmed == true)
-        {
-            Dispatcher.Dispatch(new DeleteModelAction(modelId));
-        }
+    private void ToggleModelStatus(AIModelConfig model)
+    {
+        model.IsEnabled = !model.IsEnabled;
+    }
+
+    public class AIModelConfig
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Provider { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public int MaxTokens { get; set; }
+        public int ContextWindow { get; set; }
+        public bool IsEnabled { get; set; }
+        public bool SupportsVision { get; set; }
+        public bool SupportsStreaming { get; set; }
+        public bool SupportsFunctionCalling { get; set; }
+        public bool SupportsJson { get; set; }
     }
 }

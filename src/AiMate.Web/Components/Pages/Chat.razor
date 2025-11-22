@@ -1,0 +1,192 @@
+@page "/chat/{conversationId?}"
+@using Fluxor
+@using AiMate.Web.Store.Chat
+@using AiMate.Core.Models
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+@inject IState<ChatState> ChatState
+@inject IDispatcher Dispatcher
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<div class="flex flex-col h-full bg-[#0F0F0F]">
+    @if (currentConversation == null || !currentConversation.Messages.Any())
+    {
+        @* Empty State *@
+        <EmptyState OnExampleClick="HandleExamplePrompt" />
+    }
+    else
+    {
+        @* Messages Area *@
+        <div class="flex-1 overflow-y-auto px-6 py-6" @ref="messagesContainer">
+            <div class="max-w-4xl mx-auto">
+                @foreach (var message in currentConversation.Messages)
+                {
+                    <ChatMessage Role="message.Role"
+                                Content="message.Content"
+                                Timestamp="message.Timestamp"
+                                StructuredContent="message.StructuredContent"
+                                OnEdit="@((content) => HandleEditMessage(message.Id, content))"
+                                OnRegenerate="@(() => HandleRegenerateMessage(message.Id))" />
+                }
+
+                @* Loading Indicator *@
+                @if (isLoading)
+                {
+                    <div class="flex gap-4 mb-6">
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 text-gray-400">
+                                <div class="flex gap-1">
+                                    <div class="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                                    <div class="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                                    <div class="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                                </div>
+                                <span class="text-sm">Thinking...</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @* Input Area *@
+    <ChatInput OnSend="HandleSendMessage" />
+</div>
+
+@code {
+    [Parameter] public string? ConversationId { get; set; }
+
+    private Conversation? currentConversation;
+    private bool isLoading = false;
+    private ElementReference messagesContainer;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        LoadConversation();
+    }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        LoadConversation();
+    }
+
+    private void LoadConversation()
+    {
+        if (!string.IsNullOrEmpty(ConversationId) &&
+            ChatState.Value.Conversations.TryGetValue(ConversationId, out var conversation))
+        {
+            currentConversation = conversation;
+        }
+        else
+        {
+            // Create new conversation
+            currentConversation = new Conversation
+            {
+                Id = Guid.NewGuid().ToString(),
+                Title = "New Chat",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Messages = new List<Message>()
+            };
+        }
+    }
+
+    private async Task HandleSendMessage(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return;
+
+        // Add user message
+        var userMessage = new Message
+        {
+            Id = Guid.NewGuid().ToString(),
+            ConversationId = currentConversation!.Id,
+            Role = MessageRole.User,
+            Content = content,
+            Timestamp = DateTime.UtcNow
+        };
+
+        currentConversation.Messages.Add(userMessage);
+        Dispatcher.Dispatch(new AddMessageAction(currentConversation.Id, userMessage));
+
+        // Update UI
+        StateHasChanged();
+        await ScrollToBottom();
+
+        // Send to AI
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // TODO: Call AI service
+            await Task.Delay(1000); // Simulate API call
+
+            var aiMessage = new Message
+            {
+                Id = Guid.NewGuid().ToString(),
+                ConversationId = currentConversation.Id,
+                Role = MessageRole.Assistant,
+                Content = "This is a placeholder AI response. Integrate with your AI service here.",
+                Timestamp = DateTime.UtcNow
+            };
+
+            currentConversation.Messages.Add(aiMessage);
+            Dispatcher.Dispatch(new AddMessageAction(currentConversation.Id, aiMessage));
+
+            StateHasChanged();
+            await ScrollToBottom();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleEditMessage(string messageId, string newContent)
+    {
+        var message = currentConversation?.Messages.FirstOrDefault(m => m.Id == messageId);
+        if (message != null)
+        {
+            message.Content = newContent;
+            Dispatcher.Dispatch(new UpdateMessageAction(currentConversation!.Id, messageId, newContent));
+            StateHasChanged();
+
+            // Regenerate AI response after user edit
+            await HandleRegenerateMessage(messageId);
+        }
+    }
+
+    private async Task HandleRegenerateMessage(string messageId)
+    {
+        // TODO: Implement regenerate logic
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleExamplePrompt(string prompt)
+    {
+        await HandleSendMessage(prompt);
+    }
+
+    private async Task ScrollToBottom()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval",
+                "document.querySelector('.overflow-y-auto').scrollTop = document.querySelector('.overflow-y-auto').scrollHeight");
+        }
+        catch
+        {
+            // Ignore JS errors
+        }
+    }
+}
