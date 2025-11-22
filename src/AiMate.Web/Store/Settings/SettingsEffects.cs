@@ -13,6 +13,7 @@ public class SettingsEffects
     private readonly IJSRuntime _jsRuntime;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IState<AuthState> _authState;
+    private readonly IState<SettingsState> _settingsState;
     private readonly ILogger<SettingsEffects> _logger;
     private const string StorageKey = "aiMate_settings";
     private const string ApiEndpoint = "/api/v1/settings";
@@ -21,11 +22,13 @@ public class SettingsEffects
         IJSRuntime jsRuntime,
         IHttpClientFactory httpClientFactory,
         IState<AuthState> authState,
+        IState<SettingsState> settingsState,
         ILogger<SettingsEffects> logger)
     {
         _jsRuntime = jsRuntime;
         _httpClientFactory = httpClientFactory;
         _authState = authState;
+        _settingsState = settingsState;
         _logger = logger;
     }
 
@@ -96,19 +99,33 @@ public class SettingsEffects
         {
             var httpClient = _httpClientFactory.CreateClient("ApiClient");
 
-            // SaveSettingsAction should include the full SettingsState or individual fields to save
-            // Two implementation options:
-            // 1. Modify SaveSettingsAction to include SettingsState: SaveSettingsAction(SettingsState settings)
-            // 2. Inject IState<SettingsState> here and read current state with: _settingsState.Value
-            // Then convert to UserSettingsDto and POST to: /api/v1/settings?userId={userId}
-            // Also need userId from auth: inject IState<AuthState> and use authState.Value.CurrentUser.Id
+            // Get current user ID from auth state
+            var userId = _authState.Value.CurrentUser?.Id.ToString()
+                ?? throw new UnauthorizedAccessException("User must be authenticated to save settings");
 
-            _logger.LogWarning("SaveSettings needs SettingsState passed in action or IState<SettingsState> injected - modify SaveSettingsAction to include state parameter");
+            // Get current settings state
+            var currentSettings = _settingsState.Value;
 
-            // For now, just save success (awaiting action modification to pass state)
-            await Task.CompletedTask;
-            dispatcher.Dispatch(new SaveSettingsSuccessAction());
-            _logger.LogInformation("Settings save acknowledged (needs action to pass state for API call)");
+            // Convert to DTO
+            var settingsDto = MapStateToDto(currentSettings);
+
+            // POST to API
+            var response = await httpClient.PostAsJsonAsync($"{ApiEndpoint}?userId={userId}", settingsDto);
+
+            if (response.IsSuccessStatusCode)
+            {
+                // Also cache in localStorage
+                var settingsJson = JsonSerializer.Serialize(currentSettings);
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", StorageKey, settingsJson);
+
+                dispatcher.Dispatch(new SaveSettingsSuccessAction());
+                _logger.LogInformation("Settings saved successfully for user {UserId}", userId);
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Failed to save settings: {error}");
+            }
         }
         catch (Exception ex)
         {
@@ -190,6 +207,42 @@ public class SettingsEffects
             ShowCostEstimates = dto.ShowCostEstimates,
             MonthlyBudget = dto.MonthlyBudget,
             EnableUsageAlerts = dto.EnableUsageAlerts
+        };
+    }
+
+    // Helper method to map State to DTO
+    private UserSettingsDto MapStateToDto(SettingsState state)
+    {
+        return new UserSettingsDto
+        {
+            Language = state.Language,
+            TimeZone = state.TimeZone,
+            EnableNotifications = state.EnableNotifications,
+            EnableSoundEffects = state.EnableSoundEffects,
+            Theme = state.Theme,
+            FontSize = state.FontSize,
+            CompactMode = state.CompactMode,
+            ShowLineNumbers = state.ShowLineNumbers,
+            EnableMarkdownPreview = state.EnableMarkdownPreview,
+            CodeTheme = state.CodeTheme,
+            LiteLLMUrl = state.LiteLLMUrl,
+            ApiKey = state.ApiKey,
+            RequestTimeout = state.RequestTimeout,
+            MaxRetries = state.MaxRetries,
+            UseStreamingByDefault = state.UseStreamingByDefault,
+            DefaultPersonality = state.DefaultPersonality,
+            DefaultModel = state.DefaultModel,
+            Temperature = state.Temperature,
+            MaxTokens = state.MaxTokens,
+            SystemPromptOverride = state.SystemPromptOverride,
+            Username = state.Username,
+            Email = state.Email,
+            AvatarUrl = state.AvatarUrl,
+            UserTier = state.UserTier,
+            TrackUsage = state.TrackUsage,
+            ShowCostEstimates = state.ShowCostEstimates,
+            MonthlyBudget = state.MonthlyBudget,
+            EnableUsageAlerts = state.EnableUsageAlerts
         };
     }
 }

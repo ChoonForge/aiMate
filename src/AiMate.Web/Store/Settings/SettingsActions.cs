@@ -31,6 +31,9 @@ public record UpdateCodeThemeAction(string CodeTheme);
 // Connection Settings
 public record UpdateLiteLLMUrlAction(string Url);
 public record UpdateApiKeyAction(string? ApiKey);
+public record UpdateOpenAIKeyAction(string? ApiKey);
+public record UpdateAnthropicKeyAction(string? ApiKey);
+public record UpdateOllamaUrlAction(string? Url);
 public record UpdateRequestTimeoutAction(int Timeout);
 public record UpdateMaxRetriesAction(int MaxRetries);
 public record UpdateStreamingDefaultAction(bool Enabled);
@@ -56,6 +59,7 @@ public record UpdateTrackUsageAction(bool Enabled);
 public record UpdateShowCostEstimatesAction(bool Enabled);
 public record UpdateMonthlyBudgetAction(int Budget);
 public record UpdateUsageAlertsAction(bool Enabled);
+public record UpdateAllowAnalyticsAction(bool Enabled);
 
 // UI actions
 public record SetActiveTabAction(int TabIndex);

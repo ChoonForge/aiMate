@@ -125,6 +125,24 @@ public static class SettingsReducers
     }
 
     [ReducerMethod]
+    public static SettingsState OnUpdateOpenAIKey(SettingsState state, UpdateOpenAIKeyAction action)
+    {
+        return state with { OpenAIApiKey = action.ApiKey };
+    }
+
+    [ReducerMethod]
+    public static SettingsState OnUpdateAnthropicKey(SettingsState state, UpdateAnthropicKeyAction action)
+    {
+        return state with { AnthropicApiKey = action.ApiKey };
+    }
+
+    [ReducerMethod]
+    public static SettingsState OnUpdateOllamaUrl(SettingsState state, UpdateOllamaUrlAction action)
+    {
+        return state with { OllamaUrl = action.Url };
+    }
+
+    [ReducerMethod]
     public static SettingsState OnUpdateRequestTimeout(SettingsState state, UpdateRequestTimeoutAction action)
     {
         return state with { RequestTimeout = action.Timeout };
@@ -221,6 +239,12 @@ public static class SettingsReducers
     public static SettingsState OnUpdateUsageAlerts(SettingsState state, UpdateUsageAlertsAction action)
     {
         return state with { EnableUsageAlerts = action.Enabled };
+    }
+
+    [ReducerMethod]
+    public static SettingsState OnUpdateAllowAnalytics(SettingsState state, UpdateAllowAnalyticsAction action)
+    {
+        return state with { AllowAnalytics = action.Enabled };
     }
 
     // UI actions

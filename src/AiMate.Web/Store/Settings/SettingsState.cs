@@ -25,6 +25,9 @@ public record SettingsState
     // Connection Settings
     public string LiteLLMUrl { get; init; } = "http://localhost:4000";
     public string? ApiKey { get; init; }
+    public string? OpenAIApiKey { get; init; }
+    public string? AnthropicApiKey { get; init; }
+    public string? OllamaUrl { get; init; }
     public int RequestTimeout { get; init; } = 120;
     public int MaxRetries { get; init; } = 3;
     public bool UseStreamingByDefault { get; init; } = true;
@@ -47,6 +50,7 @@ public record SettingsState
     public bool ShowCostEstimates { get; init; } = true;
     public int MonthlyBudget { get; init; } = 0; // 0 = unlimited
     public bool EnableUsageAlerts { get; init; } = true;
+    public bool AllowAnalytics { get; init; } = true;
 
     // UI State
     public bool IsLoading { get; init; }
