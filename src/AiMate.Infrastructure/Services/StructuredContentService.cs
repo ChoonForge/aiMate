@@ -1,9 +1,11 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using AiMate.Core.Entities;
 using AiMate.Core.Enums;
 using AiMate.Core.Services;
 using AiMate.Infrastructure.Data;
+using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -431,22 +433,240 @@ public class StructuredContentService : IStructuredContentService
 
     private Task<ExportResult> ExportAsCsvAsync(StructuredContent content)
     {
-        // TODO: Implement CSV export based on content type
-        return Task.FromResult(new ExportResult
+        try
         {
-            Success = false,
-            Error = "CSV export not yet implemented"
-        });
+            var csv = new StringBuilder();
+
+            // CSV export is primarily for tabular content (Table, KeyValueList)
+            if (content.Type == StructuredContentType.Table)
+            {
+                var data = JsonSerializer.Deserialize<Dictionary<string, object>>(content.Data.ToString() ?? "{}");
+
+                if (data == null)
+                {
+                    return Task.FromResult(new ExportResult
+                    {
+                        Success = false,
+                        Error = "Failed to parse table data"
+                    });
+                }
+
+                // Get columns
+                var columns = new List<string>();
+                if (data.TryGetValue("columns", out var columnsObj) && columnsObj is JsonElement columnsElement)
+                {
+                    columns = JsonSerializer.Deserialize<List<string>>(columnsElement.GetRawText()) ?? new List<string>();
+                }
+
+                // Write header
+                csv.AppendLine(string.Join(",", columns.Select(EscapeCsvValue)));
+
+                // Write rows
+                if (data.TryGetValue("rows", out var rowsObj) && rowsObj is JsonElement rowsElement)
+                {
+                    var rows = JsonSerializer.Deserialize<List<List<object>>>(rowsElement.GetRawText());
+                    if (rows != null)
+                    {
+                        foreach (var row in rows)
+                        {
+                            csv.AppendLine(string.Join(",", row.Select(cell => EscapeCsvValue(cell?.ToString() ?? ""))));
+                        }
+                    }
+                }
+            }
+            else if (content.Type == StructuredContentType.KeyValueList)
+            {
+                var data = JsonSerializer.Deserialize<Dictionary<string, object>>(content.Data.ToString() ?? "{}");
+
+                if (data == null)
+                {
+                    return Task.FromResult(new ExportResult
+                    {
+                        Success = false,
+                        Error = "Failed to parse key-value data"
+                    });
+                }
+
+                // Header
+                csv.AppendLine("Key,Value");
+
+                // Items
+                if (data.TryGetValue("items", out var itemsObj) && itemsObj is JsonElement itemsElement)
+                {
+                    var items = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(itemsElement.GetRawText());
+                    if (items != null)
+                    {
+                        foreach (var item in items)
+                        {
+                            var key = item.ContainsKey("key") ? item["key"]?.ToString() ?? "" : "";
+                            var value = item.ContainsKey("value") ? item["value"]?.ToString() ?? "" : "";
+                            csv.AppendLine($"{EscapeCsvValue(key)},{EscapeCsvValue(value)}");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                return Task.FromResult(new ExportResult
+                {
+                    Success = false,
+                    Error = $"CSV export not supported for content type: {content.Type}"
+                });
+            }
+
+            return Task.FromResult(new ExportResult
+            {
+                Success = true,
+                Data = Encoding.UTF8.GetBytes(csv.ToString()),
+                FileName = $"export-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv",
+                ContentType = "text/csv"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting as CSV");
+            return Task.FromResult(new ExportResult
+            {
+                Success = false,
+                Error = $"CSV export failed: {ex.Message}"
+            });
+        }
+    }
+
+    private static string EscapeCsvValue(string value)
+    {
+        if (value.Contains(",") || value.Contains("\"") || value.Contains("\n"))
+        {
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        }
+        return value;
     }
 
     private Task<ExportResult> ExportAsExcelAsync(StructuredContent content)
     {
-        // TODO: Implement Excel export
-        return Task.FromResult(new ExportResult
+        try
         {
-            Success = false,
-            Error = "Excel export not yet implemented"
-        });
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Export");
+
+            // Excel export is primarily for tabular content (Table, KeyValueList)
+            if (content.Type == StructuredContentType.Table)
+            {
+                var data = JsonSerializer.Deserialize<Dictionary<string, object>>(content.Data.ToString() ?? "{}");
+
+                if (data == null)
+                {
+                    return Task.FromResult(new ExportResult
+                    {
+                        Success = false,
+                        Error = "Failed to parse table data"
+                    });
+                }
+
+                // Get columns
+                var columns = new List<string>();
+                if (data.TryGetValue("columns", out var columnsObj) && columnsObj is JsonElement columnsElement)
+                {
+                    columns = JsonSerializer.Deserialize<List<string>>(columnsElement.GetRawText()) ?? new List<string>();
+                }
+
+                // Write header
+                for (int i = 0; i < columns.Count; i++)
+                {
+                    worksheet.Cell(1, i + 1).Value = columns[i];
+                    worksheet.Cell(1, i + 1).Style.Font.Bold = true;
+                }
+
+                // Write rows
+                if (data.TryGetValue("rows", out var rowsObj) && rowsObj is JsonElement rowsElement)
+                {
+                    var rows = JsonSerializer.Deserialize<List<List<object>>>(rowsElement.GetRawText());
+                    if (rows != null)
+                    {
+                        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+                        {
+                            var row = rows[rowIndex];
+                            for (int colIndex = 0; colIndex < row.Count; colIndex++)
+                            {
+                                worksheet.Cell(rowIndex + 2, colIndex + 1).Value = row[colIndex]?.ToString() ?? "";
+                            }
+                        }
+                    }
+                }
+
+                // Auto-fit columns
+                worksheet.Columns().AdjustToContents();
+            }
+            else if (content.Type == StructuredContentType.KeyValueList)
+            {
+                var data = JsonSerializer.Deserialize<Dictionary<string, object>>(content.Data.ToString() ?? "{}");
+
+                if (data == null)
+                {
+                    return Task.FromResult(new ExportResult
+                    {
+                        Success = false,
+                        Error = "Failed to parse key-value data"
+                    });
+                }
+
+                // Header
+                worksheet.Cell(1, 1).Value = "Key";
+                worksheet.Cell(1, 2).Value = "Value";
+                worksheet.Cell(1, 1).Style.Font.Bold = true;
+                worksheet.Cell(1, 2).Style.Font.Bold = true;
+
+                // Items
+                if (data.TryGetValue("items", out var itemsObj) && itemsObj is JsonElement itemsElement)
+                {
+                    var items = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(itemsElement.GetRawText());
+                    if (items != null)
+                    {
+                        for (int i = 0; i < items.Count; i++)
+                        {
+                            var item = items[i];
+                            var key = item.ContainsKey("key") ? item["key"]?.ToString() ?? "" : "";
+                            var value = item.ContainsKey("value") ? item["value"]?.ToString() ?? "" : "";
+
+                            worksheet.Cell(i + 2, 1).Value = key;
+                            worksheet.Cell(i + 2, 2).Value = value;
+                        }
+                    }
+                }
+
+                // Auto-fit columns
+                worksheet.Columns().AdjustToContents();
+            }
+            else
+            {
+                return Task.FromResult(new ExportResult
+                {
+                    Success = false,
+                    Error = $"Excel export not supported for content type: {content.Type}"
+                });
+            }
+
+            // Save to memory stream
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+
+            return Task.FromResult(new ExportResult
+            {
+                Success = true,
+                Data = stream.ToArray(),
+                FileName = $"export-{DateTime.UtcNow:yyyyMMdd-HHmmss}.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting as Excel");
+            return Task.FromResult(new ExportResult
+            {
+                Success = false,
+                Error = $"Excel export failed: {ex.Message}"
+            });
+        }
     }
 
     private Task<ExportResult> ExportAsPdfAsync(StructuredContent content)

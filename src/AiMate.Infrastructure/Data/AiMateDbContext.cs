@@ -31,6 +31,10 @@ public class AiMateDbContext : DbContext
     public DbSet<PluginSettings> PluginSettings => Set<PluginSettings>();
     public DbSet<CodeFile> CodeFiles => Set<CodeFile>();
     public DbSet<StructuredContentTemplate> StructuredContentTemplates => Set<StructuredContentTemplate>();
+    public DbSet<Organization> Organizations => Set<Organization>();
+    public DbSet<OrganizationMember> OrganizationMembers => Set<OrganizationMember>();
+    public DbSet<Group> Groups => Set<Group>();
+    public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -319,6 +323,84 @@ public class AiMateDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.CreatedBy)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // Organization configuration
+        modelBuilder.Entity<Organization>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.OwnerId);
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.CreatedAt);
+
+            entity.HasMany(e => e.Members)
+                .WithOne(e => e.Organization)
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Groups)
+                .WithOne(e => e.Organization)
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Connections)
+                .WithOne(e => e.Organization)
+                .HasForeignKey(e => e.OrganizationId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // OrganizationMember configuration
+        modelBuilder.Entity<OrganizationMember>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.OrganizationId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.OrganizationId, e.UserId }).IsUnique();
+            entity.HasIndex(e => e.Role);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Group configuration
+        modelBuilder.Entity<Group>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.OrganizationId);
+            entity.HasIndex(e => e.OwnerId);
+            entity.HasIndex(e => e.IsActive);
+            entity.HasIndex(e => e.CreatedAt);
+
+            entity.HasOne(e => e.Owner)
+                .WithMany()
+                .HasForeignKey(e => e.OwnerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(e => e.Members)
+                .WithOne(e => e.Group)
+                .HasForeignKey(e => e.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Connections)
+                .WithMany()
+                .UsingEntity(j => j.ToTable("GroupConnections"));
+        });
+
+        // GroupMember configuration
+        modelBuilder.Entity<GroupMember>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.GroupId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.GroupId, e.UserId }).IsUnique();
+            entity.HasIndex(e => e.Role);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

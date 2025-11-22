@@ -34,7 +34,15 @@ public class WorkspaceApiController : ControllerBase
     /// <summary>
     /// Get all workspaces for the current user
     /// </summary>
+    /// <param name="userId">User ID to retrieve workspaces for</param>
+    /// <returns>List of workspaces owned by the user</returns>
+    /// <response code="200">Returns list of workspaces</response>
+    /// <response code="400">Invalid user ID format</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet]
+    [ProducesResponseType(typeof(List<WorkspaceDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetWorkspaces([FromQuery] string userId)
     {
         try
@@ -72,7 +80,15 @@ public class WorkspaceApiController : ControllerBase
     /// <summary>
     /// Get a specific workspace by ID
     /// </summary>
+    /// <param name="id">Workspace ID</param>
+    /// <returns>Workspace details</returns>
+    /// <response code="200">Returns the workspace</response>
+    /// <response code="404">Workspace not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(WorkspaceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetWorkspace(Guid id)
     {
         try
@@ -109,7 +125,16 @@ public class WorkspaceApiController : ControllerBase
     /// <summary>
     /// Create a new workspace
     /// </summary>
+    /// <param name="request">Workspace creation request with name, description, type, and personality</param>
+    /// <param name="userId">User ID creating the workspace</param>
+    /// <returns>Created workspace details</returns>
+    /// <response code="201">Workspace created successfully</response>
+    /// <response code="400">Invalid request or user ID format</response>
+    /// <response code="500">Internal server error</response>
     [HttpPost]
+    [ProducesResponseType(typeof(WorkspaceDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateWorkspace([FromBody] CreateWorkspaceRequest request, [FromQuery] string userId)
     {
         try
@@ -171,7 +196,16 @@ public class WorkspaceApiController : ControllerBase
     /// <summary>
     /// Update an existing workspace
     /// </summary>
+    /// <param name="id">Workspace ID to update</param>
+    /// <param name="request">Workspace update request with modified fields</param>
+    /// <returns>Updated workspace details</returns>
+    /// <response code="200">Workspace updated successfully</response>
+    /// <response code="404">Workspace not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(WorkspaceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateWorkspace(Guid id, [FromBody] UpdateWorkspaceRequest request)
     {
         try
@@ -235,9 +269,15 @@ public class WorkspaceApiController : ControllerBase
     }
 
     /// <summary>
-    /// Delete a workspace
+    /// Delete a workspace and all its conversations
     /// </summary>
+    /// <param name="id">Workspace ID to delete</param>
+    /// <returns>Success message</returns>
+    /// <response code="200">Workspace deleted successfully</response>
+    /// <response code="500">Internal server error</response>
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteWorkspace(Guid id)
     {
         try
@@ -262,7 +302,13 @@ public class WorkspaceApiController : ControllerBase
     /// <summary>
     /// Get all conversations in a workspace
     /// </summary>
+    /// <param name="workspaceId">Workspace ID to retrieve conversations from</param>
+    /// <returns>List of conversations in the workspace</returns>
+    /// <response code="200">Returns list of conversations with message counts</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("{workspaceId}/conversations")]
+    [ProducesResponseType(typeof(List<ConversationDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetConversations(Guid workspaceId)
     {
         try
@@ -296,7 +342,14 @@ public class WorkspaceApiController : ControllerBase
     /// <summary>
     /// Create a new conversation in a workspace
     /// </summary>
+    /// <param name="workspaceId">Workspace ID to create conversation in</param>
+    /// <param name="request">Conversation creation request with title</param>
+    /// <returns>Created conversation details</returns>
+    /// <response code="201">Conversation created successfully</response>
+    /// <response code="500">Internal server error</response>
     [HttpPost("{workspaceId}/conversations")]
+    [ProducesResponseType(typeof(ConversationDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateConversation(Guid workspaceId, [FromBody] CreateConversationRequest request)
     {
         try

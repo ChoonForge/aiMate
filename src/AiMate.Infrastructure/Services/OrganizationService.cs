@@ -1,0 +1,208 @@
+using AiMate.Core.Entities;
+using AiMate.Core.Services;
+using AiMate.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+
+namespace AiMate.Infrastructure.Services;
+
+/// <summary>
+/// Service for managing organizations and their members
+/// </summary>
+public class OrganizationService : IOrganizationService
+{
+    private readonly AiMateDbContext _context;
+    private readonly ILogger<OrganizationService> _logger;
+
+    public OrganizationService(
+        AiMateDbContext context,
+        ILogger<OrganizationService> logger)
+    {
+        _context = context;
+        _logger = logger;
+    }
+
+    public async Task<Organization?> GetOrganizationByIdAsync(Guid organizationId)
+    {
+        return await _context.Organizations
+            .Include(o => o.Members)
+                .ThenInclude(m => m.User)
+            .Include(o => o.Groups)
+            .FirstOrDefaultAsync(o => o.Id == organizationId);
+    }
+
+    public async Task<List<Organization>> GetUserOrganizationsAsync(Guid userId)
+    {
+        return await _context.OrganizationMembers
+            .Where(m => m.UserId == userId)
+            .Select(m => m.Organization)
+            .OrderByDescending(o => o.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<Organization> CreateOrganizationAsync(Organization organization)
+    {
+        _context.Organizations.Add(organization);
+
+        // Add owner as a member with Owner role
+        var ownerMember = new OrganizationMember
+        {
+            OrganizationId = organization.Id,
+            UserId = organization.OwnerId,
+            Role = OrganizationRole.Owner
+        };
+        _context.OrganizationMembers.Add(ownerMember);
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Created organization {OrganizationId} with owner {UserId}",
+            organization.Id, organization.OwnerId);
+
+        return organization;
+    }
+
+    public async Task<Organization> UpdateOrganizationAsync(Organization organization)
+    {
+        organization.UpdatedAt = DateTime.UtcNow;
+        _context.Organizations.Update(organization);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Updated organization {OrganizationId}", organization.Id);
+
+        return organization;
+    }
+
+    public async Task DeleteOrganizationAsync(Guid organizationId)
+    {
+        var organization = await _context.Organizations.FindAsync(organizationId);
+        if (organization == null)
+        {
+            throw new InvalidOperationException($"Organization {organizationId} not found");
+        }
+
+        _context.Organizations.Remove(organization);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Deleted organization {OrganizationId}", organizationId);
+    }
+
+    public async Task<OrganizationMember> AddMemberAsync(Guid organizationId, Guid userId, OrganizationRole role)
+    {
+        var organization = await _context.Organizations.FindAsync(organizationId);
+        if (organization == null)
+        {
+            throw new InvalidOperationException($"Organization {organizationId} not found");
+        }
+
+        // Check if member already exists
+        var existingMember = await _context.OrganizationMembers
+            .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.UserId == userId);
+
+        if (existingMember != null)
+        {
+            throw new InvalidOperationException("User is already a member of this organization");
+        }
+
+        // Check member limit
+        var memberCount = await _context.OrganizationMembers
+            .CountAsync(m => m.OrganizationId == organizationId);
+
+        if (memberCount >= organization.MaxUsers)
+        {
+            throw new InvalidOperationException("Organization has reached maximum member limit");
+        }
+
+        var member = new OrganizationMember
+        {
+            OrganizationId = organizationId,
+            UserId = userId,
+            Role = role
+        };
+
+        _context.OrganizationMembers.Add(member);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Added user {UserId} to organization {OrganizationId} with role {Role}",
+            userId, organizationId, role);
+
+        return member;
+    }
+
+    public async Task<OrganizationMember> UpdateMemberRoleAsync(Guid organizationId, Guid userId, OrganizationRole role)
+    {
+        var member = await _context.OrganizationMembers
+            .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.UserId == userId);
+
+        if (member == null)
+        {
+            throw new InvalidOperationException("Member not found");
+        }
+
+        member.Role = role;
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Updated role for user {UserId} in organization {OrganizationId} to {Role}",
+            userId, organizationId, role);
+
+        return member;
+    }
+
+    public async Task RemoveMemberAsync(Guid organizationId, Guid userId)
+    {
+        var member = await _context.OrganizationMembers
+            .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.UserId == userId);
+
+        if (member == null)
+        {
+            throw new InvalidOperationException("Member not found");
+        }
+
+        // Don't allow removing the owner
+        if (member.Role == OrganizationRole.Owner)
+        {
+            throw new InvalidOperationException("Cannot remove organization owner");
+        }
+
+        _context.OrganizationMembers.Remove(member);
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation("Removed user {UserId} from organization {OrganizationId}",
+            userId, organizationId);
+    }
+
+    public async Task<List<OrganizationMember>> GetOrganizationMembersAsync(Guid organizationId)
+    {
+        return await _context.OrganizationMembers
+            .Where(m => m.OrganizationId == organizationId)
+            .Include(m => m.User)
+            .OrderByDescending(m => m.Role)
+            .ThenBy(m => m.JoinedAt)
+            .ToListAsync();
+    }
+
+    public async Task<OrganizationMember?> GetMemberAsync(Guid organizationId, Guid userId)
+    {
+        return await _context.OrganizationMembers
+            .Include(m => m.User)
+            .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.UserId == userId);
+    }
+
+    public async Task<bool> IsUserMemberAsync(Guid organizationId, Guid userId)
+    {
+        return await _context.OrganizationMembers
+            .AnyAsync(m => m.OrganizationId == organizationId && m.UserId == userId);
+    }
+
+    public async Task<bool> HasPermissionAsync(Guid organizationId, Guid userId, OrganizationRole minimumRole)
+    {
+        var member = await _context.OrganizationMembers
+            .FirstOrDefaultAsync(m => m.OrganizationId == organizationId && m.UserId == userId);
+
+        if (member == null)
+        {
+            return false;
+        }
+
+        return member.Role >= minimumRole;
+    }
+}

@@ -27,7 +27,16 @@ public class FeedbackApiController : ControllerBase
     /// <summary>
     /// Create or update feedback for a message
     /// </summary>
+    /// <param name="messageId">Message ID to provide feedback for</param>
+    /// <param name="request">Feedback data including rating, text feedback, and tags</param>
+    /// <returns>Created or updated feedback summary</returns>
+    /// <response code="200">Feedback created or updated successfully</response>
+    /// <response code="400">Invalid request data</response>
+    /// <response code="500">Internal server error</response>
     [HttpPost("messages/{messageId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateOrUpdateFeedback(
         Guid messageId,
         [FromBody] CreateFeedbackRequest request)
@@ -74,7 +83,15 @@ public class FeedbackApiController : ControllerBase
     /// <summary>
     /// Get feedback for a specific message
     /// </summary>
+    /// <param name="messageId">Message ID to retrieve feedback for</param>
+    /// <returns>Feedback details</returns>
+    /// <response code="200">Returns the feedback</response>
+    /// <response code="404">Feedback not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("messages/{messageId}")]
+    [ProducesResponseType(typeof(MessageFeedback), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetFeedbackByMessage(Guid messageId)
     {
         try
@@ -95,9 +112,17 @@ public class FeedbackApiController : ControllerBase
     }
 
     /// <summary>
-    /// Get feedback by user
+    /// Get feedback submitted by a specific user
     /// </summary>
+    /// <param name="userId">User ID to retrieve feedback for</param>
+    /// <param name="skip">Number of records to skip (pagination)</param>
+    /// <param name="take">Number of records to take (max 100)</param>
+    /// <returns>List of feedback entries</returns>
+    /// <response code="200">Returns list of user feedback</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("users/{userId}")]
+    [ProducesResponseType(typeof(List<MessageFeedback>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetFeedbackByUser(
         Guid userId,
         [FromQuery] int skip = 0,
@@ -116,9 +141,18 @@ public class FeedbackApiController : ControllerBase
     }
 
     /// <summary>
-    /// Get feedback by model
+    /// Get feedback for a specific AI model with optional filtering
     /// </summary>
+    /// <param name="modelId">Model ID (e.g., "gpt-4", "claude-3-opus")</param>
+    /// <param name="fromDate">Start date for filtering (optional)</param>
+    /// <param name="toDate">End date for filtering (optional)</param>
+    /// <param name="minRating">Minimum rating filter (1-5, optional)</param>
+    /// <returns>List of feedback entries for the model</returns>
+    /// <response code="200">Returns filtered feedback list</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("models/{modelId}")]
+    [ProducesResponseType(typeof(List<MessageFeedback>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetFeedbackByModel(
         string modelId,
         [FromQuery] DateTime? fromDate = null,
@@ -144,9 +178,17 @@ public class FeedbackApiController : ControllerBase
     }
 
     /// <summary>
-    /// Delete feedback
+    /// Delete a feedback entry
     /// </summary>
+    /// <param name="feedbackId">Feedback ID to delete</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Feedback deleted successfully</response>
+    /// <response code="404">Feedback not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpDelete("{feedbackId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteFeedback(Guid feedbackId)
     {
         try
@@ -169,7 +211,12 @@ public class FeedbackApiController : ControllerBase
     /// <summary>
     /// Get all active feedback tag templates
     /// </summary>
+    /// <returns>List of active tag templates with options</returns>
+    /// <response code="200">Returns list of tag templates</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("templates")]
+    [ProducesResponseType(typeof(List<FeedbackTagTemplate>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetActiveTagTemplates()
     {
         try
@@ -185,10 +232,17 @@ public class FeedbackApiController : ControllerBase
     }
 
     /// <summary>
-    /// Create a new tag template (admin)
+    /// Create a new feedback tag template (admin only)
     /// </summary>
+    /// <param name="request">Tag template creation request with category, label, and options</param>
+    /// <returns>Created tag template</returns>
+    /// <response code="201">Tag template created successfully</response>
+    /// <response code="500">Internal server error</response>
+    /// <remarks>Requires AdminOnly policy authorization</remarks>
     [HttpPost("templates")]
     [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(typeof(FeedbackTagTemplate), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> CreateTagTemplate([FromBody] CreateTagTemplateRequest request)
     {
         try
@@ -221,10 +275,20 @@ public class FeedbackApiController : ControllerBase
     }
 
     /// <summary>
-    /// Update a tag template (admin)
+    /// Update an existing tag template (admin only)
     /// </summary>
+    /// <param name="templateId">Template ID to update</param>
+    /// <param name="request">Template update request with modified fields</param>
+    /// <returns>Updated tag template</returns>
+    /// <response code="200">Template updated successfully</response>
+    /// <response code="404">Template not found</response>
+    /// <response code="500">Internal server error</response>
+    /// <remarks>Requires AdminOnly policy authorization</remarks>
     [HttpPut("templates/{templateId}")]
     [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(typeof(FeedbackTagTemplate), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateTagTemplate(
         Guid templateId,
         [FromBody] UpdateTagTemplateRequest request)
@@ -256,10 +320,19 @@ public class FeedbackApiController : ControllerBase
     }
 
     /// <summary>
-    /// Delete a tag template (admin)
+    /// Delete a tag template (admin only)
     /// </summary>
+    /// <param name="templateId">Template ID to delete</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Template deleted successfully</response>
+    /// <response code="404">Template not found</response>
+    /// <response code="500">Internal server error</response>
+    /// <remarks>Requires AdminOnly policy authorization</remarks>
     [HttpDelete("templates/{templateId}")]
     [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteTagTemplate(Guid templateId)
     {
         try
@@ -281,9 +354,17 @@ public class FeedbackApiController : ControllerBase
     }
 
     /// <summary>
-    /// Get model statistics
+    /// Get statistical metrics for a specific AI model
     /// </summary>
+    /// <param name="modelId">Model ID (e.g., "gpt-4", "claude-3-opus")</param>
+    /// <param name="fromDate">Start date for statistics (optional)</param>
+    /// <param name="toDate">End date for statistics (optional)</param>
+    /// <returns>Model statistics including average rating, response times, feedback counts</returns>
+    /// <response code="200">Returns model statistics</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("stats/models/{modelId}")]
+    [ProducesResponseType(typeof(ModelFeedbackStats), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetModelStats(
         string modelId,
         [FromQuery] DateTime? fromDate = null,
@@ -302,9 +383,17 @@ public class FeedbackApiController : ControllerBase
     }
 
     /// <summary>
-    /// Get tag frequency statistics
+    /// Get frequency distribution of feedback tags
     /// </summary>
+    /// <param name="modelId">Filter by model ID (optional)</param>
+    /// <param name="fromDate">Start date for statistics (optional)</param>
+    /// <param name="toDate">End date for statistics (optional)</param>
+    /// <returns>Dictionary of tag keys/values and their occurrence counts</returns>
+    /// <response code="200">Returns tag frequency statistics</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("stats/tags")]
+    [ProducesResponseType(typeof(Dictionary<string, int>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetTagFrequency(
         [FromQuery] string? modelId = null,
         [FromQuery] DateTime? fromDate = null,

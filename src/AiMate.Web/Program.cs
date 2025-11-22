@@ -294,6 +294,10 @@ builder.Services.AddSingleton<AiMate.Core.Services.IPluginManager, AiMate.Infras
 // Register Permission Service (Singleton for access control)
 builder.Services.AddSingleton<AiMate.Core.Services.IPermissionService, AiMate.Infrastructure.Services.PermissionService>();
 
+// Register Organization and Group services
+builder.Services.AddScoped<AiMate.Core.Services.IOrganizationService, AiMate.Infrastructure.Services.OrganizationService>();
+builder.Services.AddScoped<AiMate.Core.Services.IGroupService, AiMate.Infrastructure.Services.GroupService>();
+
 // Register HttpClient for services that need it
 builder.Services.AddHttpClient<AiMate.Infrastructure.Services.LiteLLMService>();
 builder.Services.AddHttpClient<AiMate.Infrastructure.Services.OpenAIEmbeddingService>();

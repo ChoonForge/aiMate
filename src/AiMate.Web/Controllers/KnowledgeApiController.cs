@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AiMate.Web.Controllers;
 
+/// <summary>
+/// API for managing knowledge base articles with RAG support
+/// </summary>
 [ApiController]
 [Route("api/v1/knowledge")]
 [Authorize] // Requires authentication
@@ -22,7 +25,18 @@ public class KnowledgeApiController : ControllerBase
         _logger = logger;
     }
 
+    /// <summary>
+    /// Get all published knowledge articles for a user
+    /// </summary>
+    /// <param name="userId">User ID to retrieve articles for</param>
+    /// <returns>List of published knowledge articles</returns>
+    /// <response code="200">Returns list of articles ordered by featured status and update date</response>
+    /// <response code="400">Invalid user ID format</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet]
+    [ProducesResponseType(typeof(List<KnowledgeArticleDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<KnowledgeArticleDto>>> GetArticles([FromQuery] string userId)
     {
         try
@@ -51,7 +65,18 @@ public class KnowledgeApiController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Get knowledge base analytics for a user
+    /// </summary>
+    /// <param name="userId">User ID to retrieve analytics for</param>
+    /// <returns>Analytics including view counts, most viewed/referenced articles, tag statistics</returns>
+    /// <response code="200">Returns knowledge base analytics</response>
+    /// <response code="400">Invalid user ID format</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("analytics")]
+    [ProducesResponseType(typeof(KnowledgeAnalyticsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<KnowledgeAnalyticsDto>> GetAnalytics([FromQuery] string userId)
     {
         try
@@ -86,7 +111,23 @@ public class KnowledgeApiController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Get a specific knowledge article by ID
+    /// </summary>
+    /// <param name="id">Article ID</param>
+    /// <param name="userId">User ID making the request (for permission checks)</param>
+    /// <returns>Knowledge article details</returns>
+    /// <response code="200">Returns the article and increments view count</response>
+    /// <response code="400">Invalid article or user ID format</response>
+    /// <response code="403">User does not have permission to view this private article</response>
+    /// <response code="404">Article not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(KnowledgeArticleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<KnowledgeArticleDto>> GetArticle(string id, [FromQuery] string userId)
     {
         try
@@ -128,7 +169,19 @@ public class KnowledgeApiController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Create a new knowledge article
+    /// </summary>
+    /// <param name="request">Article creation request with title, content, and metadata</param>
+    /// <param name="userId">User ID creating the article</param>
+    /// <returns>Created article details</returns>
+    /// <response code="201">Article created successfully</response>
+    /// <response code="400">Invalid request or user ID format</response>
+    /// <response code="500">Internal server error</response>
     [HttpPost]
+    [ProducesResponseType(typeof(KnowledgeArticleDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<KnowledgeArticleDto>> CreateArticle(
         [FromBody] CreateKnowledgeArticleRequest request,
         [FromQuery] string userId)
@@ -168,7 +221,24 @@ public class KnowledgeApiController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Update an existing knowledge article
+    /// </summary>
+    /// <param name="id">Article ID to update</param>
+    /// <param name="request">Article update request with modified fields</param>
+    /// <param name="userId">User ID making the update (must be article owner)</param>
+    /// <returns>Updated article details</returns>
+    /// <response code="200">Article updated successfully</response>
+    /// <response code="400">Invalid article or user ID format</response>
+    /// <response code="403">User is not the owner of this article</response>
+    /// <response code="404">Article not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(KnowledgeArticleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<KnowledgeArticleDto>> UpdateArticle(
         string id,
         [FromBody] UpdateKnowledgeArticleRequest request,
@@ -220,7 +290,23 @@ public class KnowledgeApiController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Delete a knowledge article
+    /// </summary>
+    /// <param name="id">Article ID to delete</param>
+    /// <param name="userId">User ID making the deletion (must be article owner)</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Article deleted successfully</response>
+    /// <response code="400">Invalid article or user ID format</response>
+    /// <response code="403">User is not the owner of this article</response>
+    /// <response code="404">Article not found</response>
+    /// <response code="500">Internal server error</response>
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> DeleteArticle(string id, [FromQuery] string userId)
     {
         try
