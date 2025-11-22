@@ -8,6 +8,21 @@
 
 This document outlines the integration points between frontend components and the backend APIs recently implemented. Each component needs to call the appropriate API endpoints to replace mock data and placeholder functionality.
 
+**Components Documented:** 12 total
+- **Search:** 2 components (GlobalSearchDialog, Search page)
+- **Files:** 3 components (Files page, FileUploadDialog, AttachFilesMenu)
+- **Feedback:** 2 components (MessageFeedbackWidget, FeedbackTagsAdminTab)
+- **Admin:** 3 components (OverviewAdminTab, UsersAdminTab, FeedbackTagsAdminTab)
+- **Settings:** 3 components (AccountSettingsTab, ConnectionsSettingsTab, UsageSettingsTab)
+
+**Backend APIs Covered:**
+- Search API (`/api/v1/search`)
+- File Management API (`/api/v1/files`)
+- Feedback System API (`/api/v1/feedback`)
+- Admin API (`/api/v1/admin`)
+- Connection Management API (`/api/v1/connections`)
+- User Profile API (`/api/v1/users`)
+
 ---
 
 ## 🔍 Search Integration
@@ -694,7 +709,213 @@ public class FeedbackTagOption
 
 ### Components Requiring Integration
 
-#### 7. **FeedbackTagsAdminTab.razor** (`Components/Admin/FeedbackTagsAdminTab.razor`)
+#### 7. **OverviewAdminTab.razor** (`Components/Admin/OverviewAdminTab.razor`)
+
+**Current State:**
+- ✅ UI complete with system stats cards
+- ⚠️ Uses Fluxor AdminState for all data
+- ❌ No backend API integration (mock/static data)
+- Displays: TotalUsers, TotalConversations, ActiveModels, MCP servers, LiteLLM status
+
+**Backend API Available:**
+- **Endpoint:** `GET /api/v1/admin`
+- **Controller:** `AdminApiController.cs`
+- **Authorization:** Requires Admin tier (`[Authorize(Policy = "AdminOnly")]`)
+
+**Integration Steps:**
+
+1. **Create Fluxor effects for admin data:**
+
+Create `Store/Admin/AdminEffects.cs`:
+```csharp
+public class AdminEffects
+{
+    private readonly HttpClient _http;
+    private readonly ILogger<AdminEffects> _logger;
+
+    public AdminEffects(HttpClient http, ILogger<AdminEffects> logger)
+    {
+        _http = http;
+        _logger = logger;
+    }
+
+    [EffectMethod]
+    public async Task HandleLoadAdminData(LoadAdminDataAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var response = await _http.GetFromJsonAsync<AdminDataDto>("/api/v1/admin");
+
+            if (response != null)
+            {
+                dispatcher.Dispatch(new LoadAdminDataSuccessAction(response));
+            }
+            else
+            {
+                dispatcher.Dispatch(new LoadAdminDataFailureAction("No data returned"));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load admin data");
+            dispatcher.Dispatch(new LoadAdminDataFailureAction(ex.Message));
+        }
+    }
+
+    [EffectMethod]
+    public async Task HandleRefreshAdminData(RefreshAdminDataAction action, IDispatcher dispatcher)
+    {
+        // Auto-refresh every 30 seconds
+        await Task.Delay(TimeSpan.FromSeconds(30));
+        dispatcher.Dispatch(new LoadAdminDataAction());
+    }
+}
+```
+
+2. **Update AdminState reducer:**
+
+```csharp
+[FeatureState]
+public class AdminState
+{
+    public AdminOverviewDto? Overview { get; init; }
+    public List<ActiveModelDto>? ActiveModels { get; init; }
+    public List<MCPServerDto>? MCPServers { get; init; }
+    public bool IsLoading { get; init; }
+    public string? ErrorMessage { get; init; }
+    public DateTime? LastUpdated { get; init; }
+
+    private AdminState() { } // Required for Fluxor
+
+    public AdminState(
+        AdminOverviewDto? overview,
+        List<ActiveModelDto>? activeModels,
+        List<MCPServerDto>? mcpServers,
+        bool isLoading = false,
+        string? errorMessage = null,
+        DateTime? lastUpdated = null)
+    {
+        Overview = overview;
+        ActiveModels = activeModels;
+        MCPServers = mcpServers;
+        IsLoading = isLoading;
+        ErrorMessage = errorMessage;
+        LastUpdated = lastUpdated;
+    }
+}
+
+public static class AdminReducers
+{
+    [ReducerMethod]
+    public static AdminState OnLoadAdminData(AdminState state, LoadAdminDataAction action)
+    {
+        return state with { IsLoading = true, ErrorMessage = null };
+    }
+
+    [ReducerMethod]
+    public static AdminState OnLoadAdminDataSuccess(AdminState state, LoadAdminDataSuccessAction action)
+    {
+        return new AdminState(
+            action.Data.Overview,
+            action.Data.ActiveModels,
+            action.Data.MCPServers,
+            isLoading: false,
+            lastUpdated: DateTime.UtcNow
+        );
+    }
+
+    [ReducerMethod]
+    public static AdminState OnLoadAdminDataFailure(AdminState state, LoadAdminDataFailureAction action)
+    {
+        return state with { IsLoading = false, ErrorMessage = action.ErrorMessage };
+    }
+}
+```
+
+3. **Update component to load data on init:**
+
+```csharp
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
+
+protected override void OnInitialized()
+{
+    base.OnInitialized();
+
+    // Subscribe to state changes
+    SubscribeToAction<LoadAdminDataSuccessAction>(action =>
+    {
+        StateHasChanged();
+    });
+
+    // Load initial data
+    Dispatcher.Dispatch(new LoadAdminDataAction());
+}
+```
+
+**Response Models:**
+```csharp
+public class AdminDataDto
+{
+    public AdminOverviewDto Overview { get; set; }
+    public List<ActiveModelDto> ActiveModels { get; set; }
+    public List<MCPServerDto> MCPServers { get; set; }
+}
+
+public class AdminOverviewDto
+{
+    public int TotalUsers { get; set; }
+    public int TotalConversations { get; set; }
+    public int ConversationsToday { get; set; }
+    public int TotalMessages { get; set; }
+    public int MessagesToday { get; set; }
+    public int ActiveConnections { get; set; }
+    public long StorageUsedBytes { get; set; }
+    public int TotalKnowledgeItems { get; set; }
+}
+
+public class ActiveModelDto
+{
+    public string ModelId { get; set; }
+    public string Provider { get; set; }
+    public int UsageCount { get; set; }
+    public DateTime LastUsed { get; set; }
+}
+
+public class MCPServerDto
+{
+    public string Name { get; set; }
+    public string Status { get; set; }
+    public int ToolCount { get; set; }
+}
+```
+
+---
+
+#### 8. **UsersAdminTab.razor** (`Components/Admin/UsersAdminTab.razor`)
+
+**Current State:**
+- ✅ UI shows single-user mode warning
+- ❌ Multi-user management not implemented
+- Shows current user stats from AdminState
+
+**Backend API Available:**
+- Currently in single-user mode (no multi-user endpoints yet)
+- Future: `GET /api/v1/admin/users` - List all users
+- Future: `PUT /api/v1/admin/users/{id}/tier` - Update user tier
+
+**Integration Notes:**
+This component is ready for future multi-user expansion. When multi-user support is added:
+1. Create user management endpoints in AdminApiController
+2. Add user CRUD operations
+3. Implement tier management (Free → BYOK → Developer → Admin)
+4. Add user activity tracking
+
+**Current Implementation:**
+No changes needed - component correctly shows single-user mode warning.
+
+---
+
+#### 9. **FeedbackTagsAdminTab.razor** (`Components/Admin/FeedbackTagsAdminTab.razor`)
 
 **Backend API Available:**
 - `GET /api/v1/feedback/admin/tags/templates` - List all tag templates
@@ -708,6 +929,570 @@ public class FeedbackTagOption
 2. Load tag templates on initialization
 3. Implement CRUD operations
 4. Display statistics dashboard
+
+---
+
+## ⚙️ Settings Components Integration
+
+### Components Requiring Integration
+
+#### 10. **AccountSettingsTab.razor** (`Components/Settings/AccountSettingsTab.razor`)
+
+**Current State:**
+- ✅ UI complete with username, email, avatar inputs
+- ⚠️ Uses Fluxor SettingsState
+- ❌ Dispatches actions but no backend sync
+- Has tier selection dropdown (Free, BYOK, Developer)
+- Delete account button (no implementation)
+
+**Backend API Available:**
+- `GET /api/v1/users/profile` - Get user profile
+- `PUT /api/v1/users/profile` - Update user profile
+- `DELETE /api/v1/users/account` - Delete account
+- `GET /api/v1/users/tier` - Get current tier
+- `PUT /api/v1/users/tier` - Update tier (admin only)
+
+**Integration Steps:**
+
+1. **Create SettingsEffects for profile updates:**
+
+Create `Store/Settings/SettingsEffects.cs`:
+```csharp
+public class SettingsEffects
+{
+    private readonly HttpClient _http;
+    private readonly ILogger<SettingsEffects> _logger;
+
+    public SettingsEffects(HttpClient http, ILogger<SettingsEffects> logger)
+    {
+        _http = http;
+        _logger = logger;
+    }
+
+    [EffectMethod]
+    public async Task HandleLoadUserProfile(LoadUserProfileAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var profile = await _http.GetFromJsonAsync<UserProfileDto>("/api/v1/users/profile");
+
+            if (profile != null)
+            {
+                dispatcher.Dispatch(new LoadUserProfileSuccessAction(profile));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load user profile");
+            dispatcher.Dispatch(new LoadUserProfileFailureAction(ex.Message));
+        }
+    }
+
+    [EffectMethod]
+    public async Task HandleUpdateUsername(UpdateUsernameAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var request = new UpdateProfileRequest { Username = action.Username };
+            var response = await _http.PutAsJsonAsync("/api/v1/users/profile", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                dispatcher.Dispatch(new UpdateUsernameSuccessAction(action.Username));
+            }
+            else
+            {
+                dispatcher.Dispatch(new UpdateProfileFailureAction("Failed to update username"));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update username");
+            dispatcher.Dispatch(new UpdateProfileFailureAction(ex.Message));
+        }
+    }
+
+    [EffectMethod]
+    public async Task HandleUpdateEmail(UpdateEmailAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var request = new UpdateProfileRequest { Email = action.Email };
+            var response = await _http.PutAsJsonAsync("/api/v1/users/profile", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                dispatcher.Dispatch(new UpdateEmailSuccessAction(action.Email));
+            }
+            else
+            {
+                dispatcher.Dispatch(new UpdateProfileFailureAction("Failed to update email"));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update email");
+            dispatcher.Dispatch(new UpdateProfileFailureAction(ex.Message));
+        }
+    }
+
+    [EffectMethod]
+    public async Task HandleDeleteAccount(DeleteAccountAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var response = await _http.DeleteAsync("/api/v1/users/account");
+
+            if (response.IsSuccessStatusCode)
+            {
+                dispatcher.Dispatch(new DeleteAccountSuccessAction());
+                // Redirect to logout or goodbye page
+            }
+            else
+            {
+                dispatcher.Dispatch(new DeleteAccountFailureAction("Failed to delete account"));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete account");
+            dispatcher.Dispatch(new DeleteAccountFailureAction(ex.Message));
+        }
+    }
+}
+```
+
+2. **Update component with delete confirmation:**
+
+```csharp
+private async Task HandleDeleteAccount()
+{
+    var confirmed = await DialogService.ShowMessageBox(
+        "Delete Account",
+        "Are you sure you want to delete your account? This action cannot be undone.",
+        yesText: "Delete",
+        cancelText: "Cancel");
+
+    if (confirmed == true)
+    {
+        Dispatcher.Dispatch(new DeleteAccountAction());
+    }
+}
+```
+
+**Request/Response Models:**
+```csharp
+public class UserProfileDto
+{
+    public Guid UserId { get; set; }
+    public string Username { get; set; }
+    public string Email { get; set; }
+    public string? AvatarUrl { get; set; }
+    public UserTier Tier { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class UpdateProfileRequest
+{
+    public string? Username { get; set; }
+    public string? Email { get; set; }
+    public string? AvatarUrl { get; set; }
+}
+```
+
+---
+
+#### 11. **ConnectionsSettingsTab.razor** (`Components/Settings/ConnectionsSettingsTab.razor`)
+
+**Current State:**
+- ✅ Full BYOK connection management UI
+- ⚠️ Uses Fluxor ConnectionState
+- ❌ Dispatches actions but needs API integration
+- Features: Add/Edit/Delete/Test connections
+- Has LiteLLM legacy settings section
+
+**Backend API Available:**
+- **Base Path:** `/api/v1/connections`
+- **Controller:** `ConnectionApiController.cs`
+- **Endpoints:**
+  - `GET /api/v1/connections?userId={id}&tierStr={tier}` - List connections
+  - `GET /api/v1/connections/{id}?userId={id}&tierStr={tier}` - Get connection
+  - `POST /api/v1/connections?userId={id}&tierStr={tier}` - Create connection
+  - `PUT /api/v1/connections/{id}?userId={id}&tierStr={tier}` - Update connection
+  - `DELETE /api/v1/connections/{id}?userId={id}&tierStr={tier}` - Delete connection
+  - `POST /api/v1/connections/{id}/test?userId={id}` - Test connection
+  - `GET /api/v1/connections/limits?tierStr={tier}` - Get tier limits
+
+**Integration Steps:**
+
+1. **Create ConnectionEffects for API calls:**
+
+Create `Store/Connection/ConnectionEffects.cs`:
+```csharp
+public class ConnectionEffects
+{
+    private readonly HttpClient _http;
+    private readonly ILogger<ConnectionEffects> _logger;
+    private readonly IState<SettingsState> _settingsState;
+
+    public ConnectionEffects(
+        HttpClient http,
+        ILogger<ConnectionEffects> logger,
+        IState<SettingsState> settingsState)
+    {
+        _http = http;
+        _logger = logger;
+        _settingsState = settingsState;
+    }
+
+    [EffectMethod]
+    public async Task HandleLoadConnections(LoadConnectionsAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var userId = _settingsState.Value.UserId;
+            var tier = _settingsState.Value.Tier;
+
+            var connections = await _http.GetFromJsonAsync<List<ProviderConnectionDto>>(
+                $"/api/v1/connections?userId={userId}&tierStr={tier}");
+
+            if (connections != null)
+            {
+                dispatcher.Dispatch(new LoadConnectionsSuccessAction(connections));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load connections");
+            dispatcher.Dispatch(new LoadConnectionsFailureAction(ex.Message));
+        }
+    }
+
+    [EffectMethod]
+    public async Task HandleCreateConnection(CreateConnectionAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var userId = _settingsState.Value.UserId;
+            var tier = _settingsState.Value.Tier;
+
+            var response = await _http.PostAsJsonAsync(
+                $"/api/v1/connections?userId={userId}&tierStr={tier}",
+                action.Connection);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var created = await response.Content.ReadFromJsonAsync<ProviderConnectionDto>();
+                dispatcher.Dispatch(new CreateConnectionSuccessAction(created!));
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                dispatcher.Dispatch(new CreateConnectionFailureAction(error));
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                var error = await response.Content.ReadFromJsonAsync<dynamic>();
+                dispatcher.Dispatch(new CreateConnectionFailureAction(error?.message ?? "Limit reached"));
+            }
+            else
+            {
+                dispatcher.Dispatch(new CreateConnectionFailureAction("Failed to create connection"));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create connection");
+            dispatcher.Dispatch(new CreateConnectionFailureAction(ex.Message));
+        }
+    }
+
+    [EffectMethod]
+    public async Task HandleUpdateConnection(UpdateConnectionAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var userId = _settingsState.Value.UserId;
+            var tier = _settingsState.Value.Tier;
+
+            var response = await _http.PutAsJsonAsync(
+                $"/api/v1/connections/{action.Connection.Id}?userId={userId}&tierStr={tier}",
+                action.Connection);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var updated = await response.Content.ReadFromJsonAsync<ProviderConnectionDto>();
+                dispatcher.Dispatch(new UpdateConnectionSuccessAction(updated!));
+            }
+            else
+            {
+                dispatcher.Dispatch(new UpdateConnectionFailureAction("Failed to update connection"));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update connection");
+            dispatcher.Dispatch(new UpdateConnectionFailureAction(ex.Message));
+        }
+    }
+
+    [EffectMethod]
+    public async Task HandleDeleteConnection(DeleteConnectionAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var userId = _settingsState.Value.UserId;
+            var tier = _settingsState.Value.Tier;
+
+            var response = await _http.DeleteAsync(
+                $"/api/v1/connections/{action.ConnectionId}?userId={userId}&tierStr={tier}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                dispatcher.Dispatch(new DeleteConnectionSuccessAction(action.ConnectionId));
+            }
+            else
+            {
+                dispatcher.Dispatch(new DeleteConnectionFailureAction("Failed to delete connection"));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete connection");
+            dispatcher.Dispatch(new DeleteConnectionFailureAction(ex.Message));
+        }
+    }
+
+    [EffectMethod]
+    public async Task HandleTestConnection(TestConnectionAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var userId = _settingsState.Value.UserId;
+
+            var response = await _http.PostAsync(
+                $"/api/v1/connections/{action.ConnectionId}/test?userId={userId}",
+                null);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<TestConnectionResult>();
+                dispatcher.Dispatch(new TestConnectionSuccessAction(
+                    action.ConnectionId,
+                    result!.Success,
+                    result.Message));
+            }
+            else
+            {
+                dispatcher.Dispatch(new TestConnectionFailureAction(
+                    action.ConnectionId,
+                    "Test failed"));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to test connection");
+            dispatcher.Dispatch(new TestConnectionFailureAction(action.ConnectionId, ex.Message));
+        }
+    }
+
+    [EffectMethod]
+    public async Task HandleLoadConnectionLimits(LoadConnectionLimitsAction action, IDispatcher dispatcher)
+    {
+        try
+        {
+            var tier = _settingsState.Value.Tier;
+
+            var limits = await _http.GetFromJsonAsync<ConnectionLimitsDto>(
+                $"/api/v1/connections/limits?tierStr={tier}");
+
+            if (limits != null)
+            {
+                dispatcher.Dispatch(new LoadConnectionLimitsSuccessAction(limits));
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to load connection limits");
+        }
+    }
+}
+```
+
+2. **Update component to load data on init:**
+
+```csharp
+protected override void OnInitialized()
+{
+    base.OnInitialized();
+
+    // Load connections and limits
+    Dispatcher.Dispatch(new LoadConnectionsAction());
+    Dispatcher.Dispatch(new LoadConnectionLimitsAction());
+}
+```
+
+3. **Add tier limit display:**
+
+```csharp
+@if (ConnectionState.Value.Limits != null)
+{
+    <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900 rounded-lg">
+        <div class="text-sm">
+            <strong>@ConnectionState.Value.Connections.Count</strong> of
+            <strong>@ConnectionState.Value.Limits.MaxConnections</strong> connections used
+        </div>
+        @if (ConnectionState.Value.Connections.Count >= ConnectionState.Value.Limits.MaxConnections)
+        {
+            <div class="text-sm text-red-600 dark:text-red-400 mt-2">
+                ⚠️ Connection limit reached. Upgrade your tier for more connections.
+            </div>
+        }
+    </div>
+}
+```
+
+**Request/Response Models:**
+```csharp
+public class ProviderConnectionDto
+{
+    public string? Id { get; set; }
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public string Type { get; set; } // "Cloud", "Local", "MCP"
+    public string? Url { get; set; }
+    public string Auth { get; set; } // "ApiKey", "Bearer", etc.
+    public string? ApiKey { get; set; }
+    public string ProviderType { get; set; } // "OpenAI", "Anthropic", etc.
+    public List<string>? ModelIds { get; set; }
+    public bool IsEnabled { get; set; }
+    public string? OwnerId { get; set; }
+    public string Visibility { get; set; } // "Private", "Group", "Organization"
+    public List<string>? Tags { get; set; }
+}
+
+public class TestConnectionResult
+{
+    public bool Success { get; set; }
+    public string Message { get; set; }
+    public int ModelCount { get; set; }
+    public long LatencyMs { get; set; }
+}
+
+public class ConnectionLimitsDto
+{
+    public string Tier { get; set; }
+    public int MaxConnections { get; set; }
+    public bool ByokEnabled { get; set; }
+    public bool CanAddOwnKeys { get; set; }
+    public bool CanAddCustomEndpoints { get; set; }
+    public bool CanShareConnections { get; set; }
+    public bool CanUsePlatformKeys { get; set; }
+}
+```
+
+---
+
+#### 12. **UsageSettingsTab.razor** (`Components/Settings/UsageSettingsTab.razor`)
+
+**Current State:**
+- ✅ UI complete with usage charts
+- ❌ Using hardcoded mock data (147,532 tokens, $4.23 NZD)
+- Shows usage by model table
+- Has export usage data button (no implementation)
+
+**Backend API Available:**
+- `GET /api/v1/users/usage` - Get usage statistics
+- `GET /api/v1/users/usage/export?format={format}` - Export usage data (CSV, JSON)
+- `GET /api/v1/users/usage/models` - Get usage by model
+
+**Integration Steps:**
+
+1. **Create usage effects:**
+
+```csharp
+[EffectMethod]
+public async Task HandleLoadUsageData(LoadUsageDataAction action, IDispatcher dispatcher)
+{
+    try
+    {
+        var usage = await _http.GetFromJsonAsync<UsageDataDto>("/api/v1/users/usage");
+
+        if (usage != null)
+        {
+            dispatcher.Dispatch(new LoadUsageDataSuccessAction(usage));
+        }
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Failed to load usage data");
+        dispatcher.Dispatch(new LoadUsageDataFailureAction(ex.Message));
+    }
+}
+```
+
+2. **Implement export functionality:**
+
+```csharp
+private async Task HandleExportUsage()
+{
+    try
+    {
+        var response = await Http.GetAsync("/api/v1/users/usage/export?format=csv");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var stream = await response.Content.ReadAsStreamAsync();
+            var fileName = $"usage-export-{DateTime.UtcNow:yyyy-MM-dd}.csv";
+
+            using var streamRef = new DotNetStreamReference(stream);
+            await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+
+            Snackbar.Add("Usage data exported successfully", Severity.Success);
+        }
+    }
+    catch (Exception ex)
+    {
+        Snackbar.Add($"Export failed: {ex.Message}", Severity.Error);
+    }
+}
+```
+
+3. **Replace mock data:**
+
+Remove hardcoded values and bind to state:
+```csharp
+<div class="text-2xl font-semibold">
+    @SettingsState.Value.Usage?.TotalTokens.ToString("N0") tokens
+</div>
+<div class="text-sm text-gray-500">
+    @SettingsState.Value.Usage?.EstimatedCost.ToString("C2") NZD
+</div>
+```
+
+**Response Models:**
+```csharp
+public class UsageDataDto
+{
+    public long TotalTokens { get; set; }
+    public long InputTokens { get; set; }
+    public long OutputTokens { get; set; }
+    public decimal EstimatedCost { get; set; }
+    public string Currency { get; set; }
+    public List<ModelUsageDto> ModelUsage { get; set; }
+    public DateTime PeriodStart { get; set; }
+    public DateTime PeriodEnd { get; set; }
+}
+
+public class ModelUsageDto
+{
+    public string ModelId { get; set; }
+    public string Provider { get; set; }
+    public long TokensUsed { get; set; }
+    public int RequestCount { get; set; }
+    public decimal Cost { get; set; }
+}
+```
 
 ---
 
@@ -806,11 +1591,22 @@ For each component integration:
 
 Recommended implementation order:
 
+### Phase 1: Core User Features (High Priority)
 1. **Search** - GlobalSearchDialog + Search.razor (most visible feature)
-2. **Files** - Files.razor page + FileUploadDialog (file management)
+2. **Files** - Files.razor + FileUploadDialog (file management essential)
 3. **Feedback** - MessageFeedbackWidget (alpha testing critical)
-4. **Attach Menu** - AttachFilesMenu (enhances chat UX)
-5. **Admin** - FeedbackTagsAdminTab (admin tools)
+
+### Phase 2: Enhanced UX (Medium Priority)
+4. **Attach Menu** - AttachFilesMenu (enhances chat experience)
+5. **Account Settings** - AccountSettingsTab (user profile management)
+6. **Connections** - ConnectionsSettingsTab (BYOK functionality)
+
+### Phase 3: Admin & Analytics (Lower Priority)
+7. **Admin Dashboard** - OverviewAdminTab (system monitoring)
+8. **Usage Tracking** - UsageSettingsTab (cost visibility)
+9. **Feedback Admin** - FeedbackTagsAdminTab (admin tools)
+
+**Note:** UsersAdminTab is future-ready but doesn't require immediate integration (single-user mode).
 
 ---
 
