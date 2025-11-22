@@ -30,6 +30,7 @@ public class AiMateDbContext : DbContext
     public DbSet<Connection> Connections => Set<Connection>();
     public DbSet<PluginSettings> PluginSettings => Set<PluginSettings>();
     public DbSet<CodeFile> CodeFiles => Set<CodeFile>();
+    public DbSet<StructuredContentTemplate> StructuredContentTemplates => Set<StructuredContentTemplate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -300,6 +301,24 @@ public class AiMateDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // StructuredContentTemplate configuration
+        modelBuilder.Entity<StructuredContentTemplate>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Name);
+            entity.HasIndex(e => e.Type);
+            entity.HasIndex(e => new { e.Name, e.Type });
+            entity.HasIndex(e => e.IsBuiltIn);
+            entity.HasIndex(e => e.IsPublic);
+            entity.HasIndex(e => e.CreatedBy);
+            entity.HasIndex(e => e.UsageCount);
+
+            entity.HasOne(e => e.Creator)
+                .WithMany()
+                .HasForeignKey(e => e.CreatedBy)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }
