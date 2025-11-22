@@ -1,0 +1,170 @@
+@* Base reusable dialog component with Tailwind styling *@
+
+@if (IsOpen)
+{
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm @ZIndexClass flex items-center justify-center p-4 animate-fadeIn"
+         @onclick="HandleBackdropClick"
+         @onkeydown="HandleKeyDown"
+         tabindex="-1">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl shadow-2xl w-full @SizeClass animate-scaleIn"
+             @onclick:stopPropagation="true"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="dialog-title">
+
+            @* Header *@
+            @if (!string.IsNullOrEmpty(Title) || ShowCloseButton)
+            {
+                <div class="px-6 py-4 border-b border-[#2A2A2A] flex items-center justify-between">
+                    <h3 id="dialog-title" class="text-lg font-semibold text-white">@Title</h3>
+                    @if (ShowCloseButton)
+                    {
+                        <button @onclick="Close"
+                                class="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-[#2A2A2A]"
+                                aria-label="Close dialog">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    }
+                </div>
+            }
+
+            @* Body *@
+            <div class="@BodyClass">
+                @ChildContent
+            </div>
+
+            @* Footer with actions *@
+            @if (Actions != null)
+            {
+                <div class="px-6 py-4 border-t border-[#2A2A2A] flex gap-3 @ActionsAlignmentClass">
+                    @Actions
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    [Parameter] public DialogSize Size { get; set; } = DialogSize.Medium;
+    [Parameter] public bool ShowCloseButton { get; set; } = true;
+    [Parameter] public bool CloseOnBackdropClick { get; set; } = true;
+    [Parameter] public bool CloseOnEscape { get; set; } = true;
+    [Parameter] public string ZIndex { get; set; } = "z-[60]";
+    [Parameter] public string BodyPadding { get; set; } = "p-6";
+    [Parameter] public ActionsAlignment ActionsAlignment { get; set; } = ActionsAlignment.Right;
+
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private string SizeClass => Size switch
+    {
+        DialogSize.Small => "max-w-sm",
+        DialogSize.Medium => "max-w-md",
+        DialogSize.Large => "max-w-lg",
+        DialogSize.ExtraLarge => "max-w-xl",
+        DialogSize.Full => "max-w-4xl",
+        _ => "max-w-md"
+    };
+
+    private string ZIndexClass => ZIndex;
+    private string BodyClass => BodyPadding + " space-y-4";
+
+    private string ActionsAlignmentClass => ActionsAlignment switch
+    {
+        ActionsAlignment.Left => "justify-start",
+        ActionsAlignment.Center => "justify-center",
+        ActionsAlignment.Right => "justify-end",
+        ActionsAlignment.SpaceBetween => "justify-between",
+        _ => "justify-end"
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && IsOpen)
+        {
+            // Focus trap and accessibility handled by browser's dialog role
+            await Task.CompletedTask;
+        }
+    }
+
+    private async Task HandleBackdropClick()
+    {
+        if (CloseOnBackdropClick)
+        {
+            await Close();
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (CloseOnEscape && e.Key == "Escape")
+        {
+            await Close();
+        }
+    }
+
+    private async Task Close()
+    {
+        if (OnClose.HasDelegate)
+        {
+            await OnClose.InvokeAsync();
+        }
+
+        await IsOpenChanged.InvokeAsync(false);
+    }
+
+    public enum DialogSize
+    {
+        Small,
+        Medium,
+        Large,
+        ExtraLarge,
+        Full
+    }
+
+    public enum ActionsAlignment
+    {
+        Left,
+        Center,
+        Right,
+        SpaceBetween
+    }
+}
+
+<style>
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @@keyframes scaleIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .animate-fadeIn {
+        animation: fadeIn 0.15s ease-out;
+    }
+
+    .animate-scaleIn {
+        animation: scaleIn 0.15s ease-out;
+    }
+</style>

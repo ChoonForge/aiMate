@@ -459,6 +459,65 @@
     </div>
 </aside>
 
+@* Dialogs *@
+<RenameDialog @bind-IsOpen="showRenameChatDialog"
+              Title="Rename Chat"
+              Label="Chat name"
+              CurrentValue="@selectedChatName"
+              Placeholder="Enter chat name..."
+              OnSave="HandleRenameChatSave" />
+
+<ShareDialog @bind-IsOpen="showShareChatDialog"
+             Title="Share Chat"
+             ItemName="@selectedChatName"
+             ItemIcon="💬"
+             OnGenerateLink="HandleShareChatGenerate" />
+
+<DeleteDialog @bind-IsOpen="showDeleteChatDialog"
+              Title="Delete Chat"
+              ItemName="@selectedChatName"
+              ItemIcon="💬"
+              Consequences="@deleteChatConsequences"
+              WarningMessage="This action cannot be undone."
+              OnDelete="HandleDeleteChatConfirm" />
+
+<RenameDialog @bind-IsOpen="showRenameWorkspaceDialog"
+              Title="Rename Workspace"
+              Label="Workspace name"
+              CurrentValue="@selectedWorkspaceName"
+              Placeholder="Enter workspace name..."
+              OnSave="HandleRenameWorkspaceSave" />
+
+<DeleteDialog @bind-IsOpen="showDeleteWorkspaceDialog"
+              Title="Delete Workspace"
+              ItemName="@selectedWorkspaceName"
+              ItemIcon="📁"
+              Consequences="@deleteWorkspaceConsequences"
+              WarningMessage="This action cannot be undone."
+              RequireConfirmation="true"
+              OnDelete="HandleDeleteWorkspaceConfirm" />
+
+<RenameDialog @bind-IsOpen="showRenameKnowledgeDialog"
+              Title="Rename Knowledge Article"
+              Label="Article title"
+              CurrentValue="@selectedKnowledgeName"
+              Placeholder="Enter article title..."
+              OnSave="HandleRenameKnowledgeSave" />
+
+<ShareDialog @bind-IsOpen="showShareKnowledgeDialog"
+             Title="Share Knowledge Article"
+             ItemName="@selectedKnowledgeName"
+             ItemIcon="📚"
+             OnGenerateLink="HandleShareKnowledgeGenerate" />
+
+<DeleteDialog @bind-IsOpen="showDeleteKnowledgeDialog"
+              Title="Delete Knowledge Article"
+              ItemName="@selectedKnowledgeName"
+              ItemIcon="📚"
+              Consequences="@deleteKnowledgeConsequences"
+              WarningMessage="This action cannot be undone."
+              OnDelete="HandleDeleteKnowledgeConfirm" />
+
 @code {
     private bool projectsExpanded = false;
     private bool userMenuOpen = false;
@@ -469,6 +528,29 @@
     private Guid? openChatMenuId = null;
     private Guid? openWorkspaceMenuId = null;
     private Guid? openKnowledgeMenuId = null;
+
+    // Dialog state - Chat
+    private bool showRenameChatDialog = false;
+    private bool showShareChatDialog = false;
+    private bool showDeleteChatDialog = false;
+    private Guid selectedChatId = Guid.Empty;
+    private string selectedChatName = string.Empty;
+    private List<string> deleteChatConsequences = new();
+
+    // Dialog state - Workspace
+    private bool showRenameWorkspaceDialog = false;
+    private bool showDeleteWorkspaceDialog = false;
+    private Guid selectedWorkspaceId = Guid.Empty;
+    private string selectedWorkspaceName = string.Empty;
+    private List<string> deleteWorkspaceConsequences = new();
+
+    // Dialog state - Knowledge
+    private bool showRenameKnowledgeDialog = false;
+    private bool showShareKnowledgeDialog = false;
+    private bool showDeleteKnowledgeDialog = false;
+    private Guid selectedKnowledgeId = Guid.Empty;
+    private string selectedKnowledgeName = string.Empty;
+    private List<string> deleteKnowledgeConsequences = new();
 
     private DotNetObjectReference<Sidebar>? dotNetHelper;
 
@@ -537,15 +619,25 @@
 
     private void RenameChat(Guid chatId)
     {
-        // TODO: Implement rename dialog
-        Console.WriteLine($"Rename chat: {chatId}");
+        var chat = ChatState.Value.Conversations.GetValueOrDefault(chatId);
+        if (chat != null)
+        {
+            selectedChatId = chatId;
+            selectedChatName = chat.Title;
+            showRenameChatDialog = true;
+        }
         openChatMenuId = null;
     }
 
     private void ShareChat(Guid chatId)
     {
-        // TODO: Implement share dialog
-        Console.WriteLine($"Share chat: {chatId}");
+        var chat = ChatState.Value.Conversations.GetValueOrDefault(chatId);
+        if (chat != null)
+        {
+            selectedChatId = chatId;
+            selectedChatName = chat.Title;
+            showShareChatDialog = true;
+        }
         openChatMenuId = null;
     }
 
@@ -558,8 +650,19 @@
 
     private void DeleteChat(Guid chatId)
     {
-        // TODO: Implement delete confirmation
-        Console.WriteLine($"Delete chat: {chatId}");
+        var chat = ChatState.Value.Conversations.GetValueOrDefault(chatId);
+        if (chat != null)
+        {
+            selectedChatId = chatId;
+            selectedChatName = chat.Title;
+            deleteChatConsequences = new List<string>
+            {
+                $"Permanently delete all messages in this chat",
+                $"Remove any attachments or files associated with this chat",
+                $"This chat will no longer appear in your history"
+            };
+            showDeleteChatDialog = true;
+        }
         openChatMenuId = null;
     }
 
@@ -584,8 +687,13 @@
 
     private void EditWorkspace(Guid workspaceId)
     {
-        // TODO: Implement edit dialog
-        Console.WriteLine($"Edit workspace: {workspaceId}");
+        var workspace = WorkspaceState.Value.Workspaces.GetValueOrDefault(workspaceId);
+        if (workspace != null)
+        {
+            selectedWorkspaceId = workspaceId;
+            selectedWorkspaceName = workspace.Name;
+            showRenameWorkspaceDialog = true;
+        }
         openWorkspaceMenuId = null;
     }
 
@@ -598,8 +706,19 @@
 
     private void DeleteWorkspace(Guid workspaceId)
     {
-        // TODO: Implement delete confirmation
-        Console.WriteLine($"Delete workspace: {workspaceId}");
+        var workspace = WorkspaceState.Value.Workspaces.GetValueOrDefault(workspaceId);
+        if (workspace != null)
+        {
+            selectedWorkspaceId = workspaceId;
+            selectedWorkspaceName = workspace.Name;
+            deleteWorkspaceConsequences = new List<string>
+            {
+                $"Permanently delete the workspace and all its settings",
+                $"Remove all associated projects and configurations",
+                $"This workspace will no longer be accessible"
+            };
+            showDeleteWorkspaceDialog = true;
+        }
         openWorkspaceMenuId = null;
     }
 
@@ -624,22 +743,100 @@
 
     private void EditKnowledge(Guid knowledgeId)
     {
-        // TODO: Implement edit dialog
-        Console.WriteLine($"Edit knowledge: {knowledgeId}");
+        var knowledge = KnowledgeState.Value.KnowledgeItems.GetValueOrDefault(knowledgeId);
+        if (knowledge != null)
+        {
+            selectedKnowledgeId = knowledgeId;
+            selectedKnowledgeName = knowledge.Title;
+            showRenameKnowledgeDialog = true;
+        }
         openKnowledgeMenuId = null;
     }
 
     private void ShareKnowledge(Guid knowledgeId)
     {
-        // TODO: Implement share dialog
-        Console.WriteLine($"Share knowledge: {knowledgeId}");
+        var knowledge = KnowledgeState.Value.KnowledgeItems.GetValueOrDefault(knowledgeId);
+        if (knowledge != null)
+        {
+            selectedKnowledgeId = knowledgeId;
+            selectedKnowledgeName = knowledge.Title;
+            showShareKnowledgeDialog = true;
+        }
         openKnowledgeMenuId = null;
     }
 
     private void DeleteKnowledge(Guid knowledgeId)
     {
-        // TODO: Implement delete confirmation
-        Console.WriteLine($"Delete knowledge: {knowledgeId}");
+        var knowledge = KnowledgeState.Value.KnowledgeItems.GetValueOrDefault(knowledgeId);
+        if (knowledge != null)
+        {
+            selectedKnowledgeId = knowledgeId;
+            selectedKnowledgeName = knowledge.Title;
+            deleteKnowledgeConsequences = new List<string>
+            {
+                $"Permanently delete this knowledge article and all its content",
+                $"Remove any references to this article in chats",
+                $"This article will no longer be searchable"
+            };
+            showDeleteKnowledgeDialog = true;
+        }
         openKnowledgeMenuId = null;
+    }
+
+    // Dialog handlers - Chat
+    private async Task HandleRenameChatSave(string newName)
+    {
+        // TODO: Dispatch rename action
+        Console.WriteLine($"Renaming chat {selectedChatId} to: {newName}");
+        showRenameChatDialog = false;
+    }
+
+    private async Task HandleShareChatGenerate(ShareDialog.ShareType shareType)
+    {
+        // TODO: Generate share link
+        Console.WriteLine($"Generating {shareType} share link for chat {selectedChatId}");
+    }
+
+    private async Task HandleDeleteChatConfirm()
+    {
+        // TODO: Dispatch delete action
+        Console.WriteLine($"Deleting chat: {selectedChatId}");
+        showDeleteChatDialog = false;
+    }
+
+    // Dialog handlers - Workspace
+    private async Task HandleRenameWorkspaceSave(string newName)
+    {
+        // TODO: Dispatch rename action
+        Console.WriteLine($"Renaming workspace {selectedWorkspaceId} to: {newName}");
+        showRenameWorkspaceDialog = false;
+    }
+
+    private async Task HandleDeleteWorkspaceConfirm()
+    {
+        // TODO: Dispatch delete action
+        Console.WriteLine($"Deleting workspace: {selectedWorkspaceId}");
+        showDeleteWorkspaceDialog = false;
+    }
+
+    // Dialog handlers - Knowledge
+    private async Task HandleRenameKnowledgeSave(string newName)
+    {
+        // TODO: Dispatch rename action
+        Console.WriteLine($"Renaming knowledge {selectedKnowledgeId} to: {newName}");
+        showRenameKnowledgeDialog = false;
+    }
+
+    private async Task HandleShareKnowledgeGenerate(ShareDialog.ShareType shareType)
+    {
+        // TODO: Generate share link
+        Console.WriteLine($"Generating {shareType} share link for knowledge {selectedKnowledgeId}");
+    }
+
+    private async Task HandleDeleteKnowledgeConfirm()
+    {
+        // TODO: Dispatch delete action
+        Console.WriteLine($"Deleting knowledge: {selectedKnowledgeId}");
+        showDeleteKnowledgeDialog = false;
     }
 }
