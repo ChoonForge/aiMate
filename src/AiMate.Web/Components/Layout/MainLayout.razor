@@ -40,29 +40,16 @@ else
     protected override void OnInitialized()
     {
         base.OnInitialized();
+
+        // Subscribe to auth state changes FIRST
+        AuthState.StateChanged += OnAuthStateChanged;
+
+        // Then check authentication status (async - will update state when complete)
         Dispatcher.Dispatch(new CheckAuthAction());
-        CheckAndRedirect();
-    }
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-        base.OnAfterRender(firstRender);
-        if (firstRender)
-        {
-            CheckAndRedirect();
-        }
-    }
-
-    private void CheckAndRedirect()
-    {
-        if (!AuthState.Value.IsAuthenticated && !IsLoginPage)
-        {
-            Navigation.NavigateTo("/login", forceLoad: false);
-        }
     }
 
     public void Dispose()
     {
-        // Cleanup if needed
+        AuthState.StateChanged -= OnAuthStateChanged;
     }
 }
