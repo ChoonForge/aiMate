@@ -1,0 +1,342 @@
+/* Markdown and Code Styling for Chat Messages */
+
+/* Prose styling for markdown content */
+.prose {
+    color: #e5e7eb;
+    font-size: 0.95rem;
+    line-height: 1.75;
+}
+
+.prose-invert {
+    --tw-prose-body: #e5e7eb;
+    --tw-prose-headings: #f9fafb;
+    --tw-prose-links: #a78bfa;
+    --tw-prose-bold: #f9fafb;
+    --tw-prose-code: #fbbf24;
+    --tw-prose-pre-code: #e5e7eb;
+    --tw-prose-pre-bg: #1a1a1a;
+    --tw-prose-borders: #374151;
+}
+
+.prose p {
+    margin-top: 0.75em;
+    margin-bottom: 0.75em;
+}
+
+.prose p:first-child {
+    margin-top: 0;
+}
+
+.prose p:last-child {
+    margin-bottom: 0;
+}
+
+/* Headings */
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+    color: var(--tw-prose-headings);
+    font-weight: 600;
+    margin-top: 1.5em;
+    margin-bottom: 0.75em;
+    line-height: 1.3;
+}
+
+.prose h1 { font-size: 1.5em; }
+.prose h2 { font-size: 1.35em; }
+.prose h3 { font-size: 1.2em; }
+.prose h4 { font-size: 1.1em; }
+.prose h5 { font-size: 1.05em; }
+.prose h6 { font-size: 1em; }
+
+/* Lists */
+.prose ul, .prose ol {
+    margin-top: 0.75em;
+    margin-bottom: 0.75em;
+    padding-left: 1.5em;
+}
+
+.prose li {
+    margin-top: 0.25em;
+    margin-bottom: 0.25em;
+}
+
+.prose ul {
+    list-style-type: disc;
+}
+
+.prose ol {
+    list-style-type: decimal;
+}
+
+/* Links */
+.prose a {
+    color: var(--tw-prose-links);
+    text-decoration: underline;
+    text-decoration-color: rgba(167, 139, 250, 0.3);
+    transition: all 0.2s;
+}
+
+.prose a:hover {
+    color: #c4b5fd;
+    text-decoration-color: rgba(196, 181, 253, 0.6);
+}
+
+/* Code */
+.prose code {
+    color: var(--tw-prose-code);
+    font-size: 0.9em;
+    font-weight: 500;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    background-color: rgba(251, 191, 36, 0.1);
+    padding: 0.15em 0.4em;
+    border-radius: 0.25rem;
+}
+
+.prose pre {
+    background-color: var(--tw-prose-pre-bg);
+    border: 1px solid #2a2a2a;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    overflow-x: auto;
+    position: relative;
+}
+
+.prose pre code {
+    background-color: transparent;
+    border-width: 0;
+    border-radius: 0;
+    padding: 0;
+    font-weight: 400;
+    color: var(--tw-prose-pre-code);
+    font-size: 0.875em;
+    line-height: 1.7;
+    display: block;
+}
+
+/* Code block language badge */
+.prose pre::before {
+    content: attr(data-language);
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background-color: rgba(167, 139, 250, 0.2);
+    color: #a78bfa;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+/* Blockquotes */
+.prose blockquote {
+    border-left: 4px solid #a78bfa;
+    padding-left: 1em;
+    margin-left: 0;
+    margin-right: 0;
+    font-style: italic;
+    color: #d1d5db;
+    background-color: rgba(167, 139, 250, 0.05);
+    padding: 0.75em 1em;
+    border-radius: 0.375rem;
+}
+
+/* Tables */
+.prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1em;
+    margin-bottom: 1em;
+    font-size: 0.9em;
+}
+
+.prose thead {
+    border-bottom: 2px solid var(--tw-prose-borders);
+}
+
+.prose th {
+    padding: 0.75em 1em;
+    text-align: left;
+    font-weight: 600;
+    background-color: rgba(167, 139, 250, 0.1);
+}
+
+.prose td {
+    padding: 0.75em 1em;
+    border-bottom: 1px solid var(--tw-prose-borders);
+}
+
+.prose tbody tr:hover {
+    background-color: rgba(167, 139, 250, 0.05);
+}
+
+/* Horizontal Rule */
+.prose hr {
+    border: none;
+    border-top: 1px solid var(--tw-prose-borders);
+    margin: 2em 0;
+}
+
+/* Images */
+.prose img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+/* Strong and Em */
+.prose strong {
+    color: var(--tw-prose-bold);
+    font-weight: 600;
+}
+
+.prose em {
+    font-style: italic;
+}
+
+/* Inline code in headings */
+.prose h1 code, .prose h2 code, .prose h3 code, .prose h4 code {
+    font-size: 0.9em;
+}
+
+/* Task lists */
+.prose input[type="checkbox"] {
+    margin-right: 0.5em;
+    cursor: pointer;
+}
+
+/* Syntax highlighting (basic theme compatible with highlight.js) */
+.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 0;
+    color: #e5e7eb;
+}
+
+.hljs-comment,
+.hljs-quote {
+    color: #6b7280;
+    font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in {
+    color: #c084fc;
+}
+
+.hljs-string,
+.hljs-title,
+.hljs-section,
+.hljs-attribute {
+    color: #a3e635;
+}
+
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-variable {
+    color: #fbbf24;
+}
+
+.hljs-class .hljs-title {
+    color: #60a5fa;
+}
+
+.hljs-function .hljs-title {
+    color: #38bdf8;
+}
+
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class {
+    color: #fb923c;
+}
+
+.hljs-regexp,
+.hljs-link {
+    color: #f472b6;
+}
+
+.hljs-meta {
+    color: #94a3b8;
+}
+
+.hljs-deletion {
+    color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+.hljs-addition {
+    color: #22c55e;
+    background-color: rgba(34, 197, 94, 0.1);
+}
+
+.hljs-emphasis {
+    font-style: italic;
+}
+
+.hljs-strong {
+    font-weight: bold;
+}
+
+/* Copy button for code blocks */
+.code-block-wrapper {
+    position: relative;
+}
+
+.code-copy-button {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    background-color: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #60a5fa;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0;
+    z-index: 10;
+}
+
+.code-block-wrapper:hover .code-copy-button {
+    opacity: 1;
+}
+
+.code-copy-button:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+.code-copy-button.copied {
+    background-color: rgba(34, 197, 94, 0.2);
+    border-color: rgba(34, 197, 94, 0.5);
+    color: #22c55e;
+}
+
+/* Scrollbar for code blocks */
+.prose pre::-webkit-scrollbar {
+    height: 8px;
+}
+
+.prose pre::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.prose pre::-webkit-scrollbar-thumb {
+    background: rgba(167, 139, 250, 0.3);
+    border-radius: 4px;
+}
+
+.prose pre::-webkit-scrollbar-thumb:hover {
+    background: rgba(167, 139, 250, 0.5);
+}
