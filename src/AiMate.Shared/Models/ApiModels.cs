@@ -487,3 +487,33 @@ public class UpdateProjectRequest
     public List<string>? Tags { get; set; }
     public string? Notes { get; set; }
 }
+
+// ============================================================================
+// USAGE ANALYTICS DTOs
+// ============================================================================
+
+/// <summary>
+/// User usage analytics response
+/// </summary>
+public class UserUsageDto
+{
+    public int TotalMessages { get; set; }
+    public long TotalTokens { get; set; }
+    public decimal TotalCost { get; set; }
+    public string BillingPeriodStart { get; set; } = string.Empty;
+    public string BillingPeriodEnd { get; set; } = string.Empty;
+    public List<UsageByModelDto> UsageByModel { get; set; } = new();
+}
+
+/// <summary>
+/// Usage breakdown by model
+/// </summary>
+public class UsageByModelDto
+{
+    public string Model { get; set; } = string.Empty;
+    public string Connection { get; set; } = string.Empty;
+    public int Messages { get; set; }
+    public long Tokens { get; set; }
+    public decimal Cost { get; set; }
+    public string Color { get; set; } = "#A855F7"; // Default purple
+}

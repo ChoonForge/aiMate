@@ -1,107 +1,189 @@
 @using Fluxor
 @using AiMate.Web.Store.Settings
+@using AiMate.Shared.Models
+@using System.Net.Http.Json
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @inject IState<SettingsState> SettingsState
 @inject IDispatcher Dispatcher
+@inject HttpClient Http
+@inject ILogger<UsageSettingsTab> Logger
 
 @* Mobile-first responsive Usage Settings Tab *@
 
 <div class="space-y-6 md:space-y-8">
 
-    @* Section: Current Billing Period *@
-    <div>
-        <h3 class="text-base md:text-lg font-semibold text-white mb-4">Current Billing Period</h3>
-        <p class="text-sm text-gray-400 mb-4">Nov 1, 2025 - Nov 30, 2025</p>
+    @if (_isLoading)
+    {
+        <div class="flex items-center justify-center py-12">
+            <div class="w-8 h-8 border-2 border-purple-600/30 border-t-purple-600 rounded-full animate-spin"></div>
+            <span class="ml-3 text-gray-400">Loading usage data...</span>
+        </div>
+    }
+    else if (_error != null)
+    {
+        <div class="bg-red-500/10 border border-red-500/50 rounded-lg p-4 flex items-start gap-3">
+            <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+            <div class="flex-1">
+                <p class="text-red-400 text-sm">@_error</p>
+            </div>
+        </div>
+    }
+    else if (_usageData != null)
+    {
+        @* Section: Current Billing Period *@
+        <div>
+            <h3 class="text-base md:text-lg font-semibold text-white mb-4">Current Billing Period</h3>
+            <p class="text-sm text-gray-400 mb-4">@_usageData.BillingPeriodStart - @_usageData.BillingPeriodEnd</p>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            @* Total Messages Card *@
-            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
-                <div class="text-xs text-gray-400 mb-1">Total Messages</div>
-                <div class="text-2xl font-semibold text-white">5,262</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                @* Total Messages Card *@
+                <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                    <div class="text-xs text-gray-400 mb-1">Total Messages</div>
+                    <div class="text-2xl font-semibold text-white">@_usageData.TotalMessages.ToString("N0")</div>
+                </div>
+
+                @* Total Tokens Card *@
+                <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                    <div class="text-xs text-gray-400 mb-1">Total Tokens</div>
+                    <div class="text-2xl font-semibold text-white">@FormatTokens(_usageData.TotalTokens)</div>
+                </div>
+
+                @* Total Cost Card *@
+                <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
+                    <div class="text-xs text-gray-400 mb-1">Total Cost</div>
+                    <div class="text-2xl font-semibold text-purple-400">@_usageData.TotalCost.ToString("C2")</div>
+                </div>
             </div>
 
-            @* Total Tokens Card *@
-            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
-                <div class="text-xs text-gray-400 mb-1">Total Tokens</div>
-                <div class="text-2xl font-semibold text-white">1558.1K</div>
-            </div>
-
-            @* Total Cost Card *@
-            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4">
-                <div class="text-xs text-gray-400 mb-1">Total Cost</div>
-                <div class="text-2xl font-semibold text-purple-400">$41.87</div>
+            @* View Detailed Analytics Button *@
+            <div class="mt-4">
+                <button @onclick="HandleRefreshUsage"
+                        class="w-full md:w-auto px-4 py-2 bg-[#0F0F0F] hover:bg-[#2A2A2A] border border-[#2A2A2A] text-white text-sm font-medium rounded-lg transition-all">
+                    <svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                    </svg>
+                    Refresh Usage Data
+                </button>
             </div>
         </div>
 
-        @* View Detailed Analytics Button *@
-        <div class="mt-4">
-            <button @onclick="HandleViewAnalytics"
-                    class="w-full md:w-auto px-4 py-2 bg-[#0F0F0F] hover:bg-[#2A2A2A] border border-[#2A2A2A] text-white text-sm font-medium rounded-lg transition-all">
-                View Detailed Analytics
-            </button>
-        </div>
-    </div>
+        @* Section: Usage by Model *@
+        <div>
+            <h3 class="text-base md:text-lg font-semibold text-white mb-4">Usage by Model</h3>
 
-    @* Section: Usage by Model *@
-    <div>
-        <h3 class="text-base md:text-lg font-semibold text-white mb-4">Usage by Model</h3>
-
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="border-b border-[#2A2A2A]">
-                        <th class="text-left text-gray-400 font-medium py-3 px-4">Model</th>
-                        <th class="text-left text-gray-400 font-medium py-3 px-4">Connection</th>
-                        <th class="text-right text-gray-400 font-medium py-3 px-4">Messages</th>
-                        <th class="text-right text-gray-400 font-medium py-3 px-4">Tokens</th>
-                        <th class="text-right text-gray-400 font-medium py-3 px-4">Cost</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var usage in usageData)
-                    {
-                        <tr class="border-b border-[#2A2A2A] hover:bg-[#0F0F0F] transition-colors">
-                            <td class="py-3 px-4">
-                                <div class="text-white font-medium" style="color: @usage.Color">@usage.Model</div>
-                            </td>
-                            <td class="py-3 px-4 text-gray-300">@usage.Connection</td>
-                            <td class="py-3 px-4 text-right text-gray-300">@usage.Messages</td>
-                            <td class="py-3 px-4 text-right text-gray-300">@usage.Tokens</td>
-                            <td class="py-3 px-4 text-right text-gray-300">@usage.Cost</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+            @if (_usageData.UsageByModel.Count == 0)
+            {
+                <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-8 text-center">
+                    <svg class="w-12 h-12 text-gray-500 mx-auto mb-3" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                        <path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/>
+                    </svg>
+                    <p class="text-gray-400 text-sm">No usage data for this billing period</p>
+                    <p class="text-gray-500 text-xs mt-1">Start a conversation to see your usage statistics</p>
+                </div>
+            }
+            else
+            {
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-[#2A2A2A]">
+                                <th class="text-left text-gray-400 font-medium py-3 px-4">Model</th>
+                                <th class="text-left text-gray-400 font-medium py-3 px-4">Connection</th>
+                                <th class="text-right text-gray-400 font-medium py-3 px-4">Messages</th>
+                                <th class="text-right text-gray-400 font-medium py-3 px-4">Tokens</th>
+                                <th class="text-right text-gray-400 font-medium py-3 px-4">Cost</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var usage in _usageData.UsageByModel)
+                            {
+                                <tr class="border-b border-[#2A2A2A] hover:bg-[#0F0F0F] transition-colors">
+                                    <td class="py-3 px-4">
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-2 h-2 rounded-full" style="background-color: @usage.Color"></div>
+                                            <span class="text-white font-medium">@usage.Model</span>
+                                        </div>
+                                    </td>
+                                    <td class="py-3 px-4 text-gray-300">@usage.Connection</td>
+                                    <td class="py-3 px-4 text-right text-gray-300">@usage.Messages.ToString("N0")</td>
+                                    <td class="py-3 px-4 text-right text-gray-300">@FormatTokens(usage.Tokens)</td>
+                                    <td class="py-3 px-4 text-right text-gray-300">@usage.Cost.ToString("C2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
         </div>
-    </div>
+    }
 
 </div>
 
 @code {
-    private List<UsageData> usageData = new()
-    {
-        new UsageData { Model = "GPT-4", Connection = "OpenAI", Messages = 2847, Tokens = "771.5K", Cost = "$23.14", Color = "#A855F7" },
-        new UsageData { Model = "Claude 3 Opus", Connection = "Anthropic", Messages = 892, Tokens = "300.5K", Cost = "$9.01", Color = "#F97316" },
-        new UsageData { Model = "GPT-4 Turbo", Connection = "OpenAI", Messages = 1523, Tokens = "486.1K", Cost = "$9.72", Color = "#A855F7" }
-    };
+    private UserUsageDto? _usageData;
+    private bool _isLoading = true;
+    private string? _error;
 
-    protected override void OnParametersSet()
+    protected override async Task OnInitializedAsync()
     {
-        base.OnParametersSet();
+        await base.OnInitializedAsync();
+        await LoadUsageData();
     }
 
-    private void HandleViewAnalytics()
+    private async Task LoadUsageData()
     {
-        // TODO: Navigate to detailed analytics page
+        _isLoading = true;
+        _error = null;
+
+        try
+        {
+            // TODO: Get actual user ID from auth context
+            // For now, using a hardcoded GUID (this should come from authentication)
+            var userId = "00000000-0000-0000-0000-000000000001";
+
+            Logger.LogInformation("Loading usage data for user {UserId}", userId);
+
+            var response = await Http.GetAsync($"/api/v1/users/usage?userId={userId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                _usageData = await response.Content.ReadFromJsonAsync<UserUsageDto>();
+                Logger.LogInformation("Usage data loaded successfully: {Messages} messages, {Tokens} tokens",
+                    _usageData?.TotalMessages ?? 0, _usageData?.TotalTokens ?? 0);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _error = $"Failed to load usage data: {response.StatusCode}";
+                Logger.LogWarning("Failed to load usage data: {StatusCode} - {Error}",
+                    response.StatusCode, errorContent);
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = $"Error loading usage data: {ex.Message}";
+            Logger.LogError(ex, "Error loading usage data");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
     }
 
-    public class UsageData
+    private async Task HandleRefreshUsage()
     {
-        public string Model { get; set; } = "";
-        public string Connection { get; set; } = "";
-        public int Messages { get; set; }
-        public string Tokens { get; set; } = "";
-        public string Cost { get; set; } = "";
-        public string Color { get; set; } = "";
+        await LoadUsageData();
+    }
+
+    private static string FormatTokens(long tokens)
+    {
+        if (tokens >= 1_000_000)
+            return $"{tokens / 1_000_000.0:F1}M";
+        if (tokens >= 1_000)
+            return $"{tokens / 1_000.0:F1}K";
+        return tokens.ToString("N0");
     }
 }
