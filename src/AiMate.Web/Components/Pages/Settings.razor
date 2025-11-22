@@ -5,94 +5,189 @@
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @inject IState<SettingsState> SettingsState
 @inject IDispatcher Dispatcher
+@rendermode InteractiveServer
 
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">Settings</MudText>
+<PageTitle>Settings - aiMate</PageTitle>
 
-    @if (SettingsState.Value.Error != null)
-    {
-        <MudAlert Severity="Severity.Error" Class="mb-4" CloseIconClicked="@(() => Dispatcher.Dispatch(new ClearSettingsErrorAction()))">
-            @SettingsState.Value.Error
-        </MudAlert>
-    }
+<div class="flex flex-col h-full bg-[#0F0F0F] px-6 py-6">
+    <div class="max-w-7xl mx-auto w-full">
+        <!-- Header -->
+        <h1 class="text-3xl font-bold text-gray-100 mb-6">Settings</h1>
 
-    @if (SettingsState.Value.IsSaving)
-    {
-        <MudAlert Severity="Severity.Info" Class="mb-4">
-            Saving settings...
-        </MudAlert>
-    }
+        <!-- Error Alert -->
+        @if (SettingsState.Value.Error != null)
+        {
+            <div class="bg-red-500/10 border border-red-500/50 rounded-lg p-4 mb-6 flex items-start gap-3">
+                <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <div class="flex-1">
+                    <p class="text-red-400 text-sm">@SettingsState.Value.Error</p>
+                </div>
+                <button @onclick="@(() => Dispatcher.Dispatch(new ClearSettingsErrorAction()))"
+                        class="text-red-400 hover:text-red-300 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        }
 
-    <MudPaper Class="pa-4">
-        <MudTabs Elevation="0" Rounded="true" ActivePanelIndex="@SettingsState.Value.ActiveTab" ActivePanelIndexChanged="@HandleTabChange">
-            <MudTabPanel Text="General" Icon="@Icons.Material.Filled.Settings">
-                <div class="pa-4">
+        <!-- Saving Alert -->
+        @if (SettingsState.Value.IsSaving)
+        {
+            <div class="bg-blue-500/10 border border-blue-500/50 rounded-lg p-4 mb-6 flex items-center gap-3">
+                <div class="w-5 h-5 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin flex-shrink-0"></div>
+                <p class="text-blue-400 text-sm">Saving settings...</p>
+            </div>
+        }
+
+        <!-- Tab Navigation -->
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden">
+            <div class="border-b border-[#2A2A2A]">
+                <nav class="flex gap-1 p-2 overflow-x-auto">
+                    <button @onclick="@(() => SetActiveTab(0))"
+                            class="@GetTabClass(0) px-4 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"/>
+                            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        General
+                    </button>
+                    <button @onclick="@(() => SetActiveTab(1))"
+                            class="@GetTabClass(1) px-4 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M4.098 19.902a3.75 3.75 0 005.304 0l6.401-6.402M6.75 21A3.75 3.75 0 013 17.25V4.125C3 3.504 3.504 3 4.125 3h5.25c.621 0 1.125.504 1.125 1.125v4.072M6.75 21a3.75 3.75 0 003.75-3.75V8.197M6.75 21h13.125c.621 0 1.125-.504 1.125-1.125v-5.25c0-.621-.504-1.125-1.125-1.125h-4.072M10.5 8.197l2.88-2.88c.438-.439 1.15-.439 1.59 0l3.712 3.713c.44.44.44 1.152 0 1.59l-2.879 2.88M6.75 17.25h.008v.008H6.75v-.008z"/>
+                        </svg>
+                        Interface
+                    </button>
+                    <button @onclick="@(() => SetActiveTab(2))"
+                            class="@GetTabClass(2) px-4 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
+                        </svg>
+                        Connections
+                    </button>
+                    <button @onclick="@(() => SetActiveTab(3))"
+                            class="@GetTabClass(3) px-4 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"/>
+                        </svg>
+                        Personalisation
+                    </button>
+                    <button @onclick="@(() => SetActiveTab(4))"
+                            class="@GetTabClass(4) px-4 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        Account
+                    </button>
+                    <button @onclick="@(() => SetActiveTab(5))"
+                            class="@GetTabClass(5) px-4 py-2.5 text-sm font-medium rounded-lg transition-all flex items-center gap-2 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/>
+                        </svg>
+                        Usage
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tab Content -->
+            <div class="p-6">
+                @if (_activeTabIndex == 0)
+                {
                     <GeneralSettingsTab />
-                </div>
-            </MudTabPanel>
-
-            <MudTabPanel Text="Interface" Icon="@Icons.Material.Filled.Palette">
-                <div class="pa-4">
+                }
+                else if (_activeTabIndex == 1)
+                {
                     <InterfaceSettingsTab />
-                </div>
-            </MudTabPanel>
-
-            <MudTabPanel Text="Connections" Icon="@Icons.Material.Filled.Cable">
-                <div class="pa-4">
+                }
+                else if (_activeTabIndex == 2)
+                {
                     <ConnectionsSettingsTab />
-                </div>
-            </MudTabPanel>
-
-            <MudTabPanel Text="Personalisation" Icon="@Icons.Material.Filled.Psychology">
-                <div class="pa-4">
+                }
+                else if (_activeTabIndex == 3)
+                {
                     <PersonalisationSettingsTab />
-                </div>
-            </MudTabPanel>
-
-            <MudTabPanel Text="Account" Icon="@Icons.Material.Filled.AccountCircle">
-                <div class="pa-4">
+                }
+                else if (_activeTabIndex == 4)
+                {
                     <AccountSettingsTab />
-                </div>
-            </MudTabPanel>
-
-            <MudTabPanel Text="Usage" Icon="@Icons.Material.Filled.Analytics">
-                <div class="pa-4">
+                }
+                else if (_activeTabIndex == 5)
+                {
                     <UsageSettingsTab />
-                </div>
-            </MudTabPanel>
-        </MudTabs>
+                }
+            </div>
 
-        <MudDivider Class="my-4" />
+            <!-- Actions Bar -->
+            <div class="border-t border-[#2A2A2A] p-4 flex items-center justify-between">
+                <button @onclick="HandleReset"
+                        class="px-4 py-2 bg-[#0F0F0F] hover:bg-[#242424] border border-[#2A2A2A] text-gray-300 rounded-lg text-sm font-medium transition-all flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/>
+                    </svg>
+                    Reset to Defaults
+                </button>
 
-        <div class="d-flex justify-space-between pa-4">
-            <MudButton Variant="Variant.Outlined"
-                      Color="Color.Secondary"
-                      StartIcon="@Icons.Material.Filled.RestartAlt"
-                      OnClick="@HandleReset">
-                Reset to Defaults
-            </MudButton>
-
-            <MudButton Variant="Variant.Filled"
-                      Color="Color.Primary"
-                      StartIcon="@Icons.Material.Filled.Save"
-                      OnClick="@HandleSave"
-                      Disabled="@SettingsState.Value.IsSaving">
-                @(SettingsState.Value.IsSaving ? "Saving..." : "Save Settings")
-            </MudButton>
+                <button @onclick="HandleSave"
+                        disabled="@SettingsState.Value.IsSaving"
+                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-600/50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-all flex items-center gap-2">
+                    @if (SettingsState.Value.IsSaving)
+                    {
+                        <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>Saving...</span>
+                    }
+                    else
+                    {
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M17 16v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2h2m3-4H9a2 2 0 00-2 2v7a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-1m-1 4l-3 3m0 0l-3-3m3 3V3"/>
+                        </svg>
+                        <span>Save Settings</span>
+                    }
+                </button>
+            </div>
         </div>
-    </MudPaper>
-</MudContainer>
+    </div>
+</div>
 
 @code {
+    private int _activeTabIndex = 0;
+
     protected override void OnInitialized()
     {
         base.OnInitialized();
+
+        // Sync local tab index with SettingsState
+        _activeTabIndex = SettingsState.Value.ActiveTab;
 
         // Load settings on component init
         if (!SettingsState.Value.IsLoading)
         {
             Dispatcher.Dispatch(new LoadSettingsAction());
         }
+    }
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        // Sync local tab index with SettingsState when it changes
+        _activeTabIndex = SettingsState.Value.ActiveTab;
+    }
+
+    private void SetActiveTab(int index)
+    {
+        _activeTabIndex = index;
+        Dispatcher.Dispatch(new SetActiveTabAction(index));
+        StateHasChanged();
+    }
+
+    private string GetTabClass(int index)
+    {
+        return _activeTabIndex == index
+            ? "bg-purple-600 text-white"
+            : "text-gray-400 hover:text-gray-200 hover:bg-[#0F0F0F]";
     }
 
     private void HandleTabChange(int index)
@@ -107,8 +202,7 @@
 
     private void HandleReset()
     {
-        // UX ENHANCEMENT: Add MudBlazor confirmation dialog before reset
-        // await DialogService.ShowMessageBox("Reset Settings?", "This will reset all settings to defaults.", yesText: "Reset", cancelText: "Cancel")
+        // TODO: Add confirmation dialog before reset
         Dispatcher.Dispatch(new ResetSettingsAction());
     }
 }
