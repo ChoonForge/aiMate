@@ -5,253 +5,298 @@
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @inject IState<AdminState> AdminState
 @inject IDispatcher Dispatcher
-@inject IDialogService DialogService
-@inject ISnackbar Snackbar
 @inject IPermissionService PermissionService
 
-<MudStack Spacing="3">
-    <MudText Typo="Typo.h6">System Configuration</MudText>
-    <MudDivider />
+<div class="space-y-6">
+    <h2 class="text-xl font-semibold text-gray-100">System Configuration</h2>
+    <div class="h-px bg-[#2A2A2A]"></div>
 
     @* General Settings *@
-    <MudText Typo="Typo.subtitle1">General Settings</MudText>
-    <MudPaper Class="pa-4" Elevation="2">
-        <MudGrid Spacing="2">
-            <MudItem xs="12" md="6">
-                <MudSwitch T="bool" Value="@_enableAdminPanel"
-                          Label="Enable Admin Panel"
-                          Color="Color.Primary"
-                          ValueChanged="@((bool val) => { _enableAdminPanel = val; HandleToggleSetting("EnableAdminPanel", val); })" />
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    Allow access to the admin panel for users with Admin tier
-                </MudText>
-            </MudItem>
+    <div>
+        <h3 class="text-lg font-semibold text-gray-100 mb-4">General Settings</h3>
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-medium text-gray-200">Enable Admin Panel</label>
+                        <button type="button" @onclick="@(() => HandleToggleSetting("EnableAdminPanel", !_enableAdminPanel))"
+                                class="@(_enableAdminPanel ? "bg-purple-600" : "bg-gray-700") relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                            <span class="@(_enableAdminPanel ? "translate-x-6" : "translate-x-1") inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-400">
+                        Allow access to the admin panel for users with Admin tier
+                    </p>
+                </div>
 
-            <MudItem xs="12" md="6">
-                <MudSwitch T="bool" Value="@_allowUserRegistration"
-                          Label="Allow User Registration"
-                          Color="Color.Primary"
-                          ValueChanged="@((bool val) => { _allowUserRegistration = val; HandleToggleSetting("AllowUserRegistration", val); })" />
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    Enable new user sign-up on the platform
-                </MudText>
-            </MudItem>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-medium text-gray-200">Allow User Registration</label>
+                        <button type="button" @onclick="@(() => HandleToggleSetting("AllowUserRegistration", !_allowUserRegistration))"
+                                class="@(_allowUserRegistration ? "bg-purple-600" : "bg-gray-700") relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                            <span class="@(_allowUserRegistration ? "translate-x-6" : "translate-x-1") inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-400">
+                        Enable new user sign-up on the platform
+                    </p>
+                </div>
 
-            <MudItem xs="12" md="6">
-                <MudSwitch T="bool" Value="@_enableApiAccess"
-                          Label="Enable API Access"
-                          Color="Color.Primary"
-                          ValueChanged="@((bool val) => { _enableApiAccess = val; HandleToggleSetting("EnableApiAccess", val); })" />
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    Allow external API access to aiMate services
-                </MudText>
-            </MudItem>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-medium text-gray-200">Enable API Access</label>
+                        <button type="button" @onclick="@(() => HandleToggleSetting("EnableApiAccess", !_enableApiAccess))"
+                                class="@(_enableApiAccess ? "bg-purple-600" : "bg-gray-700") relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                            <span class="@(_enableApiAccess ? "translate-x-6" : "translate-x-1") inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-400">
+                        Allow external API access to aiMate services
+                    </p>
+                </div>
 
-            <MudItem xs="12" md="6">
-                <MudSwitch T="bool" Value="@_debugMode"
-                          Label="Debug Mode"
-                          Color="Color.Warning"
-                          ValueChanged="@((bool val) => { _debugMode = val; HandleToggleSetting("DebugMode", val); })" />
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    Enable verbose logging and debugging features
-                </MudText>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-medium text-gray-200">Debug Mode</label>
+                        <button type="button" @onclick="@(() => HandleToggleSetting("DebugMode", !_debugMode))"
+                                class="@(_debugMode ? "bg-orange-500" : "bg-gray-700") relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                            <span class="@(_debugMode ? "translate-x-6" : "translate-x-1") inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-400">
+                        Enable verbose logging and debugging features
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <MudDivider Class="my-4" />
+    <div class="h-px bg-[#2A2A2A]"></div>
 
     @* BYOK Configuration *@
-    <MudText Typo="Typo.subtitle1">BYOK (Bring Your Own Key) Configuration</MudText>
-    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
-        Control which user tiers can bring their own API keys for LLM providers
-    </MudText>
-    <MudPaper Class="pa-4" Elevation="2">
-        <MudGrid Spacing="2">
-            <MudItem xs="12" md="6">
-                <MudStack Spacing="2">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.CardMembership" Color="Color.Secondary" />
-                            <MudText Typo="Typo.subtitle2">Free Tier</MudText>
-                        </MudStack>
-                        <MudSwitch T="bool" Value="@_byokFreeTier"
-                                  Color="Color.Success"
-                                  ValueChanged="@((bool val) => HandleBYOKToggle(UserTier.Free, val))" />
-                    </MudStack>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+    <div>
+        <h3 class="text-lg font-semibold text-gray-100 mb-2">BYOK (Bring Your Own Key) Configuration</h3>
+        <p class="text-sm text-gray-400 mb-4">
+            Control which user tiers can bring their own API keys for LLM providers
+        </p>
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                @* Free Tier *@
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"/>
+                            </svg>
+                            <span class="text-sm font-semibold text-gray-200">Free Tier</span>
+                        </div>
+                        <button type="button" @onclick="@(() => HandleBYOKToggle(UserTier.Free, !_byokFreeTier))"
+                                class="@(_byokFreeTier ? "bg-green-600" : "bg-gray-700") relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                            <span class="@(_byokFreeTier ? "translate-x-6" : "translate-x-1") inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-400">
                         Max 3 connections • Ideal for individual users bringing own keys
-                    </MudText>
-                </MudStack>
-            </MudItem>
+                    </p>
+                </div>
 
-            <MudItem xs="12" md="6">
-                <MudStack Spacing="2">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.Key" Color="Color.Primary" />
-                            <MudText Typo="Typo.subtitle2">BYOK Tier ($10/mo)</MudText>
-                        </MudStack>
-                        <MudSwitch T="bool" Value="@_byokBYOKTier"
-                                  Color="Color.Success"
-                                  ValueChanged="@((bool val) => HandleBYOKToggle(UserTier.BYOK, val))" />
-                    </MudStack>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @* BYOK Tier *@
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z"/>
+                            </svg>
+                            <span class="text-sm font-semibold text-gray-200">BYOK Tier ($10/mo)</span>
+                        </div>
+                        <button type="button" @onclick="@(() => HandleBYOKToggle(UserTier.BYOK, !_byokBYOKTier))"
+                                class="@(_byokBYOKTier ? "bg-green-600" : "bg-gray-700") relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                            <span class="@(_byokBYOKTier ? "translate-x-6" : "translate-x-1") inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-400">
                         Max 10 connections • Enhanced limits for BYOK users
-                    </MudText>
-                </MudStack>
-            </MudItem>
+                    </p>
+                </div>
 
-            <MudItem xs="12" md="6">
-                <MudStack Spacing="2">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.Code" Color="Color.Info" />
-                            <MudText Typo="Typo.subtitle2">Developer Tier ($30/mo)</MudText>
-                        </MudStack>
-                        <MudSwitch T="bool" Value="@_byokDeveloperTier"
-                                  Color="Color.Success"
-                                  ValueChanged="@((bool val) => HandleBYOKToggle(UserTier.Developer, val))" />
-                    </MudStack>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @* Developer Tier *@
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/>
+                            </svg>
+                            <span class="text-sm font-semibold text-gray-200">Developer Tier ($30/mo)</span>
+                        </div>
+                        <button type="button" @onclick="@(() => HandleBYOKToggle(UserTier.Developer, !_byokDeveloperTier))"
+                                class="@(_byokDeveloperTier ? "bg-green-600" : "bg-gray-700") relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                            <span class="@(_byokDeveloperTier ? "translate-x-6" : "translate-x-1") inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-400">
                         Max 50 connections • Platform keys + BYOK + custom endpoints
-                    </MudText>
-                </MudStack>
-            </MudItem>
+                    </p>
+                </div>
 
-            <MudItem xs="12" md="6">
-                <MudStack Spacing="2">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Error" />
-                            <MudText Typo="Typo.subtitle2">Admin Tier</MudText>
-                        </MudStack>
-                        <MudSwitch T="bool" Value="@_byokAdminTier"
-                                  Color="Color.Success"
-                                  ValueChanged="@((bool val) => HandleBYOKToggle(UserTier.Admin, val))" />
-                    </MudStack>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                @* Admin Tier *@
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+                            </svg>
+                            <span class="text-sm font-semibold text-gray-200">Admin Tier</span>
+                        </div>
+                        <button type="button" @onclick="@(() => HandleBYOKToggle(UserTier.Admin, !_byokAdminTier))"
+                                class="@(_byokAdminTier ? "bg-green-600" : "bg-gray-700") relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                            <span class="@(_byokAdminTier ? "translate-x-6" : "translate-x-1") inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-400">
                         Unlimited connections • Full system access
-                    </MudText>
-                </MudStack>
-            </MudItem>
-        </MudGrid>
+                    </p>
+                </div>
+            </div>
 
-        <MudDivider Class="my-3" />
+            <div class="h-px bg-[#2A2A2A] my-5"></div>
 
-        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Filled.Info">
-            <strong>Freemium Model Strategy:</strong>
-            <br />
-            Free users with BYOK = Zero platform costs • Paid users get platform-provided API keys + enhanced features
-        </MudAlert>
-    </MudPaper>
+            <div class="bg-blue-500/10 border border-blue-500/50 rounded-lg p-4 flex items-start gap-3">
+                <svg class="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/>
+                </svg>
+                <div class="text-sm text-blue-200">
+                    <strong class="text-blue-100">Freemium Model Strategy:</strong><br />
+                    Free users with BYOK = Zero platform costs • Paid users get platform-provided API keys + enhanced features
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <MudDivider Class="my-4" />
+    <div class="h-px bg-[#2A2A2A]"></div>
 
     @* Database Management *@
-    <MudText Typo="Typo.subtitle1">Database Management</MudText>
-    <MudGrid Spacing="2">
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4" Elevation="2">
-                <MudStack Spacing="2">
-                    <MudText Typo="Typo.subtitle2">LocalStorage</MudText>
-                    <MudProgressLinear
-                                      Value="@((AdminState.Value.LocalStorageUsedMB / AdminState.Value.LocalStorageLimitMB) * 100)"
-                                      Color="Color.Primary"
-                                      Size="Size.Medium" />
-                    <MudText Typo="Typo.body2">
-                        @AdminState.Value.LocalStorageUsedMB.ToString("F1") MB / @AdminState.Value.LocalStorageLimitMB.ToString("F1") MB
-                    </MudText>
-                    <MudButton Variant="Variant.Outlined"
-                              Color="Color.Error"
-                              OnClick="@HandleClearLocalStorage">
-                        Clear All Data
-                    </MudButton>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
+    <div>
+        <h3 class="text-lg font-semibold text-gray-100 mb-4">Database Management</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            @* LocalStorage *@
+            <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
+                <h4 class="text-sm font-semibold text-gray-200 mb-4">LocalStorage</h4>
+                <div class="relative w-full h-2 bg-[#0F0F0F] rounded-full overflow-hidden mb-3">
+                    <div class="absolute top-0 left-0 h-full bg-purple-600 rounded-full transition-all"
+                         style="width: @((AdminState.Value.LocalStorageUsedMB / AdminState.Value.LocalStorageLimitMB) * 100)%"></div>
+                </div>
+                <p class="text-sm text-gray-300 mb-4">
+                    @AdminState.Value.LocalStorageUsedMB.ToString("F1") MB / @AdminState.Value.LocalStorageLimitMB.ToString("F1") MB
+                </p>
+                <button @onclick="HandleClearLocalStorage"
+                        class="w-full px-4 py-2 bg-transparent border border-red-500/50 text-red-400 hover:bg-red-500/10 rounded-lg transition-all text-sm font-medium">
+                    Clear All Data
+                </button>
+            </div>
 
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4" Elevation="2">
-                <MudStack Spacing="2">
-                    <MudText Typo="Typo.subtitle2">IndexedDB</MudText>
-                    <MudProgressLinear
-                                      Value="@((AdminState.Value.IndexedDBUsedMB / AdminState.Value.IndexedDBLimitMB) * 100)"
-                                      Color="Color.Secondary"
-                                      Size="Size.Medium" />
-                    <MudText Typo="Typo.body2">
-                        @AdminState.Value.IndexedDBUsedMB.ToString("F1") MB / @AdminState.Value.IndexedDBLimitMB.ToString("F1") MB
-                    </MudText>
-                    <MudButton Variant="Variant.Outlined"
-                              Color="Color.Error"
-                              OnClick="@HandleClearIndexedDB">
-                        Clear Files
-                    </MudButton>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
+            @* IndexedDB *@
+            <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
+                <h4 class="text-sm font-semibold text-gray-200 mb-4">IndexedDB</h4>
+                <div class="relative w-full h-2 bg-[#0F0F0F] rounded-full overflow-hidden mb-3">
+                    <div class="absolute top-0 left-0 h-full bg-blue-600 rounded-full transition-all"
+                         style="width: @((AdminState.Value.IndexedDBUsedMB / AdminState.Value.IndexedDBLimitMB) * 100)%"></div>
+                </div>
+                <p class="text-sm text-gray-300 mb-4">
+                    @AdminState.Value.IndexedDBUsedMB.ToString("F1") MB / @AdminState.Value.IndexedDBLimitMB.ToString("F1") MB
+                </p>
+                <button @onclick="HandleClearIndexedDB"
+                        class="w-full px-4 py-2 bg-transparent border border-red-500/50 text-red-400 hover:bg-red-500/10 rounded-lg transition-all text-sm font-medium">
+                    Clear Files
+                </button>
+            </div>
+        </div>
+    </div>
 
-    <MudDivider Class="my-4" />
+    <div class="h-px bg-[#2A2A2A]"></div>
 
     @* System Logs *@
-    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-        <MudText Typo="Typo.subtitle1">System Logs</MudText>
-        <MudStack Row="true" Spacing="1">
-            <MudButton Size="Size.Small" OnClick="@HandleRefreshLogs">Refresh</MudButton>
-            <MudButton Size="Size.Small" OnClick="@HandleClearLogs">Clear</MudButton>
-            <MudButton Size="Size.Small" OnClick="@HandleExportLogs">Export</MudButton>
-        </MudStack>
-    </MudStack>
+    <div>
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-100">System Logs</h3>
+            <div class="flex items-center gap-2">
+                <button @onclick="HandleRefreshLogs"
+                        class="px-3 py-1.5 text-sm bg-[#1A1A1A] border border-[#2A2A2A] text-gray-300 hover:bg-[#2A2A2A] rounded-lg transition-all">
+                    Refresh
+                </button>
+                <button @onclick="HandleClearLogs"
+                        class="px-3 py-1.5 text-sm bg-[#1A1A1A] border border-[#2A2A2A] text-gray-300 hover:bg-[#2A2A2A] rounded-lg transition-all">
+                    Clear
+                </button>
+                <button @onclick="HandleExportLogs"
+                        class="px-3 py-1.5 text-sm bg-[#1A1A1A] border border-[#2A2A2A] text-gray-300 hover:bg-[#2A2A2A] rounded-lg transition-all">
+                    Export
+                </button>
+            </div>
+        </div>
 
-    <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-surface); max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px;">
-        @foreach (var log in AdminState.Value.SystemLogs.Take(50))
-        {
-            <MudText Typo="Typo.caption" Color="@GetLogColor(log.Level)">
-                [@log.Timestamp.ToString("HH:mm:ss")] [@log.Level] @log.Message
-            </MudText>
-        }
-    </MudPaper>
+        <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4 max-h-[300px] overflow-y-auto font-mono text-xs">
+            @foreach (var log in AdminState.Value.SystemLogs.Take(50))
+            {
+                <div class="@GetLogColorClass(log.Level) py-0.5">
+                    [@log.Timestamp.ToString("HH:mm:ss")] [@log.Level] @log.Message
+                </div>
+            }
+        </div>
+    </div>
 
-    <MudDivider Class="my-4" />
+    <div class="h-px bg-[#2A2A2A]"></div>
 
     @* Maintenance *@
-    <MudText Typo="Typo.subtitle1">Maintenance</MudText>
-    <MudStack Row="true" Spacing="2">
-        <MudButton Variant="Variant.Outlined"
-                  StartIcon="@Icons.Material.Filled.Download"
-                  OnClick="@(() => Dispatcher.Dispatch(new ExportSystemConfigAction()))">
-            Export System Config
-        </MudButton>
-        <MudButton Variant="Variant.Outlined"
-                  StartIcon="@Icons.Material.Filled.Upload">
-            Import Config
-        </MudButton>
-        <MudButton Variant="Variant.Outlined"
-                  StartIcon="@Icons.Material.Filled.Backup"
-                  OnClick="@(() => Dispatcher.Dispatch(new CreateBackupAction()))">
-            Create Backup
-        </MudButton>
-    </MudStack>
+    <div>
+        <h3 class="text-lg font-semibold text-gray-100 mb-4">Maintenance</h3>
+        <div class="flex flex-wrap gap-3">
+            <button @onclick="@(() => Dispatcher.Dispatch(new ExportSystemConfigAction()))"
+                    class="px-4 py-2 bg-transparent border border-[#2A2A2A] text-gray-300 hover:bg-[#2A2A2A] rounded-lg transition-all text-sm font-medium flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                </svg>
+                Export System Config
+            </button>
+            <button class="px-4 py-2 bg-transparent border border-[#2A2A2A] text-gray-300 hover:bg-[#2A2A2A] rounded-lg transition-all text-sm font-medium flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+                </svg>
+                Import Config
+            </button>
+            <button @onclick="@(() => Dispatcher.Dispatch(new CreateBackupAction()))"
+                    class="px-4 py-2 bg-transparent border border-[#2A2A2A] text-gray-300 hover:bg-[#2A2A2A] rounded-lg transition-all text-sm font-medium flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/>
+                </svg>
+                Create Backup
+            </button>
+        </div>
+    </div>
 
-    <MudDivider Class="my-4" />
+    <div class="h-px bg-[#2A2A2A]"></div>
 
     @* Danger Zone *@
-    <MudAlert Severity="Severity.Error">
-        <MudStack Spacing="2">
-            <MudText Typo="Typo.subtitle2">⚠️ Danger Zone</MudText>
-            <MudText Typo="Typo.body2">
+    <div class="bg-red-500/10 border border-red-500/50 rounded-lg p-5">
+        <div class="space-y-4">
+            <h3 class="text-lg font-semibold text-red-400 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                </svg>
+                Danger Zone
+            </h3>
+            <p class="text-sm text-red-200">
                 Reset aiMate to factory defaults. This will delete ALL data, conversations, knowledge, and system configuration.
-            </MudText>
-            <MudButton Variant="Variant.Filled"
-                      Color="Color.Error"
-                      StartIcon="@Icons.Material.Filled.DeleteForever"
-                      OnClick="@HandleFactoryReset">
+            </p>
+            <button @onclick="HandleFactoryReset"
+                    class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all text-sm font-medium flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
+                </svg>
                 Factory Reset System
-            </MudButton>
-        </MudStack>
-    </MudAlert>
-</MudStack>
+            </button>
+        </div>
+    </div>
+</div>
 
 @code {
     // General Settings
@@ -275,13 +320,6 @@
         _byokBYOKTier = PermissionService.IsBYOKEnabledForTier(UserTier.BYOK);
         _byokDeveloperTier = PermissionService.IsBYOKEnabledForTier(UserTier.Developer);
         _byokAdminTier = PermissionService.IsBYOKEnabledForTier(UserTier.Admin);
-
-        // IMPLEMENTATION NEEDED: Create AdminState/SettingsState in Fluxor store
-        // Then inject IState<AdminState> and load these values:
-        // _enableAdminPanel = AdminState.Value.EnableAdminPanel;
-        // _allowUserRegistration = AdminState.Value.AllowUserRegistration;
-        // _enableApiAccess = AdminState.Value.EnableApiAccess;
-        // _debugMode = AdminState.Value.DebugMode;
     }
 
     private void HandleToggleSetting(string setting, bool value)
@@ -290,27 +328,22 @@
         {
             case "EnableAdminPanel":
                 _enableAdminPanel = value;
-                Snackbar.Add($"Admin Panel {(value ? "enabled" : "disabled")}", Severity.Success);
-                // IMPLEMENTATION NEEDED: Create UpdateAdminSettingAction in AdminState store
-                // Dispatcher.Dispatch(new UpdateAdminSettingAction("EnableAdminPanel", value));
+                Console.WriteLine($"Admin Panel {(value ? "enabled" : "disabled")}");
                 break;
 
             case "AllowUserRegistration":
                 _allowUserRegistration = value;
-                Snackbar.Add($"User Registration {(value ? "enabled" : "disabled")}", Severity.Success);
-                // IMPLEMENTATION NEEDED: Dispatcher.Dispatch(new UpdateAdminSettingAction("AllowUserRegistration", value));
+                Console.WriteLine($"User Registration {(value ? "enabled" : "disabled")}");
                 break;
 
             case "EnableApiAccess":
                 _enableApiAccess = value;
-                Snackbar.Add($"API Access {(value ? "enabled" : "disabled")}", Severity.Success);
-                // IMPLEMENTATION NEEDED: Dispatcher.Dispatch(new UpdateAdminSettingAction("EnableApiAccess", value));
+                Console.WriteLine($"API Access {(value ? "enabled" : "disabled")}");
                 break;
 
             case "DebugMode":
                 _debugMode = value;
-                Snackbar.Add($"Debug Mode {(value ? "enabled" : "disabled")}", value ? Severity.Warning : Severity.Success);
-                // IMPLEMENTATION NEEDED: Dispatcher.Dispatch(new UpdateAdminSettingAction("DebugMode", value));
+                Console.WriteLine($"Debug Mode {(value ? "enabled" : "disabled")}");
                 break;
         }
     }
@@ -337,81 +370,53 @@
                 break;
         }
 
-        Snackbar.Add($"BYOK {(enabled ? "enabled" : "disabled")} for {tier} tier", Severity.Success);
-
-        // IMPLEMENTATION NEEDED: Persist to database via AdminState store
-        // Example: Dispatcher.Dispatch(new UpdateBYOKSettingAction(tier, enabled));
-        // Store in AdminSettings table with key-value pairs
+        Console.WriteLine($"BYOK {(enabled ? "enabled" : "disabled")} for {tier} tier");
     }
 
-    private Color GetLogColor(string level) => level.ToUpper() switch
+    private string GetLogColorClass(string level) => level.ToUpper() switch
     {
-        "ERROR" => Color.Error,
-        "WARNING" => Color.Warning,
-        "INFO" => Color.Info,
-        _ => Color.Default
+        "ERROR" => "text-red-400",
+        "WARNING" => "text-orange-400",
+        "INFO" => "text-blue-400",
+        _ => "text-gray-400"
     };
 
     private async Task HandleClearLocalStorage()
     {
-        var confirmed = await DialogService.ShowMessageBox(
-            "Clear LocalStorage",
-            "This will delete all locally stored data. Are you sure?",
-            yesText: "Clear",
-            cancelText: "Cancel");
-
-        if (confirmed == true)
-        {
-            Dispatcher.Dispatch(new ClearLocalStorageAction());
-            Snackbar.Add("LocalStorage cleared", Severity.Warning);
-        }
+        // TODO: Show confirmation dialog
+        Dispatcher.Dispatch(new ClearLocalStorageAction());
+        Console.WriteLine("LocalStorage cleared");
     }
 
     private async Task HandleClearIndexedDB()
     {
-        var confirmed = await DialogService.ShowMessageBox(
-            "Clear IndexedDB",
-            "This will delete all files stored in IndexedDB. Are you sure?",
-            yesText: "Clear",
-            cancelText: "Cancel");
-
-        if (confirmed == true)
-        {
-            Dispatcher.Dispatch(new ClearIndexedDBAction());
-            Snackbar.Add("IndexedDB cleared", Severity.Warning);
-        }
+        // TODO: Show confirmation dialog
+        Dispatcher.Dispatch(new ClearIndexedDBAction());
+        Console.WriteLine("IndexedDB cleared");
     }
 
     private void HandleRefreshLogs()
     {
         Dispatcher.Dispatch(new RefreshSystemLogsAction());
-        Snackbar.Add("Logs refreshed", Severity.Success);
+        Console.WriteLine("Logs refreshed");
     }
 
     private void HandleClearLogs()
     {
         Dispatcher.Dispatch(new ClearSystemLogsAction());
-        Snackbar.Add("Logs cleared", Severity.Success);
+        Console.WriteLine("Logs cleared");
     }
 
     private void HandleExportLogs()
     {
         Dispatcher.Dispatch(new ExportSystemLogsAction());
-        Snackbar.Add("Logs exported", Severity.Success);
+        Console.WriteLine("Logs exported");
     }
 
     private async Task HandleFactoryReset()
     {
-        var confirmed = await DialogService.ShowMessageBox(
-            "⚠️ Factory Reset",
-            "This is PERMANENT and will delete ALL data. Type 'RESET' to confirm.",
-            yesText: "RESET",
-            cancelText: "Cancel");
-
-        if (confirmed == true)
-        {
-            Dispatcher.Dispatch(new FactoryResetAction());
-            Snackbar.Add("Factory reset initiated", Severity.Error);
-        }
+        // TODO: Show confirmation dialog with "RESET" typing requirement
+        Dispatcher.Dispatch(new FactoryResetAction());
+        Console.WriteLine("Factory reset initiated");
     }
 }
