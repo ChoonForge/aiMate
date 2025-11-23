@@ -40,7 +40,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
         @foreach (var mcp in GetFilteredConnectors())
         {
-            <div class="p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg hover:border-purple-500/50 transition-all @(mcp.IsEnabled ? "" : "opacity-60")">
+            <div @key="mcp.Id" class="p-4 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg hover:border-purple-500/50 transition-all @(mcp.IsEnabled ? "" : "opacity-60")">
 
                 @* Header *@
                 <div class="flex items-start justify-between mb-3">

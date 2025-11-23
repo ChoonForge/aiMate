@@ -44,7 +44,7 @@
         <MudGrid Spacing="2">
             @foreach (var template in FeedbackState.Value.TagTemplates.OrderBy(t => t.DisplayOrder))
             {
-                <MudItem xs="12" md="6">
+                <MudItem @key="template.Id" xs="12" md="6">
                     <MudCard Elevation="2">
                         <MudCardHeader>
                             <CardHeaderContent>
@@ -89,7 +89,7 @@
                             <MudChipSet T="string" ReadOnly="true">
                                 @foreach (var option in template.Options.OrderBy(o => o.DisplayOrder))
                                 {
-                                    <MudChip T="string"
+                                    <MudChip @key="option.Id" T="string"
                                         Text="@option.Value"
                                         Style="@($"background-color: {option.Color}; color: white;")"
                                         Icon="@GetIcon(option.Icon)">
