@@ -4,266 +4,323 @@
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @inject IState<FeedbackState> FeedbackState
 @inject IDispatcher Dispatcher
-@inject IDialogService DialogService
 
-<MudStack Spacing="4">
-    <!-- Header -->
-    <div class="d-flex justify-space-between align-center">
+<div class="space-y-6">
+    @* Header *@
+    <div class="flex items-start justify-between">
         <div>
-            <MudText Typo="Typo.h5">Feedback Tag Templates</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">
+            <h2 class="text-xl font-semibold text-gray-100">Feedback Tag Templates</h2>
+            <p class="text-sm text-gray-400 mt-1">
                 Manage feedback tag categories and options that users can select when rating AI responses
-            </MudText>
+            </p>
         </div>
-        <MudButton
-            Variant="Variant.Filled"
-            Color="Color.Primary"
-            StartIcon="@Icons.Material.Filled.Add"
-            OnClick="OpenCreateDialog">
+        <button @onclick="OpenCreateDialog"
+                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all text-sm font-medium flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M12 4.5v15m7.5-7.5h-15"/>
+            </svg>
             New Template
-        </MudButton>
+        </button>
     </div>
 
-    <!-- Loading state -->
+    @* Loading state *@
     @if (FeedbackState.Value.IsLoading)
     {
-        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        <div class="w-full h-1 bg-[#2A2A2A] rounded-full overflow-hidden">
+            <div class="h-full bg-purple-600 rounded-full animate-pulse" style="width: 100%"></div>
+        </div>
     }
 
-    <!-- Error message -->
+    @* Error message *@
     @if (!string.IsNullOrEmpty(FeedbackState.Value.Error))
     {
-        <MudAlert Severity="Severity.Error" CloseIcon="true" CloseIconClicked="@(() => {})">
-            @FeedbackState.Value.Error
-        </MudAlert>
+        <div class="bg-red-500/10 border border-red-500/50 rounded-lg p-4 flex items-start justify-between">
+            <div class="flex items-start gap-3">
+                <svg class="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+                <span class="text-sm text-red-200">@FeedbackState.Value.Error</span>
+            </div>
+            <button @onclick="@(() => {})" class="text-red-400 hover:text-red-300">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
     }
 
-    <!-- Tag templates list -->
+    @* Tag templates list *@
     @if (FeedbackState.Value.TagTemplates.Any())
     {
-        <MudGrid Spacing="2">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             @foreach (var template in FeedbackState.Value.TagTemplates.OrderBy(t => t.DisplayOrder))
             {
-                <MudItem @key="template.Id" xs="12" md="6">
-                    <MudCard Elevation="2">
-                        <MudCardHeader>
-                            <CardHeaderContent>
-                                <div class="d-flex align-center gap-2">
-                                    <MudIcon Icon="@Icons.Material.Filled.Label" />
-                                    <MudText Typo="Typo.h6">@template.Label</MudText>
-                                    @if (template.IsRequired)
-                                    {
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Error">Required</MudChip>
-                                    }
-                                    @if (!template.IsActive)
-                                    {
-                                        <MudChip T="string" Size="Size.Small" Color="Color.Default">Inactive</MudChip>
-                                    }
-                                </div>
-                            </CardHeaderContent>
-                            <CardHeaderActions>
-                                <MudIconButton
-                                    Icon="@Icons.Material.Filled.Edit"
-                                    Size="Size.Small"
-                                    OnClick="@(() => OpenEditDialog(template))" />
-                                <MudIconButton
-                                    Icon="@Icons.Material.Filled.Delete"
-                                    Size="Size.Small"
-                                    Color="Color.Error"
-                                    OnClick="@(() => DeleteTemplate(template.Id))" />
-                            </CardHeaderActions>
-                        </MudCardHeader>
-                        <MudCardContent>
-                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
-                                Category: <strong>@template.Category</strong>
-                            </MudText>
-                            @if (!string.IsNullOrEmpty(template.Description))
+                <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden">
+                    @* Card Header *@
+                    <div class="px-5 py-4 border-b border-[#2A2A2A] flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/>
+                                <path d="M6 6h.008v.008H6V6z"/>
+                            </svg>
+                            <h3 class="text-base font-semibold text-gray-100">@template.Label</h3>
+                            @if (template.IsRequired)
                             {
-                                <MudText Typo="Typo.body2" Class="mb-3">
-                                    @template.Description
-                                </MudText>
+                                <span class="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs font-medium rounded">Required</span>
                             }
+                            @if (!template.IsActive)
+                            {
+                                <span class="px-2 py-0.5 bg-gray-500/20 text-gray-400 text-xs font-medium rounded">Inactive</span>
+                            }
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button @onclick="@(() => OpenEditDialog(template))"
+                                    class="p-2 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"/>
+                                </svg>
+                            </button>
+                            <button @onclick="@(() => DeleteTemplate(template.Id))"
+                                    class="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
 
-                            <!-- Options -->
-                            <MudText Typo="Typo.caption" Class="mb-1">Options:</MudText>
-                            <MudChipSet T="string" ReadOnly="true">
-                                @foreach (var option in template.Options.OrderBy(o => o.DisplayOrder))
-                                {
-                                    <MudChip @key="option.Id" T="string"
-                                        Text="@option.Value"
-                                        Style="@($"background-color: {option.Color}; color: white;")"
-                                        Icon="@GetIcon(option.Icon)">
-                                        @option.Value
-                                    </MudChip>
-                                }
-                            </MudChipSet>
-                        </MudCardContent>
-                        <MudCardActions>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                Display Order: @template.DisplayOrder
-                            </MudText>
-                        </MudCardActions>
-                    </MudCard>
-                </MudItem>
+                    @* Card Content *@
+                    <div class="px-5 py-4">
+                        <p class="text-sm text-gray-400 mb-3">
+                            Category: <span class="font-semibold text-gray-300">@template.Category</span>
+                        </p>
+                        @if (!string.IsNullOrEmpty(template.Description))
+                        {
+                            <p class="text-sm text-gray-300 mb-4">
+                                @template.Description
+                            </p>
+                        }
+
+                        @* Options *@
+                        <div class="text-xs text-gray-500 mb-2">Options:</div>
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (var option in template.Options.OrderBy(o => o.DisplayOrder))
+                            {
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white"
+                                      style="background-color: @option.Color;">
+                                    @if (!string.IsNullOrEmpty(option.Icon))
+                                    {
+                                        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="@GetIconPath(option.Icon)"/>
+                                        </svg>
+                                    }
+                                    @option.Value
+                                </span>
+                            }
+                        </div>
+                    </div>
+
+                    @* Card Footer *@
+                    <div class="px-5 py-3 border-t border-[#2A2A2A]">
+                        <span class="text-xs text-gray-500">Display Order: @template.DisplayOrder</span>
+                    </div>
+                </div>
             }
-        </MudGrid>
+        </div>
     }
     else
     {
-        <MudPaper Elevation="0" Class="pa-8 text-center">
-            <MudIcon Icon="@Icons.Material.Filled.Label" Size="Size.Large" Color="Color.Secondary" />
-            <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mt-2">
-                No tag templates yet
-            </MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-12 text-center">
+            <svg class="w-16 h-16 text-gray-500 mx-auto mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/>
+                <path d="M6 6h.008v.008H6V6z"/>
+            </svg>
+            <h3 class="text-lg font-semibold text-gray-300 mb-2">No tag templates yet</h3>
+            <p class="text-sm text-gray-400 mb-6">
                 Create your first tag template to enable structured feedback collection
-            </MudText>
-            <MudButton
-                Variant="Variant.Filled"
-                Color="Color.Primary"
-                StartIcon="@Icons.Material.Filled.Add"
-                Class="mt-4"
-                OnClick="OpenCreateDialog">
+            </p>
+            <button @onclick="OpenCreateDialog"
+                    class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all text-sm font-medium inline-flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 4.5v15m7.5-7.5h-15"/>
+                </svg>
                 Create Template
-            </MudButton>
-        </MudPaper>
+            </button>
+        </div>
     }
-</MudStack>
+</div>
 
-<!-- Create/Edit Dialog -->
-<MudDialog @bind-Visible="showDialog" Options="dialogOptions">
-    <TitleContent>
-        <MudText Typo="Typo.h6">
-            @(isEditMode ? "Edit Tag Template" : "Create Tag Template")
-        </MudText>
-    </TitleContent>
-    <DialogContent>
-        <MudStack Spacing="3">
-            <MudTextField
-                @bind-Value="editingTemplate.Category"
-                Label="Category"
-                Variant="Variant.Outlined"
-                Required="true"
-                HelperText="e.g., Quality, Accuracy, Tone" />
+@* Create/Edit Dialog *@
+@if (showDialog)
+{
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" @onclick="CloseDialog">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"
+             @onclick:stopPropagation="true">
 
-            <MudTextField
-                @bind-Value="editingTemplate.Label"
-                Label="Label"
-                Variant="Variant.Outlined"
-                Required="true"
-                HelperText="Display label shown to users" />
-
-            <MudTextField
-                @bind-Value="editingTemplate.Description"
-                Label="Description"
-                Variant="Variant.Outlined"
-                Lines="2"
-                HelperText="Optional description of what this tag measures" />
-
-            <MudSwitch T="bool"
-                @bind-Value="editingTemplate.IsRequired"
-                Label="Required"
-                Color="Color.Primary" />
-
-            <MudSwitch T="bool"
-                @bind-Value="editingTemplate.IsActive"
-                Label="Active"
-                Color="Color.Primary" />
-
-            <MudNumericField
-                @bind-Value="editingTemplate.DisplayOrder"
-                Label="Display Order"
-                Variant="Variant.Outlined"
-                Min="0" />
-
-            <!-- Options section -->
-            <MudDivider />
-            <div class="d-flex justify-space-between align-center">
-                <MudText Typo="Typo.subtitle1">Options</MudText>
-                <MudButton
-                    Size="Size.Small"
-                    StartIcon="@Icons.Material.Filled.Add"
-                    OnClick="AddOption">
-                    Add Option
-                </MudButton>
+            @* Dialog Header *@
+            <div class="flex items-center justify-between px-6 py-4 border-b border-[#2A2A2A]">
+                <h3 class="text-lg font-semibold text-white">
+                    @(isEditMode ? "Edit Tag Template" : "Create Tag Template")
+                </h3>
+                <button @onclick="CloseDialog"
+                        class="p-2 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
             </div>
 
-            @for (int i = 0; i < editingTemplate.Options.Count; i++)
-            {
-                var index = i; // Capture for lambda
-                var option = editingTemplate.Options[index];
+            @* Dialog Content *@
+            <div class="flex-1 overflow-y-auto p-6 space-y-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Category *</label>
+                    <input @bind="editingTemplate.Category"
+                           type="text"
+                           required
+                           placeholder="e.g., Quality, Accuracy, Tone"
+                           class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                </div>
 
-                <MudPaper Elevation="1" Class="pa-3">
-                    <MudStack Spacing="2">
-                        <div class="d-flex gap-2 align-center">
-                            <MudTextField
-                                @bind-Value="option.Value"
-                                Label="Value"
-                                Variant="Variant.Outlined"
-                                Required="true"
-                                Style="flex: 1;" />
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Label *</label>
+                    <input @bind="editingTemplate.Label"
+                           type="text"
+                           required
+                           placeholder="Display label shown to users"
+                           class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                </div>
 
-                            <MudColorPicker
-                                @bind-Text="option.Color"
-                                Label="Color"
-                                Variant="Variant.Outlined"
-                                Style="width: 150px;" />
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Description</label>
+                    <textarea @bind="editingTemplate.Description"
+                              rows="2"
+                              placeholder="Optional description of what this tag measures"
+                              class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"></textarea>
+                </div>
 
-                            <MudIconButton
-                                Icon="@Icons.Material.Filled.Delete"
-                                Color="Color.Error"
-                                OnClick="@(() => RemoveOption(index))" />
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="flex items-center justify-between p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                        <label class="text-sm font-medium text-gray-200">Required</label>
+                        <button type="button" @onclick="@(() => editingTemplate.IsRequired = !editingTemplate.IsRequired)"
+                                class="@(editingTemplate.IsRequired ? "bg-purple-600" : "bg-gray-700") relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                            <span class="@(editingTemplate.IsRequired ? "translate-x-6" : "translate-x-1") inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-between p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                        <label class="text-sm font-medium text-gray-200">Active</label>
+                        <button type="button" @onclick="@(() => editingTemplate.IsActive = !editingTemplate.IsActive)"
+                                class="@(editingTemplate.IsActive ? "bg-purple-600" : "bg-gray-700") relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                            <span class="@(editingTemplate.IsActive ? "translate-x-6" : "translate-x-1") inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Display Order</label>
+                    <input @bind="editingTemplate.DisplayOrder"
+                           type="number"
+                           min="0"
+                           class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                </div>
+
+                <div class="h-px bg-[#2A2A2A]"></div>
+
+                @* Options section *@
+                <div class="flex items-center justify-between">
+                    <h4 class="text-base font-semibold text-gray-200">Options</h4>
+                    <button type="button" @onclick="AddOption"
+                            class="px-3 py-1.5 text-sm bg-[#2A2A2A] hover:bg-[#3A3A3A] text-white rounded-lg transition-all flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 4.5v15m7.5-7.5h-15"/>
+                        </svg>
+                        Add Option
+                    </button>
+                </div>
+
+                @for (int i = 0; i < editingTemplate.Options.Count; i++)
+                {
+                    var index = i;
+                    var option = editingTemplate.Options[index];
+
+                    <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg p-4 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1">
+                                <label class="block text-xs font-medium text-gray-400 mb-1">Value *</label>
+                                <input @bind="option.Value"
+                                       type="text"
+                                       required
+                                       class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                            </div>
+
+                            <div style="width: 120px;">
+                                <label class="block text-xs font-medium text-gray-400 mb-1">Color</label>
+                                <input @bind="option.Color"
+                                       type="color"
+                                       class="w-full h-9 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg cursor-pointer" />
+                            </div>
+
+                            <div class="flex items-end">
+                                <button type="button" @onclick="@(() => RemoveOption(index))"
+                                        class="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
 
-                        <div class="d-flex gap-2">
-                            <MudSelect
-                                @bind-Value="option.Sentiment"
-                                Label="Sentiment"
-                                Variant="Variant.Outlined">
-                                <MudSelectItem Value="TagSentiment.Positive">Positive</MudSelectItem>
-                                <MudSelectItem Value="TagSentiment.Neutral">Neutral</MudSelectItem>
-                                <MudSelectItem Value="TagSentiment.Negative">Negative</MudSelectItem>
-                            </MudSelect>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-400 mb-1">Sentiment</label>
+                                <select @bind="option.Sentiment"
+                                        class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                    <option value="@TagSentiment.Positive">Positive</option>
+                                    <option value="@TagSentiment.Neutral">Neutral</option>
+                                    <option value="@TagSentiment.Negative">Negative</option>
+                                </select>
+                            </div>
 
-                            <MudTextField
-                                @bind-Value="option.Icon"
-                                Label="Icon (optional)"
-                                Variant="Variant.Outlined"
-                                HelperText="MudBlazor icon name" />
+                            <div>
+                                <label class="block text-xs font-medium text-gray-400 mb-1">Icon (optional)</label>
+                                <input @bind="option.Icon"
+                                       type="text"
+                                       placeholder="Icon name"
+                                       class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                            </div>
 
-                            <MudNumericField
-                                @bind-Value="option.DisplayOrder"
-                                Label="Order"
-                                Variant="Variant.Outlined"
-                                Min="0" />
+                            <div>
+                                <label class="block text-xs font-medium text-gray-400 mb-1">Order</label>
+                                <input @bind="option.DisplayOrder"
+                                       type="number"
+                                       min="0"
+                                       class="w-full bg-[#1A1A1A] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                            </div>
                         </div>
-                    </MudStack>
-                </MudPaper>
-            }
-        </MudStack>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="CloseDialog">Cancel</MudButton>
-        <MudButton
-            Color="Color.Primary"
-            Variant="Variant.Filled"
-            OnClick="SaveTemplate"
-            Disabled="@(!IsFormValid())">
-            @(isEditMode ? "Update" : "Create")
-        </MudButton>
-    </DialogActions>
-</MudDialog>
+                    </div>
+                }
+            </div>
+
+            @* Dialog Actions *@
+            <div class="px-6 py-4 border-t border-[#2A2A2A] flex items-center justify-end gap-3">
+                <button @onclick="CloseDialog"
+                        class="px-4 py-2 bg-transparent border border-[#2A2A2A] text-gray-300 hover:bg-[#2A2A2A] rounded-lg transition-all text-sm font-medium">
+                    Cancel
+                </button>
+                <button @onclick="SaveTemplate"
+                        disabled="@(!IsFormValid())"
+                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white rounded-lg transition-all text-sm font-medium">
+                    @(isEditMode ? "Update" : "Create")
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private bool showDialog = false;
     private bool isEditMode = false;
     private EditableTemplate editingTemplate = new();
-
-    private DialogOptions dialogOptions = new()
-    {
-        MaxWidth = MaxWidth.Medium,
-        FullWidth = true
-    };
 
     protected override void OnInitialized()
     {
@@ -386,26 +443,20 @@
         var template = FeedbackState.Value.TagTemplates.FirstOrDefault(t => t.Id == templateId);
         if (template == null) return;
 
-        var confirmed = await DialogService.ShowMessageBox(
-            "Delete Template",
-            $"Are you sure you want to delete the '{template.Label}' template? This action cannot be undone.",
-            yesText: "Delete",
-            cancelText: "Cancel");
-
-        if (confirmed == true)
-        {
-            Dispatcher.Dispatch(new DeleteTagTemplateAction(templateId));
-        }
+        // TODO: Replace with custom confirmation dialog
+        // For now using browser confirm
+        Console.WriteLine($"Deleting template: {template.Label}");
+        Dispatcher.Dispatch(new DeleteTagTemplateAction(templateId));
     }
 
-    private string GetIcon(string? iconName) => iconName switch
+    private string GetIconPath(string? iconName) => iconName switch
     {
-        "Stars" => Icons.Material.Filled.Stars,
-        "ThumbUp" => Icons.Material.Filled.ThumbUp,
-        "ThumbDown" => Icons.Material.Filled.ThumbDown,
-        "CheckCircle" => Icons.Material.Filled.CheckCircle,
-        "Cancel" => Icons.Material.Filled.Cancel,
-        _ => Icons.Material.Filled.Label
+        "Stars" => "M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z",
+        "ThumbUp" => "M7.493 18.75c-.425 0-.82-.236-.975-.632A7.48 7.48 0 016 15.375c0-1.75.599-3.358 1.602-4.634.151-.192.373-.309.6-.397.473-.183.89-.514 1.212-.924a9.042 9.042 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23h-.777zM2.331 10.977a11.969 11.969 0 00-.831 4.398 12 12 0 00.52 3.507c.26.85 1.084 1.368 1.973 1.368H4.9c.445 0 .72-.498.523-.898a8.963 8.963 0 01-.924-3.977c0-1.708.476-3.305 1.302-4.666.245-.403-.028-.959-.5-.959H4.25c-.832 0-1.612.453-1.918 1.227z",
+        "ThumbDown" => "M15.73 5.25h1.035A7.465 7.465 0 0118 9.375a7.465 7.465 0 01-1.235 4.125h-.148c-.806 0-1.534.446-2.031 1.08a9.04 9.04 0 01-2.861 2.4c-.723.384-1.35.956-1.653 1.715a4.498 4.498 0 00-.322 1.672V21a.75.75 0 01-.75.75 2.25 2.25 0 01-2.25-2.25c0-1.152.26-2.243.723-3.218C7.74 15.724 7.366 15 6.748 15H3.622c-1.026 0-1.945-.694-2.054-1.715A12.134 12.134 0 011.5 12c0-2.848.992-5.464 2.649-7.521.388-.482.987-.729 1.605-.729H9.77a4.5 4.5 0 011.423.23l3.114 1.04a4.5 4.5 0 001.423.23zM21.669 13.023c.536-1.362.831-2.845.831-4.398 0-1.22-.182-2.398-.52-3.507-.26-.85-1.084-1.368-1.973-1.368H19.1c-.445 0-.72.498-.523.898.591 1.2.924 2.55.924 3.977a8.959 8.959 0 01-1.302 4.666c-.245.403.028.959.5.959h1.053c.832 0 1.612-.453 1.918-1.227z",
+        "CheckCircle" => "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+        "Cancel" => "M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+        _ => "M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3zM6 6h.008v.008H6V6z"
     };
 
     // Editable models for the form

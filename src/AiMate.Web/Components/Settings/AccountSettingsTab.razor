@@ -1,10 +1,8 @@
 @using Fluxor
 @using AiMate.Web.Store.Settings
-@using MudBlazor
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @inject IState<SettingsState> SettingsState
 @inject IDispatcher Dispatcher
-@inject ISnackbar Snackbar
 
 @* Mobile-first responsive Account Settings Tab *@
 
@@ -131,7 +129,7 @@
     {
         // Dispatch SaveSettingsAction to save all settings including updated username/email
         Dispatcher.Dispatch(new SaveSettingsAction());
-        Snackbar.Add("Profile updated successfully", Severity.Success);
+        Console.WriteLine("Profile updated successfully");
     }
 
     private void HandleChangePassword()
@@ -139,19 +137,19 @@
         // Validate passwords match
         if (_newPassword != _confirmPassword)
         {
-            Snackbar.Add("Passwords do not match", Severity.Error);
+            Console.WriteLine("Error: Passwords do not match");
             return;
         }
 
         if (string.IsNullOrWhiteSpace(_currentPassword) || string.IsNullOrWhiteSpace(_newPassword))
         {
-            Snackbar.Add("Please fill in all password fields", Severity.Error);
+            Console.WriteLine("Error: Please fill in all password fields");
             return;
         }
 
         // TODO: Implement password change via dedicated endpoint
         // For now, show a message that this feature needs backend implementation
-        Snackbar.Add("Password change feature coming soon - requires dedicated auth endpoint", Severity.Info);
+        Console.WriteLine("Info: Password change feature coming soon - requires dedicated auth endpoint");
 
         // Clear password fields
         _currentPassword = "";
