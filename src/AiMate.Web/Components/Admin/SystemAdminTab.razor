@@ -207,7 +207,7 @@
     <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-surface); max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 12px;">
         @foreach (var log in AdminState.Value.SystemLogs.Take(50))
         {
-            <MudText Typo="Typo.caption" Color="@GetLogColor(log.Level)">
+            <MudText @key="log" Typo="Typo.caption" Color="@GetLogColor(log.Level)">
                 [@log.Timestamp.ToString("HH:mm:ss")] [@log.Level] @log.Message
             </MudText>
         }
