@@ -94,7 +94,7 @@
                             .ThenByDescending(w => w.UpdatedAt)
                             .Take(20))
                         {
-                            <div class="group relative">
+                            <div @key="workspace.Id" class="group relative">
                                 <a href="@($"/workspaces/{workspace.Id}")"
                                    class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-all cursor-pointer text-sm">
                                     @if (workspace.IsPinned)
@@ -196,7 +196,7 @@
                             .ThenByDescending(k => k.UpdatedAt)
                             .Take(20))
                         {
-                            <div class="group relative">
+                            <div @key="item.Id" class="group relative">
                                 <a href="@($"/knowledge/{item.Id}")"
                                    class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-all cursor-pointer text-sm">
                                     @if (item.IsPinned)
@@ -299,7 +299,7 @@
 
                     @foreach (var project in ProjectState.Value.Projects.Values.Take(5))
                     {
-                        <a href="@($"/projects/{project.Id}")" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-all cursor-pointer text-sm">
+                        <a @key="project.Id" href="@($"/projects/{project.Id}")" class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-all cursor-pointer text-sm">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                             </svg>
@@ -327,7 +327,7 @@
                         .OrderByDescending(c => c.UpdatedAt)
                         .Take(20))
                     {
-                        <div class="group relative">
+                        <div @key="conversation.Id" class="group relative">
                             <a href="@($"/chat/{conversation.Id}")"
                                class="flex items-center gap-2 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-[#2A2A2A] hover:text-white transition-all cursor-pointer">
                                 <svg class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
