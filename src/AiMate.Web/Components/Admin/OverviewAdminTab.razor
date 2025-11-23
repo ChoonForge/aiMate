@@ -9,14 +9,14 @@
     @* Quick Stats *@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         @* Total Users *@
-        <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl p-5">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
             <p class="text-xs text-gray-400 mb-1">Total Users</p>
             <p class="text-3xl font-bold text-gray-100 mb-2">@AdminState.Value.TotalUsers</p>
             <p class="text-xs text-blue-400">Single-user mode</p>
         </div>
 
         @* Total Conversations *@
-        <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl p-5">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
             <p class="text-xs text-gray-400 mb-1">Total Conversations</p>
             <p class="text-3xl font-bold text-gray-100 mb-2">@AdminState.Value.TotalConversations</p>
             <div class="flex items-center gap-1 text-xs text-green-400">
@@ -28,14 +28,14 @@
         </div>
 
         @* Active Models *@
-        <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl p-5">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
             <p class="text-xs text-gray-400 mb-1">Active Models</p>
             <p class="text-3xl font-bold text-gray-100 mb-2">@AdminState.Value.ActiveModels</p>
             <p class="text-xs text-gray-400">@AdminState.Value.TotalModels configured</p>
         </div>
 
         @* MCP Servers *@
-        <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl p-5">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
             <p class="text-xs text-gray-400 mb-1">MCP Servers</p>
             <p class="text-3xl font-bold text-gray-100 mb-2">@AdminState.Value.ConnectedMcpServers</p>
             <p class="text-xs @(AdminState.Value.ConnectedMcpServers > 0 ? "text-green-400" : "text-gray-400")">
@@ -101,9 +101,9 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             @* LocalStorage *@
-            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl p-5">
+            <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
                 <h4 class="text-sm font-semibold text-gray-200 mb-3">LocalStorage</h4>
-                <div class="relative w-full h-2 bg-[#1A1A1A] rounded-full overflow-hidden mb-2">
+                <div class="relative w-full h-2 bg-[#0F0F0F] rounded-full overflow-hidden mb-2">
                     <div class="absolute top-0 left-0 h-full bg-purple-600 rounded-full transition-all"
                          style="width: @((AdminState.Value.LocalStorageUsedMB / AdminState.Value.LocalStorageLimitMB) * 100)%"></div>
                 </div>
@@ -113,9 +113,9 @@
             </div>
 
             @* IndexedDB *@
-            <div class="bg-[#0F0F0F] border border-[#2A2A2A] rounded-xl p-5">
+            <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
                 <h4 class="text-sm font-semibold text-gray-200 mb-3">IndexedDB</h4>
-                <div class="relative w-full h-2 bg-[#1A1A1A] rounded-full overflow-hidden mb-2">
+                <div class="relative w-full h-2 bg-[#0F0F0F] rounded-full overflow-hidden mb-2">
                     <div class="absolute top-0 left-0 h-full bg-blue-600 rounded-full transition-all"
                          style="width: @((AdminState.Value.IndexedDBUsedMB / AdminState.Value.IndexedDBLimitMB) * 100)%"></div>
                 </div>
