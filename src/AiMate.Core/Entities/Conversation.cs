@@ -1,4 +1,5 @@
 using AiMate.Core.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace AiMate.Core.Entities;
 
@@ -9,6 +10,7 @@ public class Conversation
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    [MaxLength(200)]
     public required string Title { get; set; }
 
     /// <summary>
@@ -25,6 +27,7 @@ public class Conversation
     /// <summary>
     /// Model being used for this conversation
     /// </summary>
+    [MaxLength(100)]
     public string? ModelId { get; set; }
 
     /// <summary>

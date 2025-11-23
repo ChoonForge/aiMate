@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AiMate.Core.Entities;
 
 /// <summary>
@@ -7,13 +9,16 @@ public class Note
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    [MaxLength(200)]
     public required string Title { get; set; }
 
+    [MaxLength(50000)]
     public string Content { get; set; } = string.Empty;
 
     /// <summary>
     /// Content format: markdown, plain, html
     /// </summary>
+    [MaxLength(50)]
     public string ContentType { get; set; } = "markdown";
 
     /// <summary>
@@ -30,16 +35,19 @@ public class Note
     /// <summary>
     /// Collection name for grouping notes
     /// </summary>
+    [MaxLength(200)]
     public string? Collection { get; set; }
 
     /// <summary>
     /// Category for additional organization
     /// </summary>
+    [MaxLength(100)]
     public string? Category { get; set; }
 
     /// <summary>
     /// Color for visual organization
     /// </summary>
+    [MaxLength(50)]
     public string? Color { get; set; }
 
     /// <summary>
@@ -60,6 +68,7 @@ public class Note
     /// <summary>
     /// Visibility: Private, Shared, Public
     /// </summary>
+    [MaxLength(50)]
     public string Visibility { get; set; } = "Private";
 
     /// <summary>

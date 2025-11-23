@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AiMate.Core.Entities;
 
 /// <summary>
@@ -7,8 +9,10 @@ public class Organization
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    [MaxLength(200)]
     public required string Name { get; set; }
 
+    [MaxLength(1000)]
     public string? Description { get; set; }
 
     /// <summary>
@@ -24,6 +28,7 @@ public class Organization
     /// <summary>
     /// Maximum number of users allowed in this organization
     /// </summary>
+    [Range(1, 10000)]
     public int MaxUsers { get; set; } = 10;
 
     /// <summary>

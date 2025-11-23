@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AiMate.Core.Entities;
 
 /// <summary>
@@ -11,16 +13,19 @@ public class FeedbackTagTemplate
     /// <summary>
     /// Category name (e.g., "Quality", "Tone", "Accuracy")
     /// </summary>
+    [MaxLength(100)]
     public required string Category { get; set; }
 
     /// <summary>
     /// Display label for the UI
     /// </summary>
+    [MaxLength(200)]
     public required string Label { get; set; }
 
     /// <summary>
     /// Description of what this tag category measures
     /// </summary>
+    [MaxLength(1000)]
     public string? Description { get; set; }
 
     /// <summary>
@@ -36,6 +41,7 @@ public class FeedbackTagTemplate
     /// <summary>
     /// Display order in the UI
     /// </summary>
+    [Range(0, int.MaxValue)]
     public int DisplayOrder { get; set; }
 
     /// <summary>
@@ -60,11 +66,13 @@ public class FeedbackTagOption
     /// <summary>
     /// Display value for this option
     /// </summary>
+    [MaxLength(100)]
     public required string Value { get; set; }
 
     /// <summary>
     /// Color for UI display (hex code)
     /// </summary>
+    [MaxLength(50)]
     public string? Color { get; set; }
 
     /// <summary>
@@ -75,10 +83,12 @@ public class FeedbackTagOption
     /// <summary>
     /// Display order within the template
     /// </summary>
+    [Range(0, int.MaxValue)]
     public int DisplayOrder { get; set; }
 
     /// <summary>
     /// Optional icon name (MudBlazor icon)
     /// </summary>
+    [MaxLength(100)]
     public string? Icon { get; set; }
 }

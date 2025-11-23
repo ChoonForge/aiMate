@@ -1,4 +1,5 @@
 using AiMate.Core.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace AiMate.Core.Entities;
 
@@ -10,8 +11,10 @@ public class Connection
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    [MaxLength(200)]
     public required string Name { get; set; }
 
+    [MaxLength(1000)]
     public string? Description { get; set; }
 
     /// <summary>
@@ -44,16 +47,20 @@ public class Connection
     /// <summary>
     /// API key or credentials (encrypted)
     /// </summary>
+    [MaxLength(5000)]
     public string? EncryptedCredentials { get; set; }
 
     /// <summary>
     /// Base URL for custom endpoints
     /// </summary>
+    [Url]
+    [MaxLength(2048)]
     public string? BaseUrl { get; set; }
 
     /// <summary>
     /// Configuration JSON (provider-specific settings)
     /// </summary>
+    [MaxLength(10000)]
     public string? ConfigurationJson { get; set; }
 
     /// <summary>
@@ -74,8 +81,12 @@ public class Connection
     /// <summary>
     /// Usage statistics
     /// </summary>
+    [Range(0, int.MaxValue)]
     public int TotalRequests { get; set; } = 0;
+
+    [Range(0, int.MaxValue)]
     public int TotalTokens { get; set; } = 0;
+
     public DateTime? LastUsedAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

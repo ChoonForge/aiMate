@@ -1,4 +1,5 @@
 using AiMate.Core.Enums;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AiMate.Core.Entities;
@@ -10,8 +11,10 @@ public class Workspace
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    [MaxLength(200)]
     public required string Name { get; set; }
 
+    [MaxLength(1000)]
     public string? Description { get; set; }
 
     public WorkspaceType Type { get; set; } = WorkspaceType.General;
@@ -48,6 +51,7 @@ public class Workspace
     /// <summary>
     /// Workspace context stored as JSON
     /// </summary>
+    [MaxLength(50000)]
     public string? ContextJson { get; set; }
 
     /// <summary>

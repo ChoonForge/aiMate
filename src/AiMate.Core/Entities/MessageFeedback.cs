@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AiMate.Core.Entities;
 
 /// <summary>
@@ -13,11 +15,13 @@ public class MessageFeedback
     /// <summary>
     /// Rating on a 1-10 scale
     /// </summary>
+    [Range(1, 10)]
     public int Rating { get; set; }
 
     /// <summary>
     /// Optional text feedback from the user
     /// </summary>
+    [MaxLength(5000)]
     public string? TextFeedback { get; set; }
 
     /// <summary>
@@ -38,11 +42,13 @@ public class MessageFeedback
     /// <summary>
     /// Model that generated the message being rated
     /// </summary>
+    [MaxLength(100)]
     public string? ModelId { get; set; }
 
     /// <summary>
     /// Response time in milliseconds (for performance tracking)
     /// </summary>
+    [Range(0, long.MaxValue)]
     public long? ResponseTimeMs { get; set; }
 
     /// <summary>

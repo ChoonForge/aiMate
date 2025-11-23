@@ -1,4 +1,5 @@
 using AiMate.Core.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace AiMate.Core.Entities;
 
@@ -18,6 +19,8 @@ public class UserFeedback
     /// <summary>
     /// Optional email for anonymous feedback follow-up
     /// </summary>
+    [EmailAddress]
+    [MaxLength(320)]
     public string? UserEmail { get; set; }
 
     /// <summary>
@@ -28,36 +31,43 @@ public class UserFeedback
     /// <summary>
     /// Short subject/title
     /// </summary>
+    [MaxLength(200)]
     public required string Subject { get; set; }
 
     /// <summary>
     /// Detailed feedback message
     /// </summary>
+    [MaxLength(5000)]
     public required string Message { get; set; }
 
     /// <summary>
     /// Optional 1-5 star rating
     /// </summary>
+    [Range(1, 5)]
     public int? Rating { get; set; }
 
     /// <summary>
     /// Page where feedback was submitted
     /// </summary>
+    [MaxLength(500)]
     public string? CurrentPage { get; set; }
 
     /// <summary>
     /// User agent string
     /// </summary>
+    [MaxLength(500)]
     public string? UserAgent { get; set; }
 
     /// <summary>
     /// Screen resolution
     /// </summary>
+    [MaxLength(50)]
     public string? ScreenResolution { get; set; }
 
     /// <summary>
     /// Additional metadata (JSON)
     /// </summary>
+    [MaxLength(10000)]
     public string? MetadataJson { get; set; }
 
     /// <summary>
@@ -68,6 +78,7 @@ public class UserFeedback
     /// <summary>
     /// Admin notes for internal tracking
     /// </summary>
+    [MaxLength(5000)]
     public string? AdminNotes { get; set; }
 
     /// <summary>

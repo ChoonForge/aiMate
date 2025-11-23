@@ -1,4 +1,5 @@
 using AiMate.Core.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace AiMate.Core.Entities;
 
@@ -12,18 +13,22 @@ public class KnowledgeItem
     public Guid UserId { get; set; }
     public User? User { get; set; }
 
+    [MaxLength(200)]
     public required string Title { get; set; }
 
+    [MaxLength(100000)]
     public required string Content { get; set; }
 
     /// <summary>
     /// Short summary of the content
     /// </summary>
+    [MaxLength(1000)]
     public string Summary { get; set; } = string.Empty;
 
     /// <summary>
     /// Content format: markdown, plain, html
     /// </summary>
+    [MaxLength(50)]
     public string ContentType { get; set; } = "markdown";
 
     /// <summary>
@@ -39,26 +44,32 @@ public class KnowledgeItem
     /// <summary>
     /// Collection name for grouping
     /// </summary>
+    [MaxLength(200)]
     public string? Collection { get; set; }
 
     /// <summary>
     /// Category for organization
     /// </summary>
+    [MaxLength(100)]
     public string? Category { get; set; }
 
     /// <summary>
     /// Source URL if from web
     /// </summary>
+    [Url]
+    [MaxLength(2048)]
     public string? SourceUrl { get; set; }
 
     /// <summary>
     /// Original source/author information
     /// </summary>
+    [MaxLength(500)]
     public string? Source { get; set; }
 
     /// <summary>
     /// Visibility: Private, Shared, Public
     /// </summary>
+    [MaxLength(50)]
     public string Visibility { get; set; } = "Private";
 
     /// <summary>
@@ -84,21 +95,25 @@ public class KnowledgeItem
     /// <summary>
     /// Number of times viewed
     /// </summary>
+    [Range(0, int.MaxValue)]
     public int ViewCount { get; set; }
 
     /// <summary>
     /// Number of times referenced in conversations/notes
     /// </summary>
+    [Range(0, int.MaxValue)]
     public int ReferenceCount { get; set; }
 
     /// <summary>
     /// Upvote count for rating
     /// </summary>
+    [Range(0, int.MaxValue)]
     public int UpvoteCount { get; set; }
 
     /// <summary>
     /// Downvote count for rating
     /// </summary>
+    [Range(0, int.MaxValue)]
     public int DownvoteCount { get; set; }
 
     /// <summary>

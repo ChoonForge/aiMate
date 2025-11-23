@@ -1,4 +1,5 @@
 using AiMate.Core.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace AiMate.Core.Entities;
 
@@ -23,36 +24,44 @@ public class ErrorLog
     /// <summary>
     /// Error message
     /// </summary>
+    [MaxLength(5000)]
     public required string Message { get; set; }
 
     /// <summary>
     /// Stack trace (if available)
     /// </summary>
+    [MaxLength(10000)]
     public string? StackTrace { get; set; }
 
     /// <summary>
     /// Component or file where error occurred
     /// </summary>
+    [MaxLength(200)]
     public string? ComponentName { get; set; }
 
     /// <summary>
     /// URL where error occurred
     /// </summary>
+    [Url]
+    [MaxLength(2048)]
     public string? Url { get; set; }
 
     /// <summary>
     /// User agent string
     /// </summary>
+    [MaxLength(500)]
     public string? UserAgent { get; set; }
 
     /// <summary>
     /// Browser info (name, version)
     /// </summary>
+    [MaxLength(200)]
     public string? BrowserInfo { get; set; }
 
     /// <summary>
     /// Additional context data (JSON)
     /// </summary>
+    [MaxLength(10000)]
     public string? AdditionalDataJson { get; set; }
 
     /// <summary>
@@ -68,11 +77,13 @@ public class ErrorLog
     /// <summary>
     /// Resolution notes
     /// </summary>
+    [MaxLength(5000)]
     public string? Resolution { get; set; }
 
     /// <summary>
     /// Number of times this exact error has occurred
     /// </summary>
+    [Range(1, int.MaxValue)]
     public int OccurrenceCount { get; set; } = 1;
 
     /// <summary>

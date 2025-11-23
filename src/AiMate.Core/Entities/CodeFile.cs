@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AiMate.Core.Entities;
 
 /// <summary>
@@ -16,26 +18,31 @@ public class CodeFile
     /// <summary>
     /// File path relative to project root
     /// </summary>
+    [MaxLength(500)]
     public required string Path { get; set; }
 
     /// <summary>
     /// File content
     /// </summary>
+    [MaxLength(500000)]
     public required string Content { get; set; }
 
     /// <summary>
     /// Programming language (csharp, razor, json, etc.)
     /// </summary>
+    [MaxLength(50)]
     public required string Language { get; set; }
 
     /// <summary>
     /// MIME type
     /// </summary>
+    [MaxLength(100)]
     public string? MimeType { get; set; }
 
     /// <summary>
     /// File size in bytes
     /// </summary>
+    [Range(0, long.MaxValue)]
     public long SizeBytes { get; set; }
 
     /// <summary>
@@ -51,11 +58,13 @@ public class CodeFile
     /// <summary>
     /// Version number (increments on save)
     /// </summary>
+    [Range(1, int.MaxValue)]
     public int Version { get; set; } = 1;
 
     /// <summary>
     /// Hash of file content for change detection
     /// </summary>
+    [MaxLength(128)]
     public string? ContentHash { get; set; }
 
     /// <summary>

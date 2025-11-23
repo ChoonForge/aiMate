@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 
 namespace AiMate.Core.Entities;
@@ -12,6 +13,7 @@ public class PluginSettings
     /// <summary>
     /// Plugin ID that these settings belong to
     /// </summary>
+    [MaxLength(200)]
     public required string PluginId { get; set; }
 
     /// <summary>
@@ -23,6 +25,7 @@ public class PluginSettings
     /// <summary>
     /// Settings data as JSON
     /// </summary>
+    [MaxLength(50000)]
     public required string SettingsJson { get; set; }
 
     /// <summary>

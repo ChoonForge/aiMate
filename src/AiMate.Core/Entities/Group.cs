@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AiMate.Core.Entities;
 
 /// <summary>
@@ -7,8 +9,10 @@ public class Group
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    [MaxLength(200)]
     public required string Name { get; set; }
 
+    [MaxLength(1000)]
     public string? Description { get; set; }
 
     /// <summary>

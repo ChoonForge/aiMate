@@ -1,4 +1,5 @@
 using AiMate.Core.Enums;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AiMate.Core.Entities;
@@ -10,10 +11,14 @@ public class User
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    [EmailAddress]
+    [MaxLength(320)]
     public required string Email { get; set; }
 
+    [MaxLength(100)]
     public required string Username { get; set; }
 
+    [MaxLength(500)]
     public required string PasswordHash { get; set; }
 
     public UserTier Tier { get; set; } = UserTier.Free;
@@ -21,6 +26,7 @@ public class User
     /// <summary>
     /// Preferred language/locale (en-NZ, mi-NZ, etc.)
     /// </summary>
+    [MaxLength(10)]
     public string Locale { get; set; } = "en-NZ";
 
     /// <summary>
@@ -51,6 +57,7 @@ public class User
     /// <summary>
     /// API keys for BYOK tier (encrypted, stored as JSON)
     /// </summary>
+    [MaxLength(10000)]
     public string? EncryptedApiKeysJson { get; set; }
 
     /// <summary>
@@ -62,6 +69,7 @@ public class User
     /// <summary>
     /// User preferences (JSON)
     /// </summary>
+    [MaxLength(10000)]
     public string? PreferencesJson { get; set; }
 
     /// <summary>
