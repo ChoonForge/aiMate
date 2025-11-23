@@ -222,7 +222,7 @@
         }
     }
 
-    private async Task HandleDeleteMessage(Guid messageId)
+    private Task HandleDeleteMessage(Guid messageId)
     {
         if (currentConversation != null)
         {
@@ -236,6 +236,8 @@
                 // TODO: Dispatch DeleteMessageAction
             }
         }
+
+        return Task.CompletedTask;
     }
 
     private async Task HandleShareMessage(Guid messageId)

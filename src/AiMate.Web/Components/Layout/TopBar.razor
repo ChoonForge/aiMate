@@ -362,12 +362,12 @@
 
     private string GetUserName()
     {
-        return AuthState.Value.CurrentUser.Username ?? "John Doe";
+        return AuthState.Value.CurrentUser?.Username ?? "John Doe";
     }
 
     private string GetUserEmail()
     {
-        return AuthState.Value.CurrentUser.Username ?? "john.doe@example.com";
+        return AuthState.Value.CurrentUser?.Username ?? "john.doe@example.com";
     }
 
     private string GetUserInitials()
@@ -450,7 +450,7 @@
         userMenuOpen = false;
     }
 
-    public ValueTask DisposeAsync()
+    public new ValueTask DisposeAsync()
     {
         dotNetHelper?.Dispose();
         return ValueTask.CompletedTask;

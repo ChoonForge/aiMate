@@ -44,6 +44,7 @@ public class FileApiController : ControllerBase
     /// <param name="workspaceId">Workspace ID</param>
     /// <param name="file">File to upload</param>
     /// <param name="description">Optional file description</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Uploaded file metadata</returns>
     /// <response code="201">File uploaded successfully</response>
     /// <response code="400">Invalid file or file type not allowed</response>
@@ -131,6 +132,7 @@ public class FileApiController : ControllerBase
     /// Get file metadata by ID
     /// </summary>
     /// <param name="id">File ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>File metadata</returns>
     /// <response code="200">Returns file metadata</response>
     /// <response code="404">File not found</response>
@@ -155,6 +157,7 @@ public class FileApiController : ControllerBase
     /// Download a file
     /// </summary>
     /// <param name="id">File ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>File binary data</returns>
     /// <response code="200">Returns file for download</response>
     /// <response code="404">File not found</response>
@@ -181,6 +184,12 @@ public class FileApiController : ControllerBase
         if (fileMetadata == null)
             return NotFound("File not found or access denied");
 
+        if (string.IsNullOrEmpty(fileMetadata.FilePath))
+        {
+            _logger.LogError("File path is null or empty for file ID: {FileId}", id);
+            return NotFound("File path not found");
+        }
+
         // Download file from storage
         var downloadResult = await _fileStorage.DownloadFileAsync(fileMetadata.FilePath, cancellationToken);
 
@@ -199,6 +208,7 @@ public class FileApiController : ControllerBase
     /// Get all files in a workspace
     /// </summary>
     /// <param name="workspaceId">Workspace ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of files</returns>
     /// <response code="200">Returns list of files</response>
     /// <response code="404">Workspace not found</response>
@@ -230,6 +240,7 @@ public class FileApiController : ControllerBase
     /// Delete a file
     /// </summary>
     /// <param name="id">File ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>No content</returns>
     /// <response code="204">File deleted successfully</response>
     /// <response code="404">File not found</response>
@@ -254,6 +265,14 @@ public class FileApiController : ControllerBase
 
         if (file == null)
             return NotFound("File not found or access denied");
+
+        if (string.IsNullOrEmpty(file.FilePath))
+        {
+            _logger.LogWarning("File path is null or empty for file ID: {FileId}, removing database record only", id);
+            _context.WorkspaceFiles.Remove(file);
+            await _context.SaveChangesAsync(cancellationToken);
+            return NoContent();
+        }
 
         // Delete from storage
         var deleted = await _fileStorage.DeleteFileAsync(file.FilePath, cancellationToken);

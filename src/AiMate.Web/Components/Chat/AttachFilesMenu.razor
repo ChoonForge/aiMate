@@ -328,7 +328,7 @@
         var dialog = await DialogService.ShowAsync<TextInputDialog>("Attach Webpage", parameters);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is string url)
+        if (result != null && !result.Canceled && result.Data is string url)
         {
             Snackbar.Add($"Fetching webpage: {url}", Severity.Info);
             // IMPLEMENTATION NEEDED: Call API endpoint to fetch and parse webpage

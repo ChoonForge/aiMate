@@ -580,7 +580,7 @@
         StateHasChanged();
     }
 
-    public async ValueTask DisposeAsync()
+    public new async ValueTask DisposeAsync()
     {
         dotNetHelper?.Dispose();
     }

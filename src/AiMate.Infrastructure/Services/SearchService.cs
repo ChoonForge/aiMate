@@ -29,14 +29,14 @@ public class SearchService : ISearchService
     {
         var stopwatch = Stopwatch.StartNew();
 
-        var lowerQuery = query.ToLower();
+        var searchPattern = $"%{query}%";
 
         // Search conversations by title or ID
         var conversations = await _context.Conversations
             .Include(c => c.Workspace)
             .Where(c => c.Workspace != null && c.Workspace.UserId == userId)
-            .Where(c => c.Title.ToLower().Contains(lowerQuery) ||
-                       c.Id.ToString().Contains(lowerQuery))
+            .Where(c => EF.Functions.ILike(c.Title, searchPattern) ||
+                       c.Id.ToString().Contains(query))
             .OrderByDescending(c => c.UpdatedAt)
             .Take(limit)
             .ToListAsync(cancellationToken);
@@ -65,7 +65,7 @@ public class SearchService : ISearchService
     {
         var stopwatch = Stopwatch.StartNew();
 
-        var lowerQuery = query.ToLower();
+        var searchPattern = $"%{query}%";
 
         // Search messages by content
         var messages = await _context.Messages
@@ -74,7 +74,7 @@ public class SearchService : ISearchService
             .Where(m => m.Conversation != null &&
                        m.Conversation.Workspace != null &&
                        m.Conversation.Workspace.UserId == userId)
-            .Where(m => m.Content.ToLower().Contains(lowerQuery))
+            .Where(m => EF.Functions.ILike(m.Content, searchPattern))
             .OrderByDescending(m => m.CreatedAt)
             .Take(limit)
             .ToListAsync(cancellationToken);
@@ -154,14 +154,14 @@ public class SearchService : ISearchService
     {
         var stopwatch = Stopwatch.StartNew();
 
-        var lowerQuery = query.ToLower();
+        var searchPattern = $"%{query}%";
 
         // Full-text search in title and content
         var results = await _context.KnowledgeItems
             .Where(k => k.UserId == userId)
-            .Where(k => k.Title.ToLower().Contains(lowerQuery) ||
-                       k.Content.ToLower().Contains(lowerQuery) ||
-                       (k.Tags != null && k.Tags.Any(t => t.ToLower().Contains(lowerQuery))))
+            .Where(k => EF.Functions.ILike(k.Title, searchPattern) ||
+                       EF.Functions.ILike(k.Content, searchPattern) ||
+                       (k.Tags != null && k.Tags.Any(t => EF.Functions.ILike(t, searchPattern))))
             .OrderByDescending(k => k.UpdatedAt)
             .Take(limit)
             .ToListAsync(cancellationToken);
@@ -246,16 +246,13 @@ public class SearchService : ISearchService
         if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(query))
             return null;
 
-        var lowerText = text.ToLower();
-        var lowerQuery = query.ToLower();
-
-        var index = lowerText.IndexOf(lowerQuery);
+        var index = text.IndexOf(query, StringComparison.OrdinalIgnoreCase);
         if (index == -1)
         {
             // If exact query not found, try first word
             var firstWord = query.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
             if (firstWord != null)
-                index = lowerText.IndexOf(firstWord.ToLower());
+                index = text.IndexOf(firstWord, StringComparison.OrdinalIgnoreCase);
         }
 
         if (index == -1)

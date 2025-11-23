@@ -90,7 +90,7 @@
                 _title = item.Title;
                 _content = item.Content;
                 _tagsInput = string.Join(", ", item.Tags);
-                _type = item.Type != null ? item.Type.ToString() : KnowledgeType.Note.ToString();
+                _type = item.Type.ToString();
                 _sourceUrl = item.SourceUrl ?? string.Empty;
             }
         }
