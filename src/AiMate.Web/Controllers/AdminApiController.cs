@@ -533,7 +533,7 @@ public class AdminApiController : ControllerBase
             // Group tools by server (simplified)
             var servers = new List<MCPServerDto>
             {
-                new() { Id = "default", Name = "MCP Tools", Type = "builtin", Connected = tools.Any(), ToolCount = tools.Count }
+                new() { Id = "default", Name = "MCP Tools", Type = "builtin", Connected = tools.Count > 0, ToolCount = tools.Count }
             };
 
             return servers;

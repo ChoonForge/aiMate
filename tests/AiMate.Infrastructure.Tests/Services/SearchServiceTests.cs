@@ -396,7 +396,7 @@ public class SearchServiceTests : IDisposable
         var results = _searchService.SearchMessagesAsync(_testUserId, query).Result;
 
         // Assert
-        if (results.Results.Any())
+        if (results.Results.Count > 0)
         {
             results.Results.Should().Contain(r => r.Score >= minExpectedScore * 0.8,
                 $"score should be at least {minExpectedScore * 0.8} for query '{query}' in text '{text}'");

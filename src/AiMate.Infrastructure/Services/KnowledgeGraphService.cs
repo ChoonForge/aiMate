@@ -201,7 +201,7 @@ Conversation:
     {
         var relatedItems = await SearchAsync(query, userId, maxItems, cancellationToken);
 
-        if (!relatedItems.Any())
+        if (relatedItems.Count == 0)
             return string.Empty;
 
         var context = new StringBuilder();
@@ -212,7 +212,7 @@ Conversation:
         {
             context.AppendLine($"**{item.Title}**");
             context.AppendLine(item.Content);
-            if (item.Tags.Any())
+            if (item.Tags.Count > 0)
             {
                 context.AppendLine($"Tags: {string.Join(", ", item.Tags)}");
             }

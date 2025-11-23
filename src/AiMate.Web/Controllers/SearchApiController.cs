@@ -28,6 +28,7 @@ public class SearchApiController : ControllerBase
     /// </summary>
     /// <param name="query">Search query</param>
     /// <param name="limit">Maximum number of results (default: 10, max: 50)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Search results with relevance scores</returns>
     /// <response code="200">Returns matching conversations</response>
     /// <response code="400">Invalid query or limit</response>
@@ -68,6 +69,7 @@ public class SearchApiController : ControllerBase
     /// </summary>
     /// <param name="query">Search query</param>
     /// <param name="limit">Maximum number of results (default: 10, max: 50)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Search results with highlights</returns>
     /// <response code="200">Returns matching messages</response>
     /// <response code="400">Invalid query or limit</response>
@@ -109,6 +111,7 @@ public class SearchApiController : ControllerBase
     /// <param name="query">Natural language query</param>
     /// <param name="threshold">Similarity threshold (0.0-1.0, default: 0.7)</param>
     /// <param name="limit">Maximum number of results (default: 10, max: 50)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Semantically similar knowledge items</returns>
     /// <response code="200">Returns similar knowledge items</response>
     /// <response code="400">Invalid parameters</response>
@@ -155,6 +158,7 @@ public class SearchApiController : ControllerBase
     /// </summary>
     /// <param name="query">Search query</param>
     /// <param name="limit">Maximum number of results (default: 10, max: 50)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Matching knowledge items</returns>
     /// <response code="200">Returns matching knowledge items</response>
     /// <response code="400">Invalid query or limit</response>
@@ -195,6 +199,7 @@ public class SearchApiController : ControllerBase
     /// </summary>
     /// <param name="query">Search query</param>
     /// <param name="limit">Maximum results per type (default: 5, max: 20)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Combined search results from all content types</returns>
     /// <response code="200">Returns results from conversations, messages, and knowledge</response>
     /// <response code="400">Invalid query or limit</response>

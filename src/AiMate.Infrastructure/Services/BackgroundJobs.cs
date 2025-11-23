@@ -37,7 +37,7 @@ public class BackgroundJobs : IBackgroundJobs
                 .Where(e => e.IsResolved && e.ResolvedAt < cutoffDate)
                 .ToListAsync();
 
-            if (oldErrors.Any())
+            if (oldErrors.Count > 0)
             {
                 _context.ErrorLogs.RemoveRange(oldErrors);
                 await _context.SaveChangesAsync();
@@ -66,7 +66,7 @@ public class BackgroundJobs : IBackgroundJobs
                            f.ResolvedAt < cutoffDate)
                 .ToListAsync();
 
-            if (oldFeedback.Any())
+            if (oldFeedback.Count > 0)
             {
                 _context.UserFeedbacks.RemoveRange(oldFeedback);
                 await _context.SaveChangesAsync();
@@ -94,7 +94,7 @@ public class BackgroundJobs : IBackgroundJobs
                 .Take(50) // Process in batches of 50
                 .ToListAsync();
 
-            if (!itemsWithoutEmbeddings.Any())
+            if (itemsWithoutEmbeddings.Count == 0)
             {
                 _logger.LogInformation("No knowledge items missing embeddings");
                 return;

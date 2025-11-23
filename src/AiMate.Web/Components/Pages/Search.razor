@@ -53,7 +53,6 @@
     private List<Core.Entities.Conversation> _conversationResults = new();
     private List<Core.Entities.Message> _messageResults = new();
     private CancellationTokenSource? _searchCts;
-    private bool _isSearching = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -87,7 +86,6 @@
         _searchCts?.Cancel();
         _searchCts = new CancellationTokenSource();
 
-        _isSearching = true;
         StateHasChanged();
 
         try
@@ -116,7 +114,6 @@
         }
         finally
         {
-            _isSearching = false;
             StateHasChanged();
         }
     }
