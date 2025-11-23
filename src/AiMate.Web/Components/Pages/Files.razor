@@ -82,7 +82,7 @@
         <MudGrid Spacing="2">
             @foreach (var file in FilteredFiles)
             {
-                <MudItem xs="12" sm="6" md="4" lg="3">
+                <MudItem @key="file.Id" xs="12" sm="6" md="4" lg="3">
                     <MudCard Class="cursor-pointer" @onclick="@(() => OpenFile(file))">
                         <MudCardMedia>
                             <div style="height: 140px; background: #2A2A2A; display: flex; align-items: center; justify-center;">

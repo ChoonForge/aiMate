@@ -75,7 +75,7 @@
         <MudGrid Spacing="2">
             @foreach (var note in FilteredNotes)
             {
-                <MudItem xs="12" sm="6" md="4" lg="3">
+                <MudItem @key="note.Id" xs="12" sm="6" md="4" lg="3">
                     <MudCard Class="cursor-pointer" @onclick="@(() => EditNote(note))">
                         <MudCardContent>
                             <div class="d-flex justify-space-between align-center mb-2">
@@ -102,7 +102,7 @@
                                 <div class="d-flex flex-wrap gap-1 mb-2">
                                     @foreach (var tag in note.Tags.Take(3))
                                     {
-                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@tag</MudChip>
+                                        <MudChip @key="tag" T="string" Size="Size.Small" Variant="Variant.Outlined">@tag</MudChip>
                                     }
                                 </div>
                             }
@@ -134,7 +134,7 @@
             <MudList T="string" Clickable="true" Dense="true">
                 @foreach (var note in FilteredNotes)
                 {
-                    <MudListItem T="string" OnClick="@(() => EditNote(note))">
+                    <MudListItem @key="note.Id" T="string" OnClick="@(() => EditNote(note))">
                         <div class="d-flex justify-space-between align-center py-2">
                             <div class="d-flex align-center gap-3" style="flex: 1;">
                                 @if (note.IsPinned)
