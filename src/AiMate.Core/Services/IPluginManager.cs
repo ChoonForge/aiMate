@@ -45,7 +45,7 @@ public interface IPluginManager
     // UI Extensions
     IEnumerable<MessageActionButton> GetMessageActions(Message message);
     IEnumerable<ChatInputExtension> GetInputExtensions();
-    Dictionary<string, PluginSettings> GetAllPluginSettings();
+    Dictionary<string, Plugins.PluginSettings> GetAllPluginSettings();
 
     // Tool Execution
     IEnumerable<PluginTool> GetAllTools();

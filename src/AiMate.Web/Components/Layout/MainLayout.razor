@@ -1,51 +1,63 @@
-@using AiMate.Web.Store.Auth
 @using Fluxor
-@inherits LayoutComponentBase
+@using AiMate.Web.Store.Auth
+@using AiMate.Web.Components.Layout
+@inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @implements IDisposable
-@inject IDispatcher Dispatcher
 @inject IState<AuthState> AuthState
 @inject NavigationManager Navigation
 
-@* Clean Tailwind-based layout - No MudBlazor *@
-
-@if (AuthState.Value.IsAuthenticated && !IsLoginPage)
+@if (AuthState.Value.IsAuthenticated)
 {
-    <div class="flex h-screen bg-[#0F0F0F] text-white overflow-hidden">
-        @* Sidebar *@
+    <!-- Main authenticated layout with shell -->
+    <div class="layout-container">
         <Sidebar />
-
-        @* Main Content Area *@
-        <div class="flex-1 flex flex-col overflow-hidden">
-            @* Top Bar *@
+        <div class="layout-main">
             <TopBar />
-
-            @* Chat Container *@
-            <main class="flex-1 overflow-hidden">
+            <main class="layout-content">
                 @Body
             </main>
         </div>
     </div>
 }
+else if (currentPath == "/login")
+{
+    <!-- Show login page without shell -->
+    @Body
+}
 else
 {
-    @* Login page - full width *@
-    <div class="w-full h-screen">
-        @Body
-    </div>
+    <!-- Redirect if not authenticated and not on login page -->
+    <RedirectToLogin />
 }
 
 @code {
-    private bool IsLoginPage => Navigation.Uri.Contains("/login", StringComparison.OrdinalIgnoreCase);
+    [Parameter]
+    public RenderFragment? Body { get; set; }
+
+    private string currentPath = "";
 
     protected override void OnInitialized()
     {
         base.OnInitialized();
-
-        // Subscribe to auth state changes FIRST
+        UpdateCurrentPath();
         AuthState.StateChanged += OnAuthStateChanged;
+    }
 
-        // Then check authentication status (async - will update state when complete)
-        Dispatcher.Dispatch(new CheckAuthAction());
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        UpdateCurrentPath();
+    }
+
+    private void UpdateCurrentPath()
+    {
+        var path = Navigation.Uri.Replace(Navigation.BaseUri, "").Split('?')[0];
+        currentPath = string.IsNullOrEmpty(path) ? "/" : "/" + path;
+    }
+
+    private void OnAuthStateChanged(object? sender, EventArgs e)
+    {
+        StateHasChanged();
     }
 
     public void Dispose()
@@ -53,3 +65,24 @@ else
         AuthState.StateChanged -= OnAuthStateChanged;
     }
 }
+
+<style>
+    .layout-container {
+        display: flex;
+        height: 100vh;
+        width: 100%;
+    }
+
+    .layout-main {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .layout-content {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+    }
+</style>

@@ -14,7 +14,7 @@
         </div>
 
         <MudStack Spacing="2" Class="mb-4">
-            <MudChipSet @bind-SelectedChip="_selectedFilter" Filter="true" Mandatory="false">
+            <MudChipSet @bind-SelectedChip="_selectedFilter" Filter="true" Mandatory="false" T="string">
                 <MudChip Text="All" Default="true" Color="Color.Default" />
                 <MudChip Text="Recent" Color="Color.Primary" />
                 <MudChip Text="Archived" Color="Color.Secondary" />
@@ -23,13 +23,13 @@
 
         @if (_filteredConversations.Any())
         {
-            <MudList Clickable="true" Dense="true" Class="max-h-96 overflow-y-auto">
+            <MudList Clickable="true" Dense="true" Class="max-h-96 overflow-y-auto" T="ConversationItem">
                 @foreach (var conversation in _filteredConversations)
                 {
-                    <MudListItem OnClick="@(() => ToggleConversationSelection(conversation))"
+                    <MudListItem T="ConversationItem" OnClick="@(() => ToggleConversationSelection(conversation))"
                                 Class="@(IsConversationSelected(conversation) ? "bg-primary/10" : "")">
                         <div class="flex items-center gap-3">
-                            <MudCheckBox @bind-Checked="@conversation.IsSelected"
+                            <MudCheckBox T="bool" @bind-Checked="@conversation.IsSelected"
                                         Color="Color.Primary"
                                         Dense="true" />
                             <div class="flex-1">
@@ -45,7 +45,7 @@
                                 </MudText>
                                 @if (!string.IsNullOrEmpty(conversation.Project))
                                 {
-                                    <MudChip Size="Size.Small" Color="Color.Info" Class="mt-1">@conversation.Project</MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="mt-1">@conversation.Project</MudChip>
                                 }
                             </div>
                         </div>
@@ -78,7 +78,7 @@
     IMudDialogInstance MudDialog { get; set; } = default!;
 
     private string _searchQuery = string.Empty;
-    private MudChip? _selectedFilter;
+    private string? _selectedFilter;
     private List<ConversationItem> _conversations = new();
 
     private IEnumerable<ConversationItem> _filteredConversations
@@ -88,11 +88,11 @@
             var filtered = _conversations.AsEnumerable();
 
             // Apply filter
-            if (_selectedFilter?.Text == "Recent")
+            if (_selectedFilter == "Recent")
             {
                 filtered = filtered.Where(c => c.LastMessageAt > DateTime.Now.AddDays(-7));
             }
-            else if (_selectedFilter?.Text == "Archived")
+            else if (_selectedFilter == "Archived")
             {
                 filtered = filtered.Where(c => c.IsArchived);
             }

@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using AiMate.Core.Entities;
+using AiMate.Core.Enums;
 using AiMate.Core.Services;
 using AiMate.Infrastructure.Data;
 using AiMate.Shared.Models;
@@ -86,7 +87,7 @@ Conversation:
                     Title = item.Title,
                     Content = item.Content,
                     Tags = item.Tags ?? new List<string>(),
-                    Type = "ExtractedFromConversation",
+                    Type = KnowledgeType.Note,
                     Embedding = embedding
                 };
 

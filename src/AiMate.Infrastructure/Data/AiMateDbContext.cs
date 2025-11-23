@@ -1,5 +1,10 @@
+using System.Text.Json;
 using AiMate.Core.Entities;
+// Add this if UserFeedback is in a different namespace
+// using AiMate.Core.Entities.Feedback; // <-- Example, adjust as needed
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Pgvector.EntityFrameworkCore;
 
 namespace AiMate.Infrastructure.Data;
@@ -140,6 +145,18 @@ public class AiMateDbContext : DbContext
                 .WithMany(e => e.EditedVersions)
                 .HasForeignKey(e => e.ParentMessageId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure Metadata dictionary as JSON column with value comparer
+            entity.Property(e => e.Metadata)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, default(JsonSerializerOptions)),
+                    v => JsonSerializer.Deserialize<Dictionary<string, object>>(v, default(JsonSerializerOptions)))
+                .HasColumnType("jsonb");
+            entity.Property(e => e.Metadata)
+                .Metadata.SetValueComparer(new ValueComparer<Dictionary<string, object>>(
+                    (c1, c2) => c1!.SequenceEqual(c2!),
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                    c => new Dictionary<string, object>(c)));
         });
 
         // ToolCall configuration
@@ -307,6 +324,30 @@ public class AiMateDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure Metadata dictionary as JSON column with value comparer
+            entity.Property(e => e.Metadata)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, default(JsonSerializerOptions)),
+                    v => JsonSerializer.Deserialize<Dictionary<string, string>>(v, default(JsonSerializerOptions)) ?? new Dictionary<string, string>())
+                .HasColumnType("jsonb");
+            entity.Property(e => e.Metadata)
+                .Metadata.SetValueComparer(new ValueComparer<Dictionary<string, string>>(
+                    (c1, c2) => c1!.SequenceEqual(c2!),
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                    c => new Dictionary<string, string>(c)));
+
+            // Configure Tags list as JSON column with value comparer
+            entity.Property(e => e.Tags)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, (JsonSerializerOptions?)null),
+                    v => JsonSerializer.Deserialize<List<string>>(v, (JsonSerializerOptions?)null) ?? new List<string>())
+                .HasColumnType("jsonb");
+            entity.Property(e => e.Tags)
+                .Metadata.SetValueComparer(new ValueComparer<List<string>>(
+                    (c1, c2) => c1!.SequenceEqual(c2!),
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                    c => new List<string>(c)));
         });
 
         // StructuredContentTemplate configuration
@@ -361,7 +402,7 @@ public class AiMateDbContext : DbContext
             entity.HasIndex(e => e.Role);
 
             entity.HasOne(e => e.User)
-                .WithMany()
+                .WithMany(e => e.OrganizationMemberships)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
@@ -376,7 +417,7 @@ public class AiMateDbContext : DbContext
             entity.HasIndex(e => e.CreatedAt);
 
             entity.HasOne(e => e.Owner)
-                .WithMany()
+                .WithMany(e => e.OwnedGroups)
                 .HasForeignKey(e => e.OwnerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -386,7 +427,7 @@ public class AiMateDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(e => e.Connections)
-                .WithMany()
+                .WithMany(c => c.AllowedGroups)
                 .UsingEntity(j => j.ToTable("GroupConnections"));
         });
 
@@ -400,7 +441,7 @@ public class AiMateDbContext : DbContext
             entity.HasIndex(e => e.Role);
 
             entity.HasOne(e => e.User)
-                .WithMany()
+                .WithMany(e => e.GroupMemberships)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
@@ -446,5 +487,6 @@ public class AiMateDbContext : DbContext
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
+
     }
 }

@@ -94,7 +94,7 @@ public class SearchServiceTests : IDisposable
             Id = Guid.NewGuid(),
             ConversationId = conversation1.Id,
             Conversation = conversation1,
-            Role = "user",
+            Role = MessageRole.User,
             Content = "How should we design the authentication API endpoints?",
             CreatedAt = DateTime.UtcNow.AddDays(-5)
         };
@@ -104,7 +104,7 @@ public class SearchServiceTests : IDisposable
             Id = Guid.NewGuid(),
             ConversationId = conversation1.Id,
             Conversation = conversation1,
-            Role = "assistant",
+            Role = MessageRole.Assistant,
             Content = "For authentication, I recommend using JWT tokens with refresh tokens.",
             CreatedAt = DateTime.UtcNow.AddDays(-5)
         };
@@ -114,7 +114,7 @@ public class SearchServiceTests : IDisposable
             Id = Guid.NewGuid(),
             ConversationId = conversation2.Id,
             Conversation = conversation2,
-            Role = "user",
+            Role = MessageRole.User,
             Content = "The database queries are running slow on large datasets.",
             CreatedAt = DateTime.UtcNow.AddDays(-3)
         };
@@ -128,7 +128,7 @@ public class SearchServiceTests : IDisposable
             Content = "Always use proper HTTP methods (GET, POST, PUT, DELETE). Design endpoints with clear naming conventions.",
             Type = KnowledgeType.Note,
             Tags = new List<string> { "api", "rest", "best-practices" },
-            Embedding = new Vector(new float[] { 0.1f, 0.2f, 0.3f }),
+            Embedding = new float[] { 0.1f, 0.2f, 0.3f },
             CreatedAt = DateTime.UtcNow.AddDays(-10)
         };
 
@@ -140,7 +140,7 @@ public class SearchServiceTests : IDisposable
             Content = "Use indexes on frequently queried columns to improve database performance.",
             Type = KnowledgeType.Note,
             Tags = new List<string> { "database", "performance", "indexing" },
-            Embedding = new Vector(new float[] { 0.4f, 0.5f, 0.6f }),
+            Embedding = new float[] { 0.4f, 0.5f, 0.6f },
             CreatedAt = DateTime.UtcNow.AddDays(-7)
         };
 
@@ -269,7 +269,7 @@ public class SearchServiceTests : IDisposable
         var queryEmbedding = new float[] { 0.15f, 0.25f, 0.35f }; // Close to knowledge1 embedding
         _embeddingServiceMock
             .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(queryEmbedding);
+            .ReturnsAsync((float[]?)queryEmbedding);
 
         // Act
         var results = await _searchService.SearchKnowledgeSemanticAsync(_testUserId, "API design patterns");
@@ -299,7 +299,7 @@ public class SearchServiceTests : IDisposable
         var queryEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
         _embeddingServiceMock
             .Setup(e => e.GenerateEmbeddingAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(queryEmbedding);
+            .ReturnsAsync((float[]?)queryEmbedding);
 
         // Act
         var results = await _searchService.SearchKnowledgeSemanticAsync(_testUserId, "test query", limit: 100);
@@ -383,7 +383,7 @@ public class SearchServiceTests : IDisposable
             Id = Guid.NewGuid(),
             ConversationId = conversation.Id,
             Conversation = conversation,
-            Role = "user",
+            Role =MessageRole.User,
             Content = text
         };
 

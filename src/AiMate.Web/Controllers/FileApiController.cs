@@ -109,9 +109,11 @@ public class FileApiController : ControllerBase
         {
             WorkspaceId = workspaceId,
             FileName = uploadResult.FileName!,
+            StoragePath = uploadResult.FilePath!, // <-- FIX: Set required StoragePath property
             FilePath = uploadResult.FilePath!,
             FileSize = uploadResult.FileSize,
             MimeType = file.ContentType,
+            ContentType = file.ContentType, // <-- FIX: Set required ContentType property
             Description = description,
             UploadedAt = DateTime.UtcNow
         };

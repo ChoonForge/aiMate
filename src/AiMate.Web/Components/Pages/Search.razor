@@ -162,7 +162,7 @@
                 Id = r.Item?.Id ?? Guid.NewGuid(),
                 ConversationId = r.Item?.ConversationId ?? Guid.NewGuid(),
                 Content = r.Item?.Content ?? "",
-                Role = r.Item?.Role ?? Core.Entities.MessageRole.User,
+                Role = r.Item?.Role ?? MessageRole.User,
                 CreatedAt = r.Item?.CreatedAt ?? DateTime.Now
             }).ToList() ?? new List<Core.Entities.Message>();
         }
@@ -213,7 +213,7 @@
         public Guid Id { get; set; }
         public Guid ConversationId { get; set; }
         public string? Content { get; set; }
-        public Core.Entities.MessageRole Role { get; set; }
+        public MessageRole Role { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 

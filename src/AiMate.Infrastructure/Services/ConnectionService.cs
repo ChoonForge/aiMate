@@ -163,7 +163,7 @@ public class ConnectionService : IConnectionService
                     var testRequest = new Shared.Models.ChatCompletionRequest
                     {
                         Model = connection.AvailableModels.FirstOrDefault() ?? "gpt-3.5-turbo",
-                        Messages = new[]
+                        Messages = new List<Shared.Models.ChatMessage>
                         {
                             new Shared.Models.ChatMessage
                             {

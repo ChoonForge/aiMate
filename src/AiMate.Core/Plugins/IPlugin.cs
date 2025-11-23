@@ -1,3 +1,4 @@
+
 namespace AiMate.Core.Plugins;
 
 /// <summary>
@@ -54,6 +55,7 @@ public interface IPlugin
     /// Called when plugin is unloaded
     /// </summary>
     Task DisposeAsync();
+    Entities.PluginSettings? GetSettingsUI();
 }
 
 /// <summary>

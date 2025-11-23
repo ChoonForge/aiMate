@@ -1,0 +1,20 @@
+@using Fluxor
+@using AiMate.Web.Store.Auth
+@inject IState<AuthState> AuthState
+
+@if (AuthState.Value.IsAuthenticated)
+{
+    <RouteView RouteData="@RouteData" DefaultLayout="@DefaultLayout" />
+}
+else
+{
+    <RedirectToLogin />
+}
+
+@code {
+    [Parameter]
+    public RouteData RouteData { get; set; } = default!;
+
+    [Parameter]
+    public Type DefaultLayout { get; set; } = default!;
+}

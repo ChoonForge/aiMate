@@ -316,12 +316,12 @@ public class StructuredContentApiController : ControllerBase
     /// <returns>Action result</returns>
     /// <response code="200">Returns action result</response>
     [HttpPost("actions/execute")]
-    [ProducesResponseType(typeof(ActionResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Core.Services.ActionResult), StatusCodes.Status200OK)]
     public async Task<IActionResult> ExecuteAction([FromBody] ExecuteActionRequest request)
     {
         try
         {
-            var context = new ActionContext
+            var context = new Core.Services.ActionContext
             {
                 ActionId = request.ActionId,
                 HandlerType = request.HandlerType,

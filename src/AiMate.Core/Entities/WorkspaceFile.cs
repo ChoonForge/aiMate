@@ -47,4 +47,5 @@ public class WorkspaceFile
     public float[]? Embedding { get; set; }
 
     public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
+    public string? Description { get; set; }
 }

@@ -55,7 +55,8 @@ public class FileUploadService : IFileUploadService
             FileSize = result.FileSize,
             ContentType = result.ContentType,
             Description = result.Description,
-            UploadedAt = result.UploadedAt
+            UploadedAt = result.UploadedAt,
+            StoragePath = result.FilePath // Set required member
         };
     }
 
@@ -106,7 +107,8 @@ public class FileUploadService : IFileUploadService
             FileSize = dto.FileSize,
             ContentType = dto.ContentType,
             Description = dto.Description,
-            UploadedAt = dto.UploadedAt
+            UploadedAt = dto.UploadedAt,
+            StoragePath = dto.FilePath // Set required member
         }).ToList();
     }
 

@@ -2,6 +2,7 @@ using AiMate.Core.Entities;
 using AiMate.Core.Enums;
 using AiMate.Core.Plugins;
 using Microsoft.Extensions.Logging;
+using PluginSettings = AiMate.Core.Plugins.PluginSettings;
 
 namespace AiMate.Infrastructure.Plugins;
 
@@ -128,9 +129,9 @@ public class MessageActionsPlugin : IUIExtension
         return Enumerable.Empty<ChatInputExtension>();
     }
 
-    public PluginSettings? GetSettingsUI()
+    public Core.Plugins.PluginSettings? GetSettingsUI()
     {
-        return new PluginSettings
+        return new Core.Plugins.PluginSettings
         {
             Title = "Message Actions Settings",
             Description = "Customize which action buttons are shown",
@@ -186,5 +187,15 @@ public class MessageActionsPlugin : IUIExtension
     public string? RenderCustomContent(Message message)
     {
         return null;
+    }
+
+    Core.Plugins.PluginSettings? IUIExtension.GetSettingsUI()
+    {
+        throw new NotImplementedException();
+    }
+
+    Core.Entities.PluginSettings? IPlugin.GetSettingsUI()
+    {
+        throw new NotImplementedException();
     }
 }

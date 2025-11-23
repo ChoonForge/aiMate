@@ -2,6 +2,7 @@ using AiMate.Core.Entities;
 using AiMate.Core.Enums;
 using AiMate.Core.Plugins;
 using Microsoft.Extensions.Logging;
+using PluginSettings = AiMate.Core.Plugins.PluginSettings;
 
 namespace AiMate.Infrastructure.Plugins;
 
@@ -84,9 +85,9 @@ public class MessageRatingPlugin : IUIExtension
         return Enumerable.Empty<ChatInputExtension>();
     }
 
-    public PluginSettings? GetSettingsUI()
+    public Core.Plugins.PluginSettings? GetSettingsUI()
     {
-        return new PluginSettings
+        return new Core.Plugins.PluginSettings
         {
             Title = "Message Rating Settings",
             Description = "Configure how message ratings are displayed and collected",
@@ -125,5 +126,10 @@ public class MessageRatingPlugin : IUIExtension
     {
         // No custom rendering needed
         return null;
+    }
+
+    Core.Entities.PluginSettings? IPlugin.GetSettingsUI()
+    {
+        throw new NotImplementedException();
     }
 }

@@ -60,4 +60,5 @@ public class Message
     public bool IsStreaming { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Dictionary<string, object>? Metadata { get; set; }
 }

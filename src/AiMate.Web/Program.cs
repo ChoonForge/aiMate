@@ -7,8 +7,13 @@ using Serilog;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Microsoft.OpenApi;
 using System.Threading.RateLimiting;
+using AiMate.Web;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.DataProtection;
+using Hangfire;
+using Hangfire.PostgreSql;
+using Hangfire.Dashboard; // Add this using directive
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -113,13 +118,21 @@ builder.Services.AddResponseCaching(options =>
     options.SizeLimit = 100 * 1024 * 1024; // 100MB total cache size
 });
 
+// Configure response compression - exclude from Browser Link
 builder.Services.AddResponseCompression(options =>
 {
-    options.EnableForHttps = true; // Enable compression for HTTPS
+    options.EnableForHttps = true;
     options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
     options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.GzipCompressionProvider>();
-    options.MimeTypes = Microsoft.AspNetCore.ResponseCompression.ResponseCompressionDefaults.MimeTypes.Concat(
-        new[] { "application/json", "application/xml", "text/plain", "text/css", "text/html", "application/javascript" });
+    options.ExcludedMimeTypes = new[]
+    {
+        "application/json",
+        "application/xml",
+        "text/plain",
+        "text/css",
+        "text/html",
+        "application/javascript"
+    }.Concat(Microsoft.AspNetCore.ResponseCompression.ResponseCompressionDefaults.MimeTypes).ToArray();
 });
 
 // Configure Brotli compression (best compression)
@@ -268,69 +281,6 @@ builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationH
 
 Log.Information("JWT authentication and authorization configured");
 
-// Swagger/OpenAPI for API documentation
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-        Title = "aiMate API",
-        Version = "v1",
-        Description = "REST API for aiMate - Chat completions, projects, notes, knowledge base, and BYOK connections",
-        Contact = new Microsoft.OpenApi.Models.OpenApiContact
-        {
-            Name = "aiMate Support",
-            Email = "support@aimate.co.nz",
-            Url = new Uri("https://github.com/ChoonForge/aiMate")
-        },
-        License = new Microsoft.OpenApi.Models.OpenApiLicense
-        {
-            Name = "MIT",
-            Url = new Uri("https://opensource.org/licenses/MIT")
-        }
-    });
-
-    // Include XML comments
-    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-    {
-        c.IncludeXmlComments(xmlPath);
-    }
-
-    // Add JWT Bearer authentication
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-    {
-        Description = "JWT Authorization header using the Bearer scheme. Format: Bearer {token}",
-        Name = "Authorization",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-    {
-        {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
-    });
-
-    // Group endpoints by controller
-    c.TagActionsBy(api => new[] { api.GroupName ?? api.ActionDescriptor.RouteValues["controller"] ?? "Default" });
-    c.DocInclusionPredicate((name, api) => true);
-});
-
-Log.Information("Swagger/OpenAPI configured");
-
-
 // CORS for API access
 builder.Services.AddCors(options =>
 {
@@ -395,46 +345,46 @@ else
 // Install with: dotnet add package Hangfire.AspNetCore
 //              dotnet add package Hangfire.PostgreSql (for production)
 //              dotnet add package Hangfire.InMemory (for development)
-try
-{
-    if (databaseProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
-    {
-        var connectionString = builder.Configuration.GetConnectionString("PostgreSQL");
-        if (!string.IsNullOrEmpty(connectionString))
-        {
-            builder.Services.AddHangfire(config =>
-            {
-                config.UsePostgreSqlStorage(c =>
-                    c.UseNpgsqlConnection(connectionString));
-                config.UseSimpleAssemblyNameTypeSerializer();
-                config.UseRecommendedSerializerSettings();
-            });
-        }
-    }
-    else
-    {
-        // Use in-memory storage for development
-        builder.Services.AddHangfire(config =>
-        {
-            config.UseInMemoryStorage();
-            config.UseSimpleAssemblyNameTypeSerializer();
-            config.UseRecommendedSerializerSettings();
-        });
-    }
+//try
+//{
+//    if (databaseProvider.Equals("PostgreSQL", StringComparison.OrdinalIgnoreCase))
+//    {
+//        var connectionString = builder.Configuration.GetConnectionString("PostgreSQL");
+//        if (!string.IsNullOrEmpty(connectionString))
+//        {
+//            builder.Services.AddHangfire(config =>
+//            {
+//                config.UsePostgreSqlStorage(c =>
+//                    c.UseNpgsqlConnection(connectionString));
+//                config.UseSimpleAssemblyNameTypeSerializer();
+//                config.UseRecommendedSerializerSettings();
+//            });
+//        }
+//    }
+//    else
+//    {
+//        // Use in-memory storage for development
+//        builder.Services.AddHangfire(config =>
+//        {
+//            config.UseInMemoryStorage();
+//            config.UseSimpleAssemblyNameTypeSerializer();
+//            config.UseRecommendedSerializerSettings();
+//        });
+//    }
 
-    builder.Services.AddHangfireServer(options =>
-    {
-        options.WorkerCount = 2; // Number of background workers
-        options.Queues = new[] { "default", "high-priority" };
-    });
+//    builder.Services.AddHangfireServer(options =>
+//    {
+//        options.WorkerCount = 2; // Number of background workers
+//        options.Queues = new[] { "default", "high-priority" };
+//    });
 
-    Log.Information("Hangfire background jobs configured");
-}
-catch (Exception ex)
-{
-    // Hangfire packages not installed yet - log warning but don't fail startup
-    Log.Warning(ex, "Hangfire not configured - background jobs disabled. Install Hangfire.AspNetCore package to enable.");
-}
+//    Log.Information("Hangfire background jobs configured");
+//}
+//catch (Exception ex)
+//{
+//    // Hangfire packages not installed yet - log warning but don't fail startup
+//    Log.Warning(ex, "Hangfire not configured - background jobs disabled. Install Hangfire.AspNetCore package to enable.");
+//}
 
 // Add HTTP client for general use
 builder.Services.AddHttpClient();
@@ -585,18 +535,6 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// Enable Swagger in all environments (production needs API docs too)
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "aiMate API v1");
-    c.RoutePrefix = "api/docs"; // Access at /api/docs
-    c.DocumentTitle = "aiMate API Documentation";
-    c.DefaultModelsExpandDepth(-1); // Hide schemas section by default
-});
-
-Log.Information("Swagger UI enabled at /api/docs");
-
 app.UseHttpsRedirection();
 
 // Response compression (must be early in pipeline, before static files)
@@ -618,146 +556,10 @@ app.UseAuthorization();
 // Output caching (after auth so we can cache per-user if needed)
 app.UseOutputCache();
 
-// Hangfire Dashboard (requires Hangfire packages)
-try
-{
-    app.UseHangfireDashboard("/hangfire", new Hangfire.DashboardOptions
-    {
-        Authorization = new[] { new HangfireAuthorizationFilter() },
-        DashboardTitle = "aiMate Background Jobs"
-    });
-
-    // Schedule recurring jobs
-    var jobService = app.Services.GetService<AiMate.Core.Services.IBackgroundJobService>();
-    var backgroundJobs = app.Services.CreateScope().ServiceProvider.GetService<AiMate.Core.Services.IBackgroundJobs>();
-
-    if (jobService != null && backgroundJobs != null)
-    {
-        // Clean up old error logs daily at 2 AM
-        jobService.AddOrUpdateRecurringJob(
-            "cleanup-old-errors",
-            () => backgroundJobs.CleanupOldErrorLogsAsync(),
-            Hangfire.Cron.Daily(2));
-
-        // Clean up old feedback monthly
-        jobService.AddOrUpdateRecurringJob(
-            "cleanup-old-feedback",
-            () => backgroundJobs.CleanupOldFeedbackAsync(),
-            Hangfire.Cron.Monthly(1, 3));
-
-        // Generate missing embeddings every hour
-        jobService.AddOrUpdateRecurringJob(
-            "generate-embeddings",
-            () => backgroundJobs.GenerateMissingEmbeddingsAsync(),
-            Hangfire.Cron.Hourly());
-
-        // Send daily summary email at 9 AM
-        jobService.AddOrUpdateRecurringJob(
-            "daily-summary-email",
-            () => backgroundJobs.SendDailySummaryEmailAsync(),
-            Hangfire.Cron.Daily(9));
-
-        // Clean up orphaned files weekly on Sundays at 4 AM
-        jobService.AddOrUpdateRecurringJob(
-            "cleanup-orphaned-files",
-            () => backgroundJobs.CleanupOrphanedFilesAsync(),
-            Hangfire.Cron.Weekly(DayOfWeek.Sunday, 4));
-
-        Log.Information("Hangfire recurring jobs scheduled");
-    }
-}
-catch (Exception ex)
-{
-    Log.Warning(ex, "Hangfire dashboard not configured - install Hangfire packages to enable");
-}
-
-app.MapRazorComponents<AiMate.Web.App>()
+app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-// Map API controllers
-app.MapControllers();
+app.Run();
 
-// Health check endpoint
-app.MapGet("/health", async (AiMateDbContext? db) =>
-{
-    if (db == null)
-    {
-        return Results.Json(new { status = "degraded", message = "Database not configured" }, statusCode: 200);
-    }
 
-    try
-    {
-        var canConnect = await db.Database.CanConnectAsync();
-        if (canConnect)
-        {
-            return Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow });
-        }
-        else
-        {
-            return Results.Json(new { status = "unhealthy", message = "Cannot connect to database" }, statusCode: 503);
-        }
-    }
-    catch (Exception ex)
-    {
-        return Results.Json(new { status = "unhealthy", message = ex.Message }, statusCode: 503);
-    }
-});
 
-// Dev-only: Database inspection endpoint
-if (app.Environment.IsDevelopment())
-{
-    app.MapGet("/dev/db", async (AiMateDbContext db) =>
-    {
-        var users = await db.Users.ToListAsync();
-        var workspaces = await db.Workspaces.ToListAsync();
-        var conversations = await db.Conversations.ToListAsync();
-        var projects = await db.Projects.ToListAsync();
-        var notes = await db.Notes.ToListAsync();
-        var knowledgeItems = await db.KnowledgeItems.ToListAsync();
-
-        return Results.Ok(new
-        {
-            DatabaseProvider = databaseProvider,
-            Counts = new
-            {
-                Users = users.Count,
-                Workspaces = workspaces.Count,
-                Conversations = conversations.Count,
-                Projects = projects.Count,
-                Notes = notes.Count,
-                KnowledgeItems = knowledgeItems.Count
-            },
-            Users = users.Select(u => new
-            {
-                u.Id,
-                u.Username,
-                u.Email,
-                u.Tier,
-                u.DefaultPersonality,
-                u.CreatedAt,
-                HasPassword = !string.IsNullOrEmpty(u.PasswordHash)
-            }),
-            Workspaces = workspaces.Select(w => new { w.Id, w.Name, w.UserId }),
-            Conversations = conversations.Select(c => new { c.Id, c.Title, c.WorkspaceId, c.CreatedAt }),
-            Projects = projects.Select(p => new { p.Id, p.Name, p.Key, p.Status, p.UserId }),
-            Notes = notes.Select(n => new { n.Id, n.Title, n.LinkedWorkspaceId}),
-            KnowledgeItems = knowledgeItems.Select(k => new { k.Id, k.Title, k.Type, k.UserId })
-        });
-    });
-
-    Log.Information("Dev endpoint enabled: GET /dev/db");
-}
-
-try
-{
-    Log.Information("Starting aiMate application");
-    app.Run();
-}
-catch (Exception ex)
-{
-    Log.Fatal(ex, "Application terminated unexpectedly");
-}
-finally
-{
-    Log.CloseAndFlush();
-}

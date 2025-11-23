@@ -269,9 +269,9 @@ public class PluginManager : IPluginManager
         return extensions.OrderBy(e => e.Order);
     }
 
-    public Dictionary<string, PluginSettings> GetAllPluginSettings()
+    public Dictionary<string, Core.Plugins.PluginSettings> GetAllPluginSettings()
     {
-        var settings = new Dictionary<string, PluginSettings>();
+        var settings = new Dictionary<string, Core.Plugins.PluginSettings>();
 
         foreach (var extension in _uiExtensions.Where(e => e.IsEnabled))
         {

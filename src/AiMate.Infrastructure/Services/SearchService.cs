@@ -119,7 +119,7 @@ public class SearchService : ISearchService
         // Note: pgvector uses <=> for cosine distance (1 - similarity)
         var results = await _context.KnowledgeItems
             .Where(k => k.UserId == userId && k.Embedding != null)
-            .OrderBy(k => k.Embedding!.CosineDistance(queryVector))
+            .OrderBy(k => CosineDistance(k.Embedding!, queryVector.ToArray()))
             .Take(limit * 2) // Get more results to filter by threshold
             .ToListAsync(cancellationToken);
 
@@ -128,7 +128,7 @@ public class SearchService : ISearchService
             .Select(k => new SearchResult<KnowledgeItem>
             {
                 Item = k,
-                Score = 1 - k.Embedding!.CosineDistance(queryVector), // Convert distance to similarity
+                Score = 1 - CosineDistance(k.Embedding!, queryEmbedding), // Convert distance to similarity
                 Highlight = GetHighlight(k.Content, query, 200)
             })
             .Where(r => r.Score >= similarityThreshold)
@@ -277,6 +277,29 @@ public class SearchService : ISearchService
         if (start + length < text.Length) excerpt += "...";
 
         return excerpt;
+    }
+
+    /// <summary>
+    /// Calculate cosine distance between two float arrays
+    /// </summary>
+    private static double CosineDistance(float[] a, float[] b)
+    {
+        if (a.Length != b.Length)
+            throw new ArgumentException("Vectors must be of same length.");
+
+        double dot = 0.0;
+        double normA = 0.0;
+        double normB = 0.0;
+        for (int i = 0; i < a.Length; i++)
+        {
+            dot += a[i] * b[i];
+            normA += a[i] * a[i];
+            normB += b[i] * b[i];
+        }
+        if (normA == 0 || normB == 0)
+            return 1.0; // Maximum distance if one vector is zero
+
+        return 1.0 - (dot / (Math.Sqrt(normA) * Math.Sqrt(normB)));
     }
 
     #endregion

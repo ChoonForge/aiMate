@@ -115,7 +115,7 @@ public class BackgroundJobs : IBackgroundJobs
 
                     if (embedding != null && embedding.Length > 0)
                     {
-                        item.Embedding = new Pgvector.Vector(embedding);
+                        item.Embedding = embedding;
                         successCount++;
                     }
                     else

@@ -136,6 +136,8 @@ public class ProviderConnectionDto
     public string? OwnerId { get; set; }
     public string Visibility { get; set; } = "Private";
     public List<string> AllowedGroups { get; set; } = new();
+    public string ApiKey { get; set; } = "";
+    public string Description { get; set; } = "";
 }
 
 /// <summary>

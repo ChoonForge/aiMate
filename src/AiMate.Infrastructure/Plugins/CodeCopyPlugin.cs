@@ -3,6 +3,7 @@ using AiMate.Core.Entities;
 using AiMate.Core.Enums;
 using AiMate.Core.Plugins;
 using Microsoft.Extensions.Logging;
+using PluginSettings = AiMate.Core.Plugins.PluginSettings;
 
 namespace AiMate.Infrastructure.Plugins;
 
@@ -73,7 +74,7 @@ public class CodeCopyPlugin : IUIExtension
         return Enumerable.Empty<ChatInputExtension>();
     }
 
-    public PluginSettings? GetSettingsUI()
+    public Core.Plugins.PluginSettings? GetSettingsUI()
     {
         return new PluginSettings
         {
@@ -120,5 +121,10 @@ public class CodeCopyPlugin : IUIExtension
     {
         // Simple check for markdown code blocks
         return Regex.IsMatch(content, @"```[\s\S]*?```");
+    }
+
+    Core.Entities.PluginSettings? IPlugin.GetSettingsUI()
+    {
+        throw new NotImplementedException();
     }
 }

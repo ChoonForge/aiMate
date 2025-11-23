@@ -129,7 +129,7 @@ public class KnowledgeService : IKnowledgeService
         CancellationToken cancellationToken = default)
     {
         return await _context.KnowledgeItems
-            .Where(k => k.UserId == userId && k.Type == type)
+            .Where(k => k.UserId == userId && k.Type.ToString() == type)
             .OrderByDescending(k => k.UpdatedAt)
             .ToListAsync(cancellationToken);
     }
@@ -176,7 +176,7 @@ public class KnowledgeService : IKnowledgeService
     {
         return await _context.KnowledgeItems
             .Where(k => k.UserId == userId)
-            .Select(k => k.Type)
+            .Select(k => k.Type.ToString())
             .Distinct()
             .OrderBy(t => t)
             .ToListAsync(cancellationToken);

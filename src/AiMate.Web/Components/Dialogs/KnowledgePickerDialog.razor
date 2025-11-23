@@ -17,7 +17,7 @@
 
                 @if (_filteredKnowledge.Any())
                 {
-                    <MudList Clickable="true" Dense="true" Class="max-h-96 overflow-y-auto">
+                    <MudList T="string" Clickable="true" Dense="true" Class="max-h-96 overflow-y-auto">
                         @foreach (var item in _filteredKnowledge)
                         {
                             <MudListItem OnClick="@(() => ToggleKnowledgeSelection(item))"
@@ -51,7 +51,7 @@
             <MudTabPanel Text="Collections" Icon="@Icons.Material.Filled.Folder">
                 @if (_collections.Any())
                 {
-                    <MudList Clickable="true" Dense="true" Class="max-h-96 overflow-y-auto">
+                    <MudList T="string" Clickable="true" Dense="true" Class="max-h-96 overflow-y-auto">
                         @foreach (var collection in _collections)
                         {
                             <MudListItem OnClick="@(() => ToggleCollectionSelection(collection))"

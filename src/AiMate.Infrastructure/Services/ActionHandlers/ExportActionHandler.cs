@@ -1,6 +1,10 @@
+using AiMate.Core.Entities;
 using AiMate.Core.Enums;
 using AiMate.Core.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace AiMate.Infrastructure.Services.ActionHandlers;
 
@@ -9,16 +13,16 @@ namespace AiMate.Infrastructure.Services.ActionHandlers;
 /// </summary>
 public class ExportActionHandler : IActionHandler
 {
-    private readonly IStructuredContentService _contentService;
+    private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<ExportActionHandler> _logger;
 
     public ActionHandlerType HandlerType => ActionHandlerType.Export;
 
     public ExportActionHandler(
-        IStructuredContentService contentService,
+        IServiceProvider serviceProvider,
         ILogger<ExportActionHandler> logger)
     {
-        _contentService = contentService;
+        _serviceProvider = serviceProvider;
         _logger = logger;
     }
 
@@ -53,7 +57,8 @@ public class ExportActionHandler : IActionHandler
 
             _logger.LogInformation("Exporting content as {Format}", format);
 
-            var exportResult = await _contentService.ExportAsync(content, format, cancellationToken);
+            var contentService = _serviceProvider.GetRequiredService<IStructuredContentService>();
+            var exportResult = await contentService.ExportAsync(content, format, cancellationToken);
 
             if (!exportResult.Success)
             {
@@ -106,5 +111,45 @@ public class ExportActionHandler : IActionHandler
         }
 
         return Task.FromResult(result);
+    }
+}
+
+/// <summary>
+/// CodeFile entity configuration for EF Core
+/// </summary>
+public static class CodeFileEntityConfiguration
+{
+    public static void Configure(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<CodeFile>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.ProjectId);
+            entity.HasIndex(e => e.Path);
+            entity.HasIndex(e => new { e.ProjectId, e.Path }).IsUnique();
+            entity.HasIndex(e => e.Language);
+            entity.HasIndex(e => e.LastModified);
+
+            entity.HasOne(e => e.Project)
+                .WithMany()
+                .HasForeignKey(e => e.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure Metadata dictionary as JSON column
+            entity.Property(e => e.Metadata)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, default(JsonSerializerOptions)),
+                    v => JsonSerializer.Deserialize<Dictionary<string, string>>(v, default(JsonSerializerOptions)) ?? new Dictionary<string, string>())
+                .HasColumnType("jsonb")
+                .IsRequired(false);
+
+            // Configure Tags list as JSON column
+            entity.Property(e => e.Tags)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, default(JsonSerializerOptions)),
+                    v => JsonSerializer.Deserialize<List<string>>(v, default(JsonSerializerOptions)) ?? new List<string>())
+                .HasColumnType("jsonb")
+                .IsRequired(false);
+        });
     }
 }

@@ -60,7 +60,7 @@
     [Parameter] public bool CloseOnEscape { get; set; } = true;
     [Parameter] public string ZIndex { get; set; } = "z-[60]";
     [Parameter] public string BodyPadding { get; set; } = "p-6";
-    [Parameter] public ActionsAlignment ActionsAlignment { get; set; } = ActionsAlignment.Right;
+    [Parameter] public DialogActionsAlignment ActionsAlignment { get; set; } = DialogActionsAlignment.Right;
 
     [Parameter] public EventCallback OnClose { get; set; }
 
@@ -79,10 +79,10 @@
 
     private string ActionsAlignmentClass => ActionsAlignment switch
     {
-        ActionsAlignment.Left => "justify-start",
-        ActionsAlignment.Center => "justify-center",
-        ActionsAlignment.Right => "justify-end",
-        ActionsAlignment.SpaceBetween => "justify-between",
+        DialogActionsAlignment.Left => "justify-start",
+        DialogActionsAlignment.Center => "justify-center",
+        DialogActionsAlignment.Right => "justify-end",
+        DialogActionsAlignment.SpaceBetween => "justify-between",
         _ => "justify-end"
     };
 
@@ -130,7 +130,8 @@
         Full
     }
 
-    public enum ActionsAlignment
+    // Rename the enum to avoid name collision with the property
+    public enum DialogActionsAlignment
     {
         Left,
         Center,

@@ -1,4 +1,5 @@
 using AiMate.Core.Entities;
+using AiMate.Core.Enums;
 using AiMate.Core.Services;
 using AiMate.Shared.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -200,7 +201,7 @@ public class KnowledgeApiController : ControllerBase
                 Content = request.Content,
                 Summary = request.Summary,
                 ContentType = request.ContentType,
-                Type = request.Type,
+                Type = Enum.TryParse<KnowledgeType>(request.Type, out var parsedType) ? parsedType : KnowledgeType.Note,
                 Tags = request.Tags ?? new List<string>(),
                 Collection = request.Collection,
                 Category = request.Category,
@@ -357,7 +358,7 @@ public class KnowledgeApiController : ControllerBase
             Content = item.Content,
             ContentType = item.ContentType,
             Summary = item.Summary,
-            Type = item.Type,
+            Type = item.Type.ToString(), // <-- FIXED: Convert enum to string
             Tags = item.Tags,
             Collection = item.Collection,
             Category = item.Category,

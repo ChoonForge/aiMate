@@ -350,7 +350,7 @@ public class AdminApiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting MCP server");
-            return StatusCode(500, new { error = "Failed to delete MCP server", message = ex.Message });
+            return Task.FromResult<IActionResult>(StatusCode(500, new { error = "Failed to delete MCP server", message = ex.Message }));
         }
     }
 
@@ -525,8 +525,10 @@ public class AdminApiController : ControllerBase
     {
         try
         {
-            // Get available tools from MCP service
-            var tools = await _mcpToolService.GetAvailableToolsAsync();
+            // You need to provide a workspaceId (Guid) for GetAvailableToolsAsync.
+            // If you have a default workspace, use its ID here.
+            // For demonstration, we'll use Guid.Empty.
+            var tools = await _mcpToolService.GetAvailableToolsAsync(Guid.Empty);
 
             // Group tools by server (simplified)
             var servers = new List<MCPServerDto>

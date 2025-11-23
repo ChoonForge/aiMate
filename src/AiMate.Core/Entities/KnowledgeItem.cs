@@ -1,3 +1,5 @@
+using AiMate.Core.Enums;
+
 namespace AiMate.Core.Entities;
 
 /// <summary>
@@ -27,7 +29,7 @@ public class KnowledgeItem
     /// <summary>
     /// Type: Article, Guide, Reference, Tutorial, FAQ, Document, Note, Code, WebPage
     /// </summary>
-    public string Type { get; set; } = "Article";
+    public KnowledgeType Type { get; set; } = KnowledgeType.Article;
 
     /// <summary>
     /// Tags for categorization

@@ -206,7 +206,7 @@
                 {
                     Id = f.Id,
                     Name = f.FileName,
-                    Size = f.FileSize,
+                    Size = f.FileSize ?? 0, // Fix: handle nullable long
                     Type = DetermineFileType(f.ContentType),
                     UploadedAt = f.UploadedAt
                 })
@@ -304,6 +304,7 @@
         // IMPLEMENTATION NEEDED: Use browser Screen Capture API via JS interop
         // Example: await JSRuntime.InvokeAsync<string>("captureScreenshot");
         Snackbar.Add("Screenshot capture would start here", Severity.Info);
+        await Task.CompletedTask;
     }
 
     private async Task HandleCapturePhoto()
@@ -311,6 +312,7 @@
         // IMPLEMENTATION NEEDED: Use MediaDevices.getUserMedia() via JS interop for webcam
         // Example: await JSRuntime.InvokeVoidAsync("capturePhoto");
         Snackbar.Add("Webcam capture would open here", Severity.Info);
+        await Task.CompletedTask;
     }
 
     private async Task HandleAttachWebpage()
@@ -331,6 +333,7 @@
             Snackbar.Add($"Fetching webpage: {url}", Severity.Info);
             // IMPLEMENTATION NEEDED: Call API endpoint to fetch and parse webpage
             // Example: await HttpClient.PostAsync("/api/v1/files/fetch-webpage", new { url });
+            await Task.CompletedTask;
         }
     }
 
@@ -339,6 +342,7 @@
         // IMPLEMENTATION NEEDED: Create NotesPickerDialog component and show it
         // Example: await DialogService.ShowAsync<NotesPickerDialog>("Select Notes");
         Snackbar.Add("Notes picker would open here", Severity.Info);
+        await Task.CompletedTask;
     }
 
     private async Task HandleAttachKnowledge()
@@ -346,6 +350,7 @@
         // IMPLEMENTATION NEEDED: Create KnowledgePickerDialog component and show it
         // Example: await DialogService.ShowAsync<KnowledgePickerDialog>("Select Knowledge");
         Snackbar.Add("Knowledge base picker would open here", Severity.Info);
+        await Task.CompletedTask;
     }
 
     private async Task HandleReferenceChat()
@@ -353,6 +358,7 @@
         // IMPLEMENTATION NEEDED: Create ConversationPickerDialog component and show it
         // Example: await DialogService.ShowAsync<ConversationPickerDialog>("Reference Chat");
         Snackbar.Add("Conversation picker would open here", Severity.Info);
+        await Task.CompletedTask;
     }
 
     private async Task HandlePasteFromClipboard()
@@ -360,6 +366,7 @@
         // IMPLEMENTATION NEEDED: Use Clipboard API via JS interop
         // Example: var text = await JSRuntime.InvokeAsync<string>("navigator.clipboard.readText");
         Snackbar.Add("Reading from clipboard...", Severity.Info);
+        await Task.CompletedTask;
     }
 
     private async Task HandleAttachCodeSnippet()
@@ -367,14 +374,15 @@
         // IMPLEMENTATION NEEDED: Create CodeSnippetDialog with language selector
         // Example: await DialogService.ShowAsync<CodeSnippetDialog>("Add Code Snippet");
         Snackbar.Add("Code snippet editor would open here", Severity.Info);
+        await Task.CompletedTask;
     }
 
-    private Task HandleRecordAudio()
+    private async Task HandleRecordAudio()
     {
         // IMPLEMENTATION NEEDED: Use MediaRecorder API via JS interop
         // Example: await JSRuntime.InvokeVoidAsync("startAudioRecording");
         Snackbar.Add("Audio recording would start here", Severity.Info);
-        return Task.CompletedTask;
+        await Task.CompletedTask;
     }
 
     public class AttachedFile

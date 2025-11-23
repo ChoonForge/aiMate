@@ -223,8 +223,8 @@
 
     private void HandleDelete(MouseEventArgs e, Guid itemId)
     {
-        // Prevent event bubbling
-        e.StopPropagation();
+        // No StopPropagation available on MouseEventArgs in Blazor.
+        // If you want to prevent bubbling, use @onclick:stopPropagation in the markup.
         Dispatcher.Dispatch(new DeleteKnowledgeItemAction(itemId));
     }
 
@@ -348,7 +348,7 @@
                                             class="px-3 py-1.5 text-xs text-gray-400 hover:text-gray-200 hover:bg-[#0F0F0F] rounded transition-colors">
                                         Edit
                                     </button>
-                                    <button @onclick="@((e) => HandleDelete(e, item.Id))"
+                                    <button @onclick:stopPropagation="@true" @onclick="@((e) => HandleDelete(e, item.Id))"
                                             class="px-3 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors">
                                         Delete
                                     </button>

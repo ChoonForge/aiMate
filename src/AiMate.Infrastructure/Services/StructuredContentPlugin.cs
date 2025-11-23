@@ -2,6 +2,7 @@ using AiMate.Core.Entities;
 using AiMate.Core.Plugins;
 using AiMate.Core.Services;
 using Microsoft.Extensions.Logging;
+using ConversationContext = AiMate.Core.Plugins.ConversationContext;
 
 namespace AiMate.Infrastructure.Services;
 
@@ -18,9 +19,11 @@ public class StructuredContentPlugin : IPlugin, IMessageInterceptor
     public string Version => "1.0.0";
     public string Description => "Renders rich, interactive structured data from AI responses";
     public string Author => "aiMate";
-    public string? Icon => "table-cells";
+    public string Icon => "table-cells";
     public string Category => "Content Enhancement";
     public bool IsEnabled { get; set; } = true;
+
+    PluginCategory IPlugin.Category => throw new NotImplementedException();
 
     public StructuredContentPlugin(
         IStructuredContentService contentService,
@@ -134,5 +137,15 @@ public class StructuredContentPlugin : IPlugin, IMessageInterceptor
             // Don't block message on error, just continue
             return new MessageInterceptResult { Continue = true };
         }
+    }
+
+    Task IPlugin.DisposeAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    public Core.Entities.PluginSettings? GetSettingsUI()
+    {
+        throw new NotImplementedException();
     }
 }
