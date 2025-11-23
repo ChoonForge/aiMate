@@ -1,65 +1,115 @@
 @using AiMate.Web.Store.Admin
 
-<MudDialog>
-    <DialogContent>
-        <MudStack Spacing="3">
-            <MudTextField T="string" @bind-Value="@_modelId"
-                         Label="Model ID"
-                         Variant="Variant.Outlined"
-                         Margin="Margin.Dense"
-                         HelperText="e.g., gpt-4, claude-3-opus"
-                         Required="true" />
+@if (IsVisible)
+{
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" @onclick="Cancel">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl shadow-2xl w-full max-w-lg"
+             @onclick:stopPropagation="true">
 
-            <MudTextField T="string" @bind-Value="@_name"
-                         Label="Display Name"
-                         Variant="Variant.Outlined"
-                         Margin="Margin.Dense"
-                         Required="true" />
+            @* Dialog Header *@
+            <div class="flex items-center justify-between px-6 py-4 border-b border-[#2A2A2A]">
+                <h3 class="text-lg font-semibold text-white">@(_isEditMode ? "Edit Model" : "Add Model")</h3>
+                <button @onclick="Cancel"
+                        class="p-2 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
 
-            <MudSelect T="string" @bind-Value="@_provider"
-                      Label="Provider"
-                      Variant="Variant.Outlined"
-                      Margin="Margin.Dense"
-                      Required="true">
-                <MudSelectItem T="string" Value="@("OpenAI")">OpenAI</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Anthropic")">Anthropic</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Google")">Google AI</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Azure")">Azure OpenAI</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Custom")">Custom</MudSelectItem>
-            </MudSelect>
+            @* Dialog Content *@
+            <div class="p-6 space-y-4">
+                @* Model ID *@
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Model ID *</label>
+                    <input @bind="_modelId"
+                           type="text"
+                           placeholder="e.g., gpt-4, claude-3-opus"
+                           required
+                           class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <p class="text-xs text-gray-400 mt-1">e.g., gpt-4, claude-3-opus</p>
+                </div>
 
-            <MudNumericField T="int" @bind-Value="@_maxTokens"
-                            Label="Max Tokens"
-                            Variant="Variant.Outlined"
-                            Margin="Margin.Dense"
-                            Min="100"
-                            Max="100000" />
+                @* Display Name *@
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Display Name *</label>
+                    <input @bind="_name"
+                           type="text"
+                           required
+                           class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                </div>
 
-            <MudTextField T="string" @bind-Value="@_description"
-                         Label="Description (Optional)"
-                         Variant="Variant.Outlined"
-                         Margin="Margin.Dense"
-                         Lines="2" />
+                @* Provider *@
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Provider *</label>
+                    <select @bind="_provider"
+                            class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <option value="OpenAI">OpenAI</option>
+                        <option value="Anthropic">Anthropic</option>
+                        <option value="Google">Google AI</option>
+                        <option value="Azure">Azure OpenAI</option>
+                        <option value="Custom">Custom</option>
+                    </select>
+                </div>
 
-            <MudSwitch T="bool" @bind-Value="@_isEnabled"
-                      Label="Enable this model"
-                      Color="Color.Primary" />
-        </MudStack>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">
-            @(_isEditMode ? "Update" : "Add") Model
-        </MudButton>
-    </DialogActions>
-</MudDialog>
+                @* Max Tokens *@
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Max Tokens</label>
+                    <input @bind="_maxTokens"
+                           type="number"
+                           min="100"
+                           max="100000"
+                           class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                </div>
+
+                @* Description *@
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Description (Optional)</label>
+                    <textarea @bind="_description"
+                              rows="2"
+                              class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"></textarea>
+                </div>
+
+                @* Enable Model *@
+                <div class="flex items-center justify-between p-3 bg-[#0F0F0F] border border-[#2A2A2A] rounded-lg">
+                    <label class="text-sm font-medium text-gray-200">Enable this model</label>
+                    <button type="button" @onclick="@(() => _isEnabled = !_isEnabled)"
+                            class="@(_isEnabled ? "bg-purple-600" : "bg-gray-700") relative inline-flex h-6 w-11 items-center rounded-full transition-colors">
+                        <span class="@(_isEnabled ? "translate-x-6" : "translate-x-1") inline-block h-4 w-4 transform rounded-full bg-white transition-transform"></span>
+                    </button>
+                </div>
+            </div>
+
+            @* Dialog Actions *@
+            <div class="px-6 py-4 border-t border-[#2A2A2A] flex items-center justify-end gap-3">
+                <button @onclick="Cancel"
+                        class="px-4 py-2 bg-transparent border border-[#2A2A2A] text-gray-300 hover:bg-[#2A2A2A] rounded-lg transition-all text-sm font-medium">
+                    Cancel
+                </button>
+                <button @onclick="Submit"
+                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all text-sm font-medium">
+                    @(_isEditMode ? "Update" : "Add") Model
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
-    [CascadingParameter]
-    IMudDialogInstance? MudDialog { get; set; }
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsVisibleChanged { get; set; }
 
     [Parameter]
     public AIModelConfig? Model { get; set; }
+
+    [Parameter]
+    public EventCallback<AIModelConfig> OnSubmit { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
 
     private string _modelId = string.Empty;
     private string _name = string.Empty;
@@ -69,7 +119,7 @@
     private bool _isEnabled = true;
     private bool _isEditMode = false;
 
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
         if (Model != null)
         {
@@ -81,14 +131,25 @@
             _description = Model.Description;
             _isEnabled = Model.IsEnabled;
         }
+        else
+        {
+            _isEditMode = false;
+            _modelId = string.Empty;
+            _name = string.Empty;
+            _provider = "OpenAI";
+            _maxTokens = 4096;
+            _description = null;
+            _isEnabled = true;
+        }
     }
 
-    private void Cancel()
+    private async Task Cancel()
     {
-        MudDialog?.Cancel();
+        await OnCancel.InvokeAsync();
+        await Close();
     }
 
-    private void Submit()
+    private async Task Submit()
     {
         var model = new AIModelConfig
         {
@@ -100,6 +161,13 @@
             IsEnabled = _isEnabled
         };
 
-        MudDialog?.Close(DialogResult.Ok(model));
+        await OnSubmit.InvokeAsync(model);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(IsVisible);
     }
 }

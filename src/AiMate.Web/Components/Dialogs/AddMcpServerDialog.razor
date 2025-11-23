@@ -1,65 +1,110 @@
 @using AiMate.Web.Store.Admin
 
-<MudDialog>
-    <DialogContent>
-        <MudStack Spacing="3">
-            <MudTextField T="string" @bind-Value="@_name"
-                         Label="Server Name"
-                         Variant="Variant.Outlined"
-                         Margin="Margin.Dense"
-                         Required="true" />
+@if (IsVisible)
+{
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" @onclick="Cancel">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl shadow-2xl w-full max-w-lg"
+             @onclick:stopPropagation="true">
 
-            <MudSelect T="string" @bind-Value="@_type"
-                      Label="Server Type"
-                      Variant="Variant.Outlined"
-                      Margin="Margin.Dense"
-                      Required="true">
-                <MudSelectItem T="string" Value="@("stdio")">Stdio (Local Process)</MudSelectItem>
-                <MudSelectItem T="string" Value="@("sse")">SSE (Server-Sent Events)</MudSelectItem>
-                <MudSelectItem T="string" Value="@("http")">HTTP (REST API)</MudSelectItem>
-            </MudSelect>
+            @* Dialog Header *@
+            <div class="flex items-center justify-between px-6 py-4 border-b border-[#2A2A2A]">
+                <h3 class="text-lg font-semibold text-white">@(_isEditMode ? "Edit MCP Server" : "Add MCP Server")</h3>
+                <button @onclick="Cancel"
+                        class="p-2 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
 
-            @if (_type == "stdio")
-            {
-                <MudTextField T="string" @bind-Value="@_command"
-                             Label="Command"
-                             Variant="Variant.Outlined"
-                             Margin="Margin.Dense"
-                             HelperText="e.g., npx, node, python"
-                             Required="true" />
+            @* Dialog Content *@
+            <div class="p-6 space-y-4">
+                @* Server Name *@
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Server Name *</label>
+                    <input @bind="_name"
+                           type="text"
+                           required
+                           class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                </div>
 
-                <MudTextField T="string" @bind-Value="@_arguments"
-                             Label="Arguments"
-                             Variant="Variant.Outlined"
-                             Margin="Margin.Dense"
-                             Lines="3"
-                             HelperText="Command arguments, one per line" />
-            }
-            else if (_type == "http" || _type == "sse")
-            {
-                <MudTextField T="string" @bind-Value="@_url"
-                             Label="Server URL"
-                             Variant="Variant.Outlined"
-                             Margin="Margin.Dense"
-                             HelperText="e.g., http://localhost:8080/mcp"
-                             Required="true" />
-            }
-        </MudStack>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">
-            @(_isEditMode ? "Update" : "Add") Server
-        </MudButton>
-    </DialogActions>
-</MudDialog>
+                @* Server Type *@
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Server Type *</label>
+                    <select @bind="_type"
+                            class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <option value="stdio">Stdio (Local Process)</option>
+                        <option value="sse">SSE (Server-Sent Events)</option>
+                        <option value="http">HTTP (REST API)</option>
+                    </select>
+                </div>
+
+                @* Conditional Fields - Stdio *@
+                @if (_type == "stdio")
+                {
+                    <div>
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Command *</label>
+                        <input @bind="_command"
+                               type="text"
+                               placeholder="e.g., npx, node, python"
+                               required
+                               class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                        <p class="text-xs text-gray-400 mt-1">e.g., npx, node, python</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Arguments</label>
+                        <textarea @bind="_arguments"
+                                  rows="3"
+                                  placeholder="Command arguments, one per line"
+                                  class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"></textarea>
+                        <p class="text-xs text-gray-400 mt-1">Command arguments, one per line</p>
+                    </div>
+                }
+                else if (_type == "http" || _type == "sse")
+                {
+                    <div>
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Server URL *</label>
+                        <input @bind="_url"
+                               type="url"
+                               placeholder="e.g., http://localhost:8080/mcp"
+                               required
+                               class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                        <p class="text-xs text-gray-400 mt-1">e.g., http://localhost:8080/mcp</p>
+                    </div>
+                }
+            </div>
+
+            @* Dialog Actions *@
+            <div class="px-6 py-4 border-t border-[#2A2A2A] flex items-center justify-end gap-3">
+                <button @onclick="Cancel"
+                        class="px-4 py-2 bg-transparent border border-[#2A2A2A] text-gray-300 hover:bg-[#2A2A2A] rounded-lg transition-all text-sm font-medium">
+                    Cancel
+                </button>
+                <button @onclick="Submit"
+                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-all text-sm font-medium">
+                    @(_isEditMode ? "Update" : "Add") Server
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
-    [CascadingParameter]
-    IMudDialogInstance? MudDialog { get; set; }
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsVisibleChanged { get; set; }
 
     [Parameter]
     public MCPServerConfig? Server { get; set; }
+
+    [Parameter]
+    public EventCallback<MCPServerConfig> OnSubmit { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
 
     private string _name = string.Empty;
     private string _type = "stdio";
@@ -68,7 +113,7 @@
     private string? _url;
     private bool _isEditMode = false;
 
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
         if (Server != null)
         {
@@ -79,14 +124,24 @@
             _arguments = Server.Arguments;
             _url = Server.Url;
         }
+        else
+        {
+            _isEditMode = false;
+            _name = string.Empty;
+            _type = "stdio";
+            _command = null;
+            _arguments = null;
+            _url = null;
+        }
     }
 
-    private void Cancel()
+    private async Task Cancel()
     {
-        MudDialog?.Cancel();
+        await OnCancel.InvokeAsync();
+        await Close();
     }
 
-    private void Submit()
+    private async Task Submit()
     {
         var server = new MCPServerConfig
         {
@@ -100,6 +155,13 @@
             ToolCount = 0
         };
 
-        MudDialog?.Close(DialogResult.Ok(server));
+        await OnSubmit.InvokeAsync(server);
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(IsVisible);
     }
 }

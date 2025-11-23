@@ -1,63 +1,112 @@
-@inject IDialogService DialogService
+@if (IsVisible)
+{
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" @onclick="Cancel">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col"
+             @onclick:stopPropagation="true">
 
-<MudDialog>
-    <DialogContent>
-        <div class="mb-4">
-            <MudTextField @bind-Value="_searchQuery"
-                         Label="Search notes"
-                         Placeholder="Type to search..."
-                         Variant="Variant.Outlined"
-                         Margin="Margin.Dense"
-                         FullWidth="true"
-                         Adornment="Adornment.Start"
-                         AdornmentIcon="@Icons.Material.Filled.Search" />
-        </div>
-
-        @if (_filteredNotes.Any())
-        {
-            <MudList T="string" Clickable="true" Dense="true" Class="max-h-96 overflow-y-auto">
-                @foreach (var note in _filteredNotes)
-                {
-                    <MudListItem T="string" OnClick="@(() => ToggleNoteSelection(note))"
-                                Class="@(IsNoteSelected(note) ? "bg-primary/10" : "")">
-                        <div class="flex items-center gap-3">
-                            <MudCheckBox  T="bool" @bind-Checked="@note.IsSelected"
-                                        Color="Color.Primary"
-                                        Dense="true" />
-                            <div class="flex-1">
-                                <MudText Typo="Typo.body2" Class="font-medium">@note.Title</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    @note.Preview · @note.CreatedAt.ToString("MMM dd, yyyy")
-                                </MudText>
-                            </div>
-                        </div>
-                    </MudListItem>
-                }
-            </MudList>
-        }
-        else
-        {
-            <div class="text-center py-8">
-                <MudIcon Icon="@Icons.Material.Filled.Note" Size="Size.Large" Color="Color.Secondary" />
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
-                    @(_searchQuery.Length > 0 ? "No notes found" : "No notes available")
-                </MudText>
+            @* Dialog Header *@
+            <div class="flex items-center justify-between px-6 py-4 border-b border-[#2A2A2A]">
+                <h3 class="text-lg font-semibold text-white">Attach Notes</h3>
+                <button @onclick="Cancel"
+                        class="p-2 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
             </div>
-        }
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary"
-                   OnClick="Submit"
-                   Disabled="@(!_notes.Any(n => n.IsSelected))">
-            Attach (@_notes.Count(n => n.IsSelected))
-        </MudButton>
-    </DialogActions>
-</MudDialog>
+
+            @* Dialog Content *@
+            <div class="flex-1 overflow-y-auto p-6">
+                @* Search Field *@
+                <div class="mb-4">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                        <input @bind="_searchQuery"
+                               @bind:event="oninput"
+                               type="text"
+                               placeholder="Type to search..."
+                               class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+                </div>
+
+                @* Notes List *@
+                @if (_filteredNotes.Any())
+                {
+                    <div class="space-y-1">
+                        @foreach (var note in _filteredNotes)
+                        {
+                            <div @onclick="@(() => ToggleNoteSelection(note))"
+                                 class="@(note.IsSelected ? "bg-purple-500/10 border-purple-500/50" : "bg-[#0F0F0F] border-[#2A2A2A]") border rounded-lg p-3 cursor-pointer hover:bg-purple-500/5 transition-all">
+                                <div class="flex items-start gap-3">
+                                    @* Custom Checkbox *@
+                                    <div class="flex items-center h-5 mt-0.5">
+                                        <input type="checkbox"
+                                               checked="@note.IsSelected"
+                                               @onclick:stopPropagation
+                                               @onchange="@(() => ToggleNoteSelection(note))"
+                                               class="w-4 h-4 bg-[#0F0F0F] border-[#2A2A2A] rounded text-purple-600 focus:ring-2 focus:ring-purple-500" />
+                                    </div>
+
+                                    @* Note Content *@
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-white truncate">@note.Title</p>
+                                        <p class="text-xs text-gray-400 mt-1 line-clamp-2">
+                                            @note.Preview · @note.CreatedAt.ToString("MMM dd, yyyy")
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-12">
+                        <svg class="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                            <path d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+                        </svg>
+                        <p class="text-sm text-gray-400">
+                            @(_searchQuery.Length > 0 ? "No notes found" : "No notes available")
+                        </p>
+                    </div>
+                }
+            </div>
+
+            @* Dialog Actions *@
+            <div class="px-6 py-4 border-t border-[#2A2A2A] flex items-center justify-end gap-3">
+                <button @onclick="Cancel"
+                        class="px-4 py-2 bg-transparent border border-[#2A2A2A] text-gray-300 hover:bg-[#2A2A2A] rounded-lg transition-all text-sm font-medium">
+                    Cancel
+                </button>
+                <button @onclick="Submit"
+                        disabled="@(!_notes.Any(n => n.IsSelected))"
+                        class="@(_notes.Any(n => n.IsSelected) ? "bg-purple-600 hover:bg-purple-700" : "bg-gray-700 cursor-not-allowed") px-4 py-2 text-white rounded-lg transition-all text-sm font-medium">
+                    Attach (@_notes.Count(n => n.IsSelected))
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
-    [CascadingParameter]
-    IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsVisibleChanged { get; set; }
+
+    [Parameter]
+    public List<NoteItem>? Notes { get; set; }
+
+    [Parameter]
+    public EventCallback<List<NoteItem>> OnSubmit { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
 
     private string _searchQuery = string.Empty;
     private List<NoteItem> _notes = new();
@@ -66,40 +115,47 @@
         : _notes.Where(n => n.Title.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) ||
                            n.Preview.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase));
 
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
-        // TODO: Load actual notes from service
-        _notes = new List<NoteItem>
+        if (Notes != null && Notes.Any())
         {
-            new NoteItem
+            _notes = Notes;
+        }
+        else
+        {
+            // TODO: Load actual notes from service
+            _notes = new List<NoteItem>
             {
-                Id = 1,
-                Title = "Project Requirements",
-                Preview = "List of requirements for the new project including authentication...",
-                CreatedAt = DateTime.Now.AddDays(-5)
-            },
-            new NoteItem
-            {
-                Id = 2,
-                Title = "Meeting Notes",
-                Preview = "Discussion points from today's meeting about sprint planning...",
-                CreatedAt = DateTime.Now.AddDays(-2)
-            },
-            new NoteItem
-            {
-                Id = 3,
-                Title = "Design Ideas",
-                Preview = "Ideas for the new design system including color palette...",
-                CreatedAt = DateTime.Now.AddDays(-10)
-            },
-            new NoteItem
-            {
-                Id = 4,
-                Title = "API Endpoints",
-                Preview = "Documentation for all REST API endpoints with request/response...",
-                CreatedAt = DateTime.Now.AddDays(-7)
-            }
-        };
+                new NoteItem
+                {
+                    Id = 1,
+                    Title = "Project Requirements",
+                    Preview = "List of requirements for the new project including authentication...",
+                    CreatedAt = DateTime.Now.AddDays(-5)
+                },
+                new NoteItem
+                {
+                    Id = 2,
+                    Title = "Meeting Notes",
+                    Preview = "Discussion points from today's meeting about sprint planning...",
+                    CreatedAt = DateTime.Now.AddDays(-2)
+                },
+                new NoteItem
+                {
+                    Id = 3,
+                    Title = "Design Ideas",
+                    Preview = "Ideas for the new design system including color palette...",
+                    CreatedAt = DateTime.Now.AddDays(-10)
+                },
+                new NoteItem
+                {
+                    Id = 4,
+                    Title = "API Endpoints",
+                    Preview = "Documentation for all REST API endpoints with request/response...",
+                    CreatedAt = DateTime.Now.AddDays(-7)
+                }
+            };
+        }
     }
 
     private void ToggleNoteSelection(NoteItem note)
@@ -108,15 +164,24 @@
         StateHasChanged();
     }
 
-    private bool IsNoteSelected(NoteItem note) => note.IsSelected;
-
-    void Submit()
+    private async Task Submit()
     {
         var selectedNotes = _notes.Where(n => n.IsSelected).ToList();
-        MudDialog.Close(DialogResult.Ok(selectedNotes));
+        await OnSubmit.InvokeAsync(selectedNotes);
+        await Close();
     }
 
-    void Cancel() => MudDialog.Cancel();
+    private async Task Cancel()
+    {
+        await OnCancel.InvokeAsync();
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsVisible = false;
+        await IsVisibleChanged.InvokeAsync(IsVisible);
+    }
 
     public class NoteItem
     {
