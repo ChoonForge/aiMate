@@ -2,261 +2,222 @@
 @inject HttpClient Http
 @inject ISnackbar Snackbar
 
-<MudDialog>
-    <DialogContent>
-        <MudForm @ref="_form">
-            <MudGrid Spacing="2">
-                <!-- Project Key and Name -->
-                <MudItem xs="12" sm="4">
-                    <MudTextField T="string"
-                                 @bind-Value="_project.Key"
-                                 Label="Project Key"
-                                 Placeholder="e.g., PROJ-001"
-                                 Required="true"
-                                 RequiredError="Project key is required"
-                                 HelperText="Unique identifier for the project"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
-                </MudItem>
+@if (IsVisible)
+{
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" @onclick="Close">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+             @onclick:stopPropagation="true">
 
-                <MudItem xs="12" sm="8">
-                    <MudTextField T="string"
-                                 @bind-Value="_project.Name"
-                                 Label="Project Name"
-                                 Required="true"
-                                 RequiredError="Project name is required"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
-                </MudItem>
+            @* Dialog Header *@
+            <div class="flex items-center justify-between px-6 py-4 border-b border-[#2A2A2A] sticky top-0 bg-[#1A1A1A] z-10">
+                <h3 class="text-lg font-semibold text-white">@(_isEditMode ? "Edit Project" : "Create Project")</h3>
+                <button @onclick="Close"
+                        class="p-2 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
 
-                <!-- Description -->
-                <MudItem xs="12">
-                    <MudTextField T="string"
-                                 @bind-Value="_project.Description"
-                                 Label="Description"
-                                 Lines="3"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
-                </MudItem>
+            @* Dialog Content *@
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @* Project Key *@
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Project Key <span class="text-red-500">*</span></label>
+                        <input type="text"
+                               @bind="_project.Key"
+                               placeholder="e.g., PROJ-001"
+                               class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                        <p class="text-xs text-gray-400 mt-1">Unique identifier for the project</p>
+                    </div>
 
-                <!-- Status and Priority -->
-                <MudItem xs="12" sm="6">
-                    <MudSelect T="string"
-                              @bind-Value="_project.Status"
-                              Label="Status"
-                              Required="true"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense">
-                        <MudSelectItem T="string" Value="@("Planning")">
-                            <div class="d-flex align-center gap-2">
-                                <MudIcon Icon="@Icons.Material.Filled.Lightbulb" Size="Size.Small" Color="Color.Info" />
-                                Planning
+                    @* Project Name *@
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Project Name <span class="text-red-500">*</span></label>
+                        <input type="text"
+                               @bind="_project.Name"
+                               class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+
+                    @* Description *@
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Description</label>
+                        <textarea @bind="_project.Description"
+                                  rows="3"
+                                  class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+                    </div>
+
+                    @* Status *@
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Status <span class="text-red-500">*</span></label>
+                        <select @bind="_project.Status"
+                                class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="Planning">📝 Planning</option>
+                            <option value="Active">▶️ Active</option>
+                            <option value="OnHold">⏸️ On Hold</option>
+                            <option value="Completed">✅ Completed</option>
+                            <option value="Cancelled">❌ Cancelled</option>
+                        </select>
+                    </div>
+
+                    @* Priority *@
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Priority <span class="text-red-500">*</span></label>
+                        <select @bind="_project.Priority"
+                                class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <option value="Critical">🚩 Critical</option>
+                            <option value="High">⚠️ High</option>
+                            <option value="Medium">ℹ️ Medium</option>
+                            <option value="Low">✅ Low</option>
+                        </select>
+                    </div>
+
+                    @* Progress *@
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Progress: @_project.ProgressPercent%</label>
+                        <input type="range"
+                               @bind="_project.ProgressPercent"
+                               @bind:event="oninput"
+                               min="0"
+                               max="100"
+                               step="5"
+                               class="w-full h-2 bg-[#0F0F0F] rounded-lg appearance-none cursor-pointer accent-purple-600" />
+                        <div class="flex justify-between text-xs text-gray-400 mt-1">
+                            <span>0%</span>
+                            <span>50%</span>
+                            <span>100%</span>
+                        </div>
+                    </div>
+
+                    @* Start Date *@
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Start Date</label>
+                        <input type="date"
+                               @bind="_startDateString"
+                               class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+
+                    @* Due Date *@
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Due Date</label>
+                        <input type="date"
+                               @bind="_dueDateString"
+                               min="@_startDateString"
+                               class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+
+                    @* Budget *@
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Budget</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-gray-400">$</span>
+                            <input type="number"
+                                   @bind="_project.Budget"
+                                   step="0.01"
+                                   class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                        </div>
+                    </div>
+
+                    @* Owner *@
+                    <div class="md:col-span-1">
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Owner</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-gray-400">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                                </svg>
+                            </span>
+                            <input type="text"
+                                   @bind="_project.Owner"
+                                   class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                        </div>
+                    </div>
+
+                    @* Team Members *@
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Team Members</label>
+                        <input type="text"
+                               value="@string.Join(", ", _project.TeamMembers)"
+                               @oninput="@((ChangeEventArgs e) => UpdateTeamMembers(e.Value?.ToString() ?? ""))"
+                               placeholder="Enter team members separated by commas"
+                               class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+
+                    @* Tags *@
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Tags</label>
+                        <input type="text"
+                               value="@string.Join(", ", _project.Tags)"
+                               @oninput="@((ChangeEventArgs e) => UpdateTags(e.Value?.ToString() ?? ""))"
+                               placeholder="Enter tags separated by commas"
+                               class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    </div>
+
+                    @* Notes *@
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-200 mb-2">Notes</label>
+                        <textarea @bind="_project.Notes"
+                                  rows="4"
+                                  class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <div class="md:col-span-2">
+                            <div class="bg-red-900/20 border border-red-500/30 text-red-300 rounded-lg p-3 text-sm">
+                                @_errorMessage
                             </div>
-                        </MudSelectItem>
-                        <MudSelectItem T="string" Value="@("Active")">
-                            <div class="d-flex align-center gap-2">
-                                <MudIcon Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Small" Color="Color.Success" />
-                                Active
-                            </div>
-                        </MudSelectItem>
-                        <MudSelectItem T="string" Value="@("OnHold")">
-                            <div class="d-flex align-center gap-2">
-                                <MudIcon Icon="@Icons.Material.Filled.Pause" Size="Size.Small" Color="Color.Warning" />
-                                On Hold
-                            </div>
-                        </MudSelectItem>
-                        <MudSelectItem T="string" Value="@("Completed")">
-                            <div class="d-flex align-center gap-2">
-                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" Color="Color.Primary" />
-                                Completed
-                            </div>
-                        </MudSelectItem>
-                        <MudSelectItem T="string" Value="@("Cancelled")">
-                            <div class="d-flex align-center gap-2">
-                                <MudIcon Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" Color="Color.Error" />
-                                Cancelled
-                            </div>
-                        </MudSelectItem>
-                    </MudSelect>
-                </MudItem>
+                        </div>
+                    }
+                </div>
+            </div>
 
-                <MudItem xs="12" sm="6">
-                    <MudSelect T="string"
-                              @bind-Value="_project.Priority"
-                              Label="Priority"
-                              Required="true"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense">
-                        <MudSelectItem T="string" Value="@("Critical")">
-                            <div class="d-flex align-center gap-2">
-                                <MudIcon Icon="@Icons.Material.Filled.Flag" Size="Size.Small" Color="Color.Error" />
-                                Critical
-                            </div>
-                        </MudSelectItem>
-                        <MudSelectItem T="string" Value="@("High")">
-                            <div class="d-flex align-center gap-2">
-                                <MudIcon Icon="@Icons.Material.Filled.Flag" Size="Size.Small" Color="Color.Warning" />
-                                High
-                            </div>
-                        </MudSelectItem>
-                        <MudSelectItem T="string" Value="@("Medium")">
-                            <div class="d-flex align-center gap-2">
-                                <MudIcon Icon="@Icons.Material.Filled.Flag" Size="Size.Small" Color="Color.Info" />
-                                Medium
-                            </div>
-                        </MudSelectItem>
-                        <MudSelectItem T="string" Value="@("Low")">
-                            <div class="d-flex align-center gap-2">
-                                <MudIcon Icon="@Icons.Material.Filled.Flag" Size="Size.Small" Color="Color.Success" />
-                                Low
-                            </div>
-                        </MudSelectItem>
-                    </MudSelect>
-                </MudItem>
-
-                <!-- Progress -->
-                <MudItem xs="12">
-                    <MudText Typo="Typo.body2" Class="mb-2">
-                        Progress: @_project.ProgressPercent%
-                    </MudText>
-                    <MudSlider T="int"
-                              @bind-Value="_project.ProgressPercent"
-                              Min="0"
-                              Max="100"
-                              Step="5"
-                              Color="Color.Primary"
-                              Variant="Variant.Filled">
-                        @_project.ProgressPercent%
-                    </MudSlider>
-                </MudItem>
-
-                <!-- Dates -->
-                <MudItem xs="12" sm="6">
-                    <MudDatePicker
-                                  @bind-Date="_project.StartDate"
-                                  Label="Start Date"
-                                  Variant="Variant.Outlined"
-                                  Margin="Margin.Dense"
-                                  Editable="true" />
-                </MudItem>
-
-                <MudItem xs="12" sm="6">
-                    <MudDatePicker
-                                  @bind-Date="_project.DueDate"
-                                  Label="Due Date"
-                                  Variant="Variant.Outlined"
-                                  Margin="Margin.Dense"
-                                  Editable="true"
-                                  MinDate="_project.StartDate" />
-                </MudItem>
-
-                <!-- Budget -->
-                <MudItem xs="12" sm="6">
-                    <MudNumericField T="decimal?"
-                                    @bind-Value="_project.Budget"
-                                    Label="Budget"
-                                    Format="C2"
-                                    Variant="Variant.Outlined"
-                                    Margin="Margin.Dense"
-                                    Adornment="Adornment.Start"
-                                    AdornmentIcon="@Icons.Material.Filled.AttachMoney" />
-                </MudItem>
-
-                <MudItem xs="12" sm="6">
-                    <MudTextField T="string"
-                                 @bind-Value="_project.Owner"
-                                 Label="Owner"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense"
-                                 Adornment="Adornment.Start"
-                                 AdornmentIcon="@Icons.Material.Filled.Person" />
-                </MudItem>
-
-                <!-- Team Members (Comma-separated) -->
-                <MudItem xs="12">
-                    <MudTextField T="string"
-                                 Value="@string.Join(", ", _project.TeamMembers)"
-                                 ValueChanged="@((string value) => UpdateTeamMembers(value))"
-                                 Label="Team Members"
-                                 HelperText="Enter team members separated by commas"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense"
-                                 Adornment="Adornment.Start"
-                                 AdornmentIcon="@Icons.Material.Filled.Group" />
-                </MudItem>
-
-                <!-- Tags (Comma-separated) -->
-                <MudItem xs="12">
-                    <MudTextField T="string"
-                                 Value="@string.Join(", ", _project.Tags)"
-                                 ValueChanged="@((string value) => UpdateTags(value))"
-                                 Label="Tags"
-                                 HelperText="Enter tags separated by commas"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense"
-                                 Adornment="Adornment.Start"
-                                 AdornmentIcon="@Icons.Material.Filled.LocalOffer" />
-                </MudItem>
-
-                <!-- Notes -->
-                <MudItem xs="12">
-                    <MudTextField T="string"
-                                 @bind-Value="_project.Notes"
-                                 Label="Notes"
-                                 Lines="4"
-                                 Variant="Variant.Outlined"
-                                 Margin="Margin.Dense" />
-                </MudItem>
-
-                @if (!string.IsNullOrEmpty(_errorMessage))
-                {
-                    <MudItem xs="12">
-                        <MudAlert Severity="Severity.Error" Variant="Variant.Filled">
-                            @_errorMessage
-                        </MudAlert>
-                    </MudItem>
-                }
-            </MudGrid>
-        </MudForm>
-    </DialogContent>
-
-    <DialogActions>
-        <MudButton OnClick="Cancel" Variant="Variant.Text">Cancel</MudButton>
-        <MudButton OnClick="Save"
-                  Color="Color.Primary"
-                  Variant="Variant.Filled"
-                  Disabled="_isSaving"
-                  StartIcon="@Icons.Material.Filled.Save">
-            @if (_isSaving)
-            {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
-                <span class="ml-2">Saving...</span>
-            }
-            else
-            {
-                <span>@(_isEditMode ? "Update" : "Create") Project</span>
-            }
-        </MudButton>
-    </DialogActions>
-</MudDialog>
+            @* Dialog Actions *@
+            <div class="px-6 py-4 border-t border-[#2A2A2A] flex items-center justify-end gap-3 sticky bottom-0 bg-[#1A1A1A]">
+                <button @onclick="Close"
+                        class="px-4 py-2 bg-transparent border border-[#2A2A2A] text-gray-300 hover:bg-[#2A2A2A] rounded-lg transition-all text-sm font-medium">
+                    Cancel
+                </button>
+                <button @onclick="Save"
+                        disabled="_isSaving"
+                        class="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg transition-all text-sm font-medium">
+                    @if (_isSaving)
+                    {
+                        <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Saving...</span>
+                    }
+                    else
+                    {
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                        </svg>
+                        <span>@(_isEditMode ? "Update" : "Create") Project</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
-    [CascadingParameter]
-    private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
+    [Parameter] public ProjectDto? Project { get; set; }
+    [Parameter] public EventCallback<ProjectDto> OnSaved { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
 
-    [Parameter]
-    public ProjectDto? Project { get; set; }
-
-    [Parameter]
-    public EventCallback<ProjectDto> OnSaved { get; set; }
-
-    private MudForm _form = null!;
     private ProjectDto _project = new();
     private bool _isEditMode;
     private bool _isSaving;
     private string? _errorMessage;
+    private string _startDateString = "";
+    private string _dueDateString = "";
 
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
         if (Project != null)
         {
@@ -281,6 +242,9 @@
                 UpdatedAt = Project.UpdatedAt
             };
             _isEditMode = true;
+
+            _startDateString = _project.StartDate?.ToString("yyyy-MM-dd") ?? "";
+            _dueDateString = _project.DueDate?.ToString("yyyy-MM-dd") ?? "";
         }
         else
         {
@@ -291,6 +255,8 @@
                 ProgressPercent = 0
             };
             _isEditMode = false;
+            _startDateString = "";
+            _dueDateString = "";
         }
     }
 
@@ -310,9 +276,10 @@
 
     private async Task Save()
     {
-        await _form.Validate();
-        if (!_form.IsValid)
+        // Validate
+        if (string.IsNullOrWhiteSpace(_project.Key) || string.IsNullOrWhiteSpace(_project.Name))
         {
+            _errorMessage = "Project key and name are required";
             return;
         }
 
@@ -321,6 +288,16 @@
 
         try
         {
+            // Parse dates
+            if (!string.IsNullOrEmpty(_startDateString) && DateTime.TryParse(_startDateString, out var startDate))
+            {
+                _project.StartDate = startDate;
+            }
+            if (!string.IsNullOrEmpty(_dueDateString) && DateTime.TryParse(_dueDateString, out var dueDate))
+            {
+                _project.DueDate = dueDate;
+            }
+
             var userId = "user-1"; // IMPLEMENTATION NEEDED: Get from IState<AuthState>.Value.CurrentUser?.Id
             _project.OwnerId = userId;
             _project.UpdatedAt = DateTime.UtcNow;
@@ -390,8 +367,11 @@
                     _isEditMode ? "Project updated successfully" : "Project created successfully",
                     Severity.Success
                 );
-                await OnSaved.InvokeAsync(result);
-                MudDialog.Close(DialogResult.Ok(result));
+                if (OnSaved.HasDelegate)
+                {
+                    await OnSaved.InvokeAsync(result);
+                }
+                await Close();
             }
         }
         catch (Exception ex)
@@ -404,8 +384,12 @@
         }
     }
 
-    private void Cancel()
+    private async Task Close()
     {
-        MudDialog.Cancel();
+        if (OnClose.HasDelegate)
+        {
+            await OnClose.InvokeAsync();
+        }
+        await IsVisibleChanged.InvokeAsync(false);
     }
 }

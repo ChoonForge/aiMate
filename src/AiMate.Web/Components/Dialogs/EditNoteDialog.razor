@@ -1,178 +1,188 @@
 @using AiMate.Shared.Models
 @inject ISnackbar Snackbar
 
-<MudDialog>
-    <DialogContent>
-        <MudStack Spacing="3">
-            @* Title *@
-            <MudTextField T="string" @bind-Value="@Note.Title"
-                         Label="Title"
-                         Variant="Variant.Outlined"
-                         Margin="Margin.Dense"
-                         Required="true"
-                         Immediate="true"
-                         HelperText="Give your note a descriptive title" />
+@if (IsVisible)
+{
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" @onclick="Close">
+        <div class="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+             @onclick:stopPropagation="true">
 
-            @* Content Type Selector *@
-            <MudSelect T="string" @bind-Value="@Note.ContentType"
-                      Label="Content Type"
-                      Variant="Variant.Outlined"
-                      Margin="Margin.Dense">
-                <MudSelectItem T="string" Value="@("markdown")">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                        <MudIcon Icon="@Icons.Material.Filled.Code" Size="Size.Small" />
-                        <span>Markdown</span>
-                    </MudStack>
-                </MudSelectItem>
-                <MudSelectItem T="string" Value="@("plain")">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                        <MudIcon Icon="@Icons.Material.Filled.TextFields" Size="Size.Small" />
-                        <span>Plain Text</span>
-                    </MudStack>
-                </MudSelectItem>
-                <MudSelectItem T="string" Value="@("html")">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                        <MudIcon Icon="@Icons.Material.Filled.Html" Size="Size.Small" />
-                        <span>HTML</span>
-                    </MudStack>
-                </MudSelectItem>
-            </MudSelect>
+            @* Dialog Header *@
+            <div class="flex items-center justify-between px-6 py-4 border-b border-[#2A2A2A] sticky top-0 bg-[#1A1A1A] z-10">
+                <h3 class="text-lg font-semibold text-white">@(IsNew ? "Create Note" : "Edit Note")</h3>
+                <button @onclick="Close"
+                        class="p-2 text-gray-400 hover:text-white hover:bg-[#2A2A2A] rounded-lg transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
 
-            @* Content *@
-            <MudTextField T="string" @bind-Value="@Note.Content"
-                         Label="Content"
-                         Variant="Variant.Outlined"
-                         Margin="Margin.Dense"
-                         Lines="10"
-                         AutoGrow="true"
-                         HelperText="@GetContentHelperText()" />
+            @* Dialog Content *@
+            <div class="p-6 space-y-4">
+                @* Title *@
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Title <span class="text-red-500">*</span></label>
+                    <input type="text"
+                           @bind="Note.Title"
+                           @bind:event="oninput"
+                           placeholder="Give your note a descriptive title"
+                           class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                </div>
 
-            @* Collection *@
-            <MudAutocomplete T="string" @bind-Value="@Note.Collection"
-                            Label="Collection (optional)"
-                            Variant="Variant.Outlined"
-                            Margin="Margin.Dense"
-                            SearchFunc="@SearchCollections"
-                            ResetValueOnEmptyText="true"
-                            CoerceText="true"
-                            CoerceValue="false"
-                            HelperText="Organize notes into collections"
-                            Clearable="true">
-                <ItemTemplate Context="item">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                        <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" Color="Color.Primary" />
-                        <span>@item</span>
-                    </MudStack>
-                </ItemTemplate>
-            </MudAutocomplete>
+                @* Content Type Selector *@
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Content Type</label>
+                    <select @bind="Note.ContentType"
+                            class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <option value="markdown">
+                            <svg class="inline w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M3 3h18v18H3V3m2 2v14h14V5H5m2 12h2l2-3 2 3h2v-6h-2v3.5l-2-3-2 3V11H7v6z"/></svg>
+                            Markdown
+                        </option>
+                        <option value="plain">Plain Text</option>
+                        <option value="html">HTML</option>
+                    </select>
+                </div>
 
-            @* Category *@
-            <MudSelect T="string" @bind-Value="@Note.Category"
-                      Label="Category (optional)"
-                      Variant="Variant.Outlined"
-                      Margin="Margin.Dense"
-                      Clearable="true">
-                <MudSelectItem T="string" Value="@("Personal")">Personal</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Work")">Work</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Research")">Research</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Ideas")">Ideas</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Todo")">Todo</MudSelectItem>
-                <MudSelectItem T="string" Value="@("Reference")">Reference</MudSelectItem>
-            </MudSelect>
+                @* Content *@
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Content</label>
+                    <textarea @bind="Note.Content"
+                              rows="10"
+                              placeholder="Enter your note content..."
+                              class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"></textarea>
+                    <p class="text-xs text-gray-400 mt-1">@GetContentHelperText()</p>
+                </div>
 
-            @* Color *@
-            <MudSelect T="string" @bind-Value="@Note.Color"
-                      Label="Color (optional)"
-                      Variant="Variant.Outlined"
-                      Margin="Margin.Dense"
-                      Clearable="true">
-                <MudSelectItem T="string" Value="@("default")">
-                    <MudChip T="string" Color="Color.Default" Size="Size.Small">Default</MudChip>
-                </MudSelectItem>
-                <MudSelectItem T="string" Value="@("primary")">
-                    <MudChip T="string" Color="Color.Primary" Size="Size.Small">Blue</MudChip>
-                </MudSelectItem>
-                <MudSelectItem T="string" Value="@("secondary")">
-                    <MudChip T="string" Color="Color.Secondary" Size="Size.Small">Purple</MudChip>
-                </MudSelectItem>
-                <MudSelectItem T="string" Value="@("success")">
-                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Green</MudChip>
-                </MudSelectItem>
-                <MudSelectItem T="string" Value="@("warning")">
-                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">Orange</MudChip>
-                </MudSelectItem>
-                <MudSelectItem T="string" Value="@("error")">
-                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Red</MudChip>
-                </MudSelectItem>
-                <MudSelectItem T="string" Value="@("info")">
-                    <MudChip T="string" Color="Color.Info" Size="Size.Small">Cyan</MudChip>
-                </MudSelectItem>
-            </MudSelect>
+                @* Collection *@
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Collection (optional)</label>
+                    <input type="text"
+                           @bind="Note.Collection"
+                           list="collections-list"
+                           placeholder="Organize notes into collections"
+                           class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                    <datalist id="collections-list">
+                        @foreach (var collection in ExistingCollections)
+                        {
+                            <option value="@collection">@collection</option>
+                        }
+                    </datalist>
+                </div>
 
-            @* Tags *@
-            <MudStack Spacing="1">
-                <MudText Typo="Typo.caption">Tags</MudText>
-                <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
-                    @foreach (var tag in Note.Tags)
+                @* Category *@
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Category (optional)</label>
+                    <select @bind="Note.Category"
+                            class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <option value="">-- Select Category --</option>
+                        <option value="Personal">Personal</option>
+                        <option value="Work">Work</option>
+                        <option value="Research">Research</option>
+                        <option value="Ideas">Ideas</option>
+                        <option value="Todo">Todo</option>
+                        <option value="Reference">Reference</option>
+                    </select>
+                </div>
+
+                @* Color *@
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Color (optional)</label>
+                    <select @bind="Note.Color"
+                            class="w-full bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <option value="">-- Select Color --</option>
+                        <option value="default">Default (Gray)</option>
+                        <option value="primary">Blue</option>
+                        <option value="secondary">Purple</option>
+                        <option value="success">Green</option>
+                        <option value="warning">Orange</option>
+                        <option value="error">Red</option>
+                        <option value="info">Cyan</option>
+                    </select>
+                </div>
+
+                @* Tags *@
+                <div>
+                    <label class="block text-sm font-medium text-gray-200 mb-2">Tags</label>
+                    <div class="flex flex-wrap gap-2 mb-2">
+                        @foreach (var tag in Note.Tags)
+                        {
+                            <span class="inline-flex items-center gap-1 px-2 py-1 bg-purple-600/20 border border-purple-500/30 text-purple-300 rounded text-xs">
+                                @tag
+                                <button type="button" @onclick="@(() => RemoveTag(tag))" class="hover:text-purple-100">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                        <path d="M6 18L18 6M6 6l12 12"/>
+                                    </svg>
+                                </button>
+                            </span>
+                        }
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text"
+                               @bind="_newTag"
+                               @onkeydown="HandleTagKeyDown"
+                               placeholder="Add tag"
+                               class="flex-1 bg-[#0F0F0F] border border-[#2A2A2A] text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" />
+                        <button type="button"
+                                @onclick="AddTag"
+                                disabled="@string.IsNullOrWhiteSpace(_newTag)"
+                                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg transition-all text-sm font-medium">
+                            Add
+                        </button>
+                    </div>
+                </div>
+
+                @* Toggles *@
+                <div class="flex flex-wrap gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox"
+                               @bind="Note.IsPinned"
+                               class="w-4 h-4 rounded bg-[#0F0F0F] border-[#2A2A2A] text-purple-600 focus:ring-2 focus:ring-purple-500" />
+                        <span class="text-sm text-gray-200">Pin Note</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox"
+                               @bind="Note.IsFavorite"
+                               class="w-4 h-4 rounded bg-[#0F0F0F] border-[#2A2A2A] text-yellow-600 focus:ring-2 focus:ring-yellow-500" />
+                        <span class="text-sm text-gray-200">Favorite</span>
+                    </label>
+                    @if (!IsNew)
                     {
-                        <MudChip T="string" Text="@tag"
-                                Size="Size.Small"
-                                CloseIconClicked="@(() => RemoveTag(tag))">
-                            @tag
-                        </MudChip>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox"
+                                   @bind="Note.IsArchived"
+                                   class="w-4 h-4 rounded bg-[#0F0F0F] border-[#2A2A2A] text-gray-600 focus:ring-2 focus:ring-gray-500" />
+                            <span class="text-sm text-gray-200">Archived</span>
+                        </label>
                     }
-                </MudStack>
-                <MudStack Row="true" Spacing="1">
-                    <MudTextField T="string" @bind-Value="@_newTag"
-                                 Label="Add tag"
-                                 Variant="Variant.Outlined"
-                                 OnKeyDown="@HandleTagKeyDown"
-                                 Margin="Margin.Dense" />
-                    <MudButton Variant="Variant.Filled"
-                              Color="Color.Primary"
-                              OnClick="@AddTag"
-                              Disabled="@string.IsNullOrWhiteSpace(_newTag)">
-                        Add
-                    </MudButton>
-                </MudStack>
-            </MudStack>
+                </div>
+            </div>
 
-            @* Toggles *@
-            <MudStack Row="true" Spacing="3">
-                <MudSwitch T="bool" @bind-Value="@Note.IsPinned"
-                          Label="Pin Note"
-                          Color="Color.Primary" />
-                <MudSwitch T="bool" @bind-Value="@Note.IsFavorite"
-                          Label="Favorite"
-                          Color="Color.Warning" />
-                @if (!IsNew)
-                {
-                    <MudSwitch T="bool" @bind-Value="@Note.IsArchived"
-                              Label="Archived"
-                              Color="Color.Secondary" />
-                }
-            </MudStack>
-        </MudStack>
-    </DialogContent>
-
-    <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Variant="Variant.Filled"
-                  Color="Color.Primary"
-                  OnClick="Save"
-                  Disabled="@string.IsNullOrWhiteSpace(Note.Title)">
-            @(IsNew ? "Create" : "Update")
-        </MudButton>
-    </DialogActions>
-</MudDialog>
+            @* Dialog Actions *@
+            <div class="px-6 py-4 border-t border-[#2A2A2A] flex items-center justify-end gap-3 sticky bottom-0 bg-[#1A1A1A]">
+                <button @onclick="Close"
+                        class="px-4 py-2 bg-transparent border border-[#2A2A2A] text-gray-300 hover:bg-[#2A2A2A] rounded-lg transition-all text-sm font-medium">
+                    Cancel
+                </button>
+                <button @onclick="Save"
+                        disabled="@string.IsNullOrWhiteSpace(Note.Title)"
+                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-lg transition-all text-sm font-medium">
+                    @(IsNew ? "Create" : "Update")
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
-    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
-
+    [Parameter] public bool IsVisible { get; set; }
+    [Parameter] public EventCallback<bool> IsVisibleChanged { get; set; }
     [Parameter] public NoteDto Note { get; set; } = new();
     [Parameter] public bool IsNew { get; set; } = true;
     [Parameter] public List<string> ExistingCollections { get; set; } = new();
     [Parameter] public List<string> ExistingTags { get; set; } = new();
+    [Parameter] public EventCallback<NoteDto> OnSave { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
 
     private string _newTag = string.Empty;
 
@@ -184,18 +194,6 @@
             "html" => "HTML content - use with caution",
             _ => "Plain text content"
         };
-    }
-
-    private Task<IEnumerable<string>> SearchCollections(string value, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-            return Task.FromResult(ExistingCollections.AsEnumerable());
-
-        return Task.FromResult(
-            ExistingCollections
-                .Where(c => c.Contains(value, StringComparison.OrdinalIgnoreCase))
-                .AsEnumerable()
-        );
     }
 
     private void AddTag()
@@ -228,7 +226,7 @@
         }
     }
 
-    private void Save()
+    private async Task Save()
     {
         if (string.IsNullOrWhiteSpace(Note.Title))
         {
@@ -236,11 +234,20 @@
             return;
         }
 
-        MudDialog.Close(DialogResult.Ok(Note));
+        if (OnSave.HasDelegate)
+        {
+            await OnSave.InvokeAsync(Note);
+        }
+
+        await Close();
     }
 
-    private void Cancel()
+    private async Task Close()
     {
-        MudDialog.Cancel();
+        if (OnClose.HasDelegate)
+        {
+            await OnClose.InvokeAsync();
+        }
+        await IsVisibleChanged.InvokeAsync(false);
     }
 }
