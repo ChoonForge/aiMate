@@ -65,7 +65,12 @@ public class CodeCopyPlugin : IUIExtension
             ShowOnAssistantMessages = true,
             ShowOnUserMessages = false,
             Order = 15,
-            OnClickHandler = "handleCopyAllCode"
+            OnClickHandler = "handleCopyAllCode",
+            Context = new Dictionary<string, string>
+            {
+                { "messageId", message.Id.ToString() },
+                { "content", message.Content }
+            }
         };
     }
 

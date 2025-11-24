@@ -48,6 +48,11 @@ public class MessageActionButton
     /// Client-side callback (JS function name or Blazor component method)
     /// </summary>
     public string? OnClickHandler { get; set; }
+
+    /// <summary>
+    /// Context data for the action (e.g., messageId, conversationId)
+    /// </summary>
+    public Dictionary<string, string> Context { get; set; } = new();
 }
 
 /// <summary>

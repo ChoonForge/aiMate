@@ -3,10 +3,12 @@
 @using AiMate.Web.Store.Chat
 @using AiMate.Core.Enums
 @using AiMate.Core.Plugins
+@using Microsoft.JSInterop
 @inherits Fluxor.Blazor.Web.Components.FluxorComponent
 @rendermode InteractiveServer
 @inject IState<ChatState> ChatState
 @inject IDispatcher Dispatcher
+@inject IJSRuntime JSRuntime
 
 <PageTitle>aiMate - Your AI Mate</PageTitle>
 
@@ -146,32 +148,44 @@ What can I help you with today, mate?";
 
     private void EditMessage(Guid messageId)
     {
-        // IMPLEMENTATION NEEDED: Dispatch EditMessageAction to enable editing mode
-        // Example: Dispatcher.Dispatch(new EditMessageAction(messageId));
+        // TODO: Implement editing UI - for now, log the action
+        // A full implementation would show an inline editor or modal dialog
+        // and dispatch EditMessageAction(messageId, newContent) when saved
+        Console.WriteLine($"Edit message requested for: {messageId}");
+        // Future: Show edit dialog or inline editor
+        // When user saves: Dispatcher.Dispatch(new EditMessageAction(messageId, editedContent));
     }
 
     private async Task CopyMessage(string content)
     {
-        // IMPLEMENTATION NEEDED: Use Clipboard API via JS interop
-        // await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", content);
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", content);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to copy message to clipboard: {ex.Message}");
+        }
     }
 
     private void RateMessage(Guid messageId, bool isPositive)
     {
-        // IMPLEMENTATION NEEDED: Dispatch RateMessageAction to save rating
-        // Example: Dispatcher.Dispatch(new RateMessageAction(messageId, isPositive ? 1 : -1));
+        // Convert boolean to rating: thumbs up = 1, thumbs down = -1
+        var rating = isPositive ? 1 : -1;
+        Dispatcher.Dispatch(new RateMessageAction(messageId, rating));
     }
 
     private void ContinueGeneration(Guid messageId)
     {
-        // IMPLEMENTATION NEEDED: Dispatch ContinueGenerationAction to extend response
-        // Example: Dispatcher.Dispatch(new ContinueGenerationAction(messageId));
+        // TODO: Implement continue generation - requires new action in ChatActions
+        // This would send a follow-up prompt like "Continue from where you left off"
+        Console.WriteLine($"Continue generation requested for: {messageId}");
+        // Future: Dispatcher.Dispatch(new ContinueGenerationAction(messageId));
     }
 
     private void RegenerateMessage(Guid messageId)
     {
-        // IMPLEMENTATION NEEDED: Dispatch RegenerateMessageAction to regenerate response
-        // Example: Dispatcher.Dispatch(new RegenerateMessageAction(messageId));
+        Dispatcher.Dispatch(new RegenerateMessageAction(messageId));
     }
 
     private void HandlePluginAction(MessageActionButton action)
@@ -180,33 +194,48 @@ What can I help you with today, mate?";
         switch (action.OnClickHandler)
         {
             case "handleEditMessage":
-                // IMPLEMENTATION NEEDED: Extract messageId from action.Context and call EditMessage
-                // Example: if (action.Context.TryGetValue("messageId", out var id)) EditMessage(Guid.Parse(id));
+                if (action.Context.TryGetValue("messageId", out var editId))
+                {
+                    EditMessage(Guid.Parse(editId));
+                }
                 break;
 
             case "handleRegenerateMessage":
-                // IMPLEMENTATION NEEDED: Extract messageId and call RegenerateMessage
-                // Example: if (action.Context.TryGetValue("messageId", out var id)) RegenerateMessage(Guid.Parse(id));
+                if (action.Context.TryGetValue("messageId", out var regenId))
+                {
+                    RegenerateMessage(Guid.Parse(regenId));
+                }
                 break;
 
             case "handleShareMessage":
-                // IMPLEMENTATION NEEDED: Show ShareConversationDialog
-                // Example: await DialogService.ShowAsync<ShareConversationDialog>("Share Message");
+                // TODO: Implement share message dialog
+                if (action.Context.TryGetValue("messageId", out var shareId))
+                {
+                    Console.WriteLine($"Share message requested for: {shareId}");
+                    // Future: Show ShareConversationDialog
+                }
                 break;
 
             case "handleDeleteMessage":
-                // IMPLEMENTATION NEEDED: Dispatch DeleteMessageAction after confirmation
-                // Example: Dispatcher.Dispatch(new DeleteMessageAction(messageId));
+                if (action.Context.TryGetValue("messageId", out var deleteId))
+                {
+                    // TODO: Add confirmation dialog before deletion
+                    Dispatcher.Dispatch(new DeleteMessageAction(Guid.Parse(deleteId)));
+                }
                 break;
 
             case "handleThumbsUp":
-                // IMPLEMENTATION NEEDED: Extract messageId and call RateMessage(messageId, true)
-                // Example: if (action.Context.TryGetValue("messageId", out var id)) RateMessage(Guid.Parse(id), true);
+                if (action.Context.TryGetValue("messageId", out var thumbsUpId))
+                {
+                    RateMessage(Guid.Parse(thumbsUpId), true);
+                }
                 break;
 
             case "handleThumbsDown":
-                // IMPLEMENTATION NEEDED: Extract messageId and call RateMessage(messageId, false)
-                // Example: if (action.Context.TryGetValue("messageId", out var id)) RateMessage(Guid.Parse(id), false);
+                if (action.Context.TryGetValue("messageId", out var thumbsDownId))
+                {
+                    RateMessage(Guid.Parse(thumbsDownId), false);
+                }
                 break;
 
             default:

@@ -61,7 +61,11 @@ public class MessageRatingPlugin : IUIExtension
             ShowOnAssistantMessages = true,
             ShowOnUserMessages = false,
             Order = 100,
-            OnClickHandler = "handleThumbsUp" // JS function or Blazor method
+            OnClickHandler = "handleThumbsUp",
+            Context = new Dictionary<string, string>
+            {
+                { "messageId", message.Id.ToString() }
+            }
         };
 
         // Thumbs Down button
@@ -75,7 +79,11 @@ public class MessageRatingPlugin : IUIExtension
             ShowOnAssistantMessages = true,
             ShowOnUserMessages = false,
             Order = 101,
-            OnClickHandler = "handleThumbsDown"
+            OnClickHandler = "handleThumbsDown",
+            Context = new Dictionary<string, string>
+            {
+                { "messageId", message.Id.ToString() }
+            }
         };
     }
 

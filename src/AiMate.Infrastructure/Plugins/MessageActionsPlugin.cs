@@ -57,7 +57,12 @@ public class MessageActionsPlugin : IUIExtension
             ShowOnAssistantMessages = true,
             ShowOnUserMessages = true,
             Order = 10,
-            OnClickHandler = "handleCopyMessage"
+            OnClickHandler = "handleCopyMessage",
+            Context = new Dictionary<string, string>
+            {
+                { "messageId", message.Id.ToString() },
+                { "content", message.Content }
+            }
         };
 
         // Edit button - only on user messages
@@ -73,7 +78,11 @@ public class MessageActionsPlugin : IUIExtension
                 ShowOnAssistantMessages = false,
                 ShowOnUserMessages = true,
                 Order = 20,
-                OnClickHandler = "handleEditMessage"
+                OnClickHandler = "handleEditMessage",
+                Context = new Dictionary<string, string>
+                {
+                    { "messageId", message.Id.ToString() }
+                }
             };
         }
 
@@ -90,7 +99,11 @@ public class MessageActionsPlugin : IUIExtension
                 ShowOnAssistantMessages = true,
                 ShowOnUserMessages = false,
                 Order = 30,
-                OnClickHandler = "handleRegenerateMessage"
+                OnClickHandler = "handleRegenerateMessage",
+                Context = new Dictionary<string, string>
+                {
+                    { "messageId", message.Id.ToString() }
+                }
             };
         }
 
@@ -105,7 +118,11 @@ public class MessageActionsPlugin : IUIExtension
             ShowOnAssistantMessages = true,
             ShowOnUserMessages = true,
             Order = 40,
-            OnClickHandler = "handleShareMessage"
+            OnClickHandler = "handleShareMessage",
+            Context = new Dictionary<string, string>
+            {
+                { "messageId", message.Id.ToString() }
+            }
         };
 
         // Delete button - show on all messages
@@ -119,7 +136,11 @@ public class MessageActionsPlugin : IUIExtension
             ShowOnAssistantMessages = true,
             ShowOnUserMessages = true,
             Order = 50,
-            OnClickHandler = "handleDeleteMessage"
+            OnClickHandler = "handleDeleteMessage",
+            Context = new Dictionary<string, string>
+            {
+                { "messageId", message.Id.ToString() }
+            }
         };
     }
 
