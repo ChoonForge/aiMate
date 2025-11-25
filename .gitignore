@@ -301,6 +301,9 @@ FakesAssemblies/
 .ntvs_analysis.dat
 node_modules/
 
+# TypeScript/JavaScript build output
+dist/
+
 # Visual Studio 6 build log
 *.plg
 
