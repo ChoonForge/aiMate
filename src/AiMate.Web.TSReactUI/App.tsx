@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConversationSidebar, Conversation } from "./components/ConversationSidebar";
 import { ChatHeader } from "./components/ChatHeader";
 import { ChatMessage } from "./components/ChatMessage";
@@ -8,10 +9,22 @@ import { DebugPanel } from "./components/DebugPanel";
 import { ShowcaseModeIndicator } from "./components/ShowcaseModeIndicator";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { DebugProvider, useDebug } from "./components/DebugContext";
+import { AuthProvider } from "./context/AuthContext";
 import { ScrollArea } from "./components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTitle } from "./components/ui/sheet";
 import { Sparkles } from "lucide-react";
 import { Toaster } from "./components/ui/sonner";
+
+// Create a client for React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 interface Message {
   id: string;
@@ -655,11 +668,15 @@ function App() {
 
 function AppWrapper() {
   return (
-    <ThemeProvider defaultTheme="dark">
-      <DebugProvider>
-        <App />
-      </DebugProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ThemeProvider defaultTheme="dark">
+          <DebugProvider>
+            <App />
+          </DebugProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
