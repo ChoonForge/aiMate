@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
-namespace AiMate.Web.Controllers;
+namespace AiMate.Api.Controllers;
 
 /// <summary>
 /// API for file upload, download, and management
@@ -154,6 +154,55 @@ public class FileApiController : ControllerBase
     }
 
     /// <summary>
+    /// Update file metadata
+    /// </summary>
+    /// <param name="id">File ID</param>
+    /// <param name="request">Update request with new metadata</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated file metadata</returns>
+    /// <response code="200">File metadata updated successfully</response>
+    /// <response code="404">File not found</response>
+    /// <remarks>
+    /// Update file metadata such as description. The file itself is not modified.
+    ///
+    /// Example:
+    ///
+    ///     PUT /api/v1/files/guid
+    ///     {
+    ///       "description": "Updated description"
+    ///     }
+    ///
+    /// </remarks>
+    [HttpPut("{id}")]
+    [ProducesResponseType(typeof(WorkspaceFile), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UpdateFileMetadata(
+        Guid id,
+        [FromBody] UpdateFileMetadataRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var userId = GetUserId();
+
+        var file = await _context.WorkspaceFiles
+            .Include(f => f.Workspace)
+            .FirstOrDefaultAsync(f => f.Id == id && f.Workspace!.UserId == userId, cancellationToken);
+
+        if (file == null)
+            return NotFound("File not found or access denied");
+
+        // Update metadata if provided
+        if (!string.IsNullOrEmpty(request.Description))
+            file.Description = request.Description;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("User {UserId} updated metadata for file {FileId}", userId, id);
+
+        return Ok(file);
+    }
+
+    /// <summary>
     /// Download a file
     /// </summary>
     /// <param name="id">File ID</param>
@@ -296,4 +345,9 @@ public class FileApiController : ControllerBase
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         return Guid.Parse(userIdClaim!);
     }
+}
+
+public class UpdateFileMetadataRequest
+{
+    public string? Description { get; set; }
 }

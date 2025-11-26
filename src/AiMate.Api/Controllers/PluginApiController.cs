@@ -4,7 +4,7 @@ using AiMate.Web.Store.Plugin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AiMate.Web.Controllers;
+namespace AiMate.Api.Controllers;
 
 /// <summary>
 /// Plugin API for managing plugins and extensions
@@ -221,6 +221,87 @@ public class PluginApiController : ControllerBase
         {
             _logger.LogError(ex, "Failed to update settings for plugin {PluginId}", id);
             return StatusCode(500, new { error = "Failed to update plugin settings", details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Update plugin settings (REST PUT method)
+    /// </summary>
+    [HttpPut("{id}/settings")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UpdatePluginSettingsPut(string id, [FromBody] Dictionary<string, object> settings, [FromQuery] string? userId = null)
+    {
+        try
+        {
+            _logger.LogInformation("Updating settings for plugin {PluginId} via PUT", id);
+
+            var plugin = _pluginManager.GetPlugin(id);
+            if (plugin == null)
+            {
+                return NotFound(new { error = "Plugin not found", pluginId = id });
+            }
+
+            // Parse userId if provided (for user-specific settings)
+            Guid? userGuid = null;
+            if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var parsedUserId))
+            {
+                userGuid = parsedUserId;
+            }
+
+            // Persist settings to database
+            await _pluginSettingsService.SavePluginSettingsAsync(id, settings, userGuid);
+
+            _logger.LogInformation("Plugin settings updated and persisted for plugin {PluginId} via PUT", id);
+
+            return Ok(new { message = "Settings updated successfully", userId = userGuid?.ToString() });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update settings for plugin {PluginId}", id);
+            return StatusCode(500, new { error = "Failed to update plugin settings", details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Delete plugin settings (admin only)
+    /// </summary>
+    [HttpDelete("{id}/settings")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DeletePluginSettings(string id, [FromQuery] string? userId = null)
+    {
+        try
+        {
+            _logger.LogInformation("Deleting settings for plugin {PluginId}", id);
+
+            var plugin = _pluginManager.GetPlugin(id);
+            if (plugin == null)
+            {
+                return NotFound(new { error = "Plugin not found", pluginId = id });
+            }
+
+            // Parse userId if provided (for user-specific settings)
+            Guid? userGuid = null;
+            if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var parsedUserId))
+            {
+                userGuid = parsedUserId;
+            }
+
+            // Delete settings from database
+            await _pluginSettingsService.DeletePluginSettingsAsync(id, userGuid);
+
+            _logger.LogInformation("Plugin settings deleted for plugin {PluginId}", id);
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete settings for plugin {PluginId}", id);
+            return StatusCode(500, new { error = "Failed to delete plugin settings", details = ex.Message });
         }
     }
 
