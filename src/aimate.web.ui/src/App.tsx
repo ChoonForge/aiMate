@@ -255,13 +255,6 @@ function App() {
 
     setIsTyping(true);
 
-    addLog({
-      action: 'Requesting AI response',
-      api: 'api/v1/chat/completion',
-      payload: { model: selectedModel, conversationId: activeConversationId },
-      type: 'info'
-    });
-
     // Use real API for non-simulated models
     if (!isSimulatedModel(selectedModel)) {
       try {
@@ -345,6 +338,12 @@ function App() {
     }
 
     // Simulated model - use mock responses
+    addLog({
+      action: 'Using simulated response',
+      payload: { model: 'simulated', note: 'No real API call - mock response' },
+      type: 'info'
+    });
+
     setTimeout(() => {
       let aiMessage: Message;
 
@@ -510,11 +509,10 @@ function App() {
         )
       );
       setIsTyping(false);
-      
+
       addLog({
-        action: 'AI response received',
-        api: 'api/v1/chat/completion',
-        payload: { messageLength: aiMessage.content.length },
+        action: 'Simulated response generated',
+        payload: { messageLength: aiMessage.content.length, isSimulated: true },
         type: 'success'
       });
     }, 1000 + Math.random() * 1000);
