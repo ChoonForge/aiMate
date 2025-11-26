@@ -14,6 +14,9 @@ import { ScrollArea } from "./components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTitle } from "./components/ui/sheet";
 import { Sparkles } from "lucide-react";
 import { Toaster } from "./components/ui/sonner";
+import { chatStreamClient } from "./api/chat";
+import { getAvailableModels, isSimulatedModel, AvailableModel, SIMULATED_MODEL } from "./api/models";
+import { ChatCompletionMessage } from "./api/types";
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -109,16 +112,52 @@ function App() {
   const [isTyping, setIsTyping] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [selectedModel, setSelectedModel] = useState("gpt-4");
+  const [selectedModel, setSelectedModel] = useState("simulated");
+  const [availableModels, setAvailableModels] = useState<AvailableModel[]>([SIMULATED_MODEL]);
   const [enabledModels, setEnabledModels] = useState<Record<string, boolean>>({
-    "gpt-4": true,
-    "gpt-4-turbo": true,
-    "gpt-3.5-turbo": true,
-    "claude-3-opus": true,
-    "claude-3-sonnet": true,
-    "structured-gpt": true,
+    "simulated": true,
   });
   const { addLog } = useDebug();
+
+  // Fetch available models from backend on mount
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        addLog({
+          action: 'Fetching available models',
+          api: 'api/v1/admin/models',
+          type: 'info'
+        });
+        const models = await getAvailableModels();
+        setAvailableModels(models);
+
+        // Enable all fetched models by default
+        const enabled: Record<string, boolean> = {};
+        models.forEach(m => {
+          enabled[m.id] = true;
+        });
+        setEnabledModels(enabled);
+
+        addLog({
+          action: 'Models loaded',
+          api: 'api/v1/admin/models',
+          payload: { count: models.length, models: models.map(m => m.name) },
+          type: 'success'
+        });
+      } catch (error) {
+        addLog({
+          action: 'Failed to fetch models',
+          api: 'api/v1/admin/models',
+          payload: { error: String(error) },
+          type: 'error'
+        });
+        // Keep simulated as fallback
+        setAvailableModels([SIMULATED_MODEL]);
+        setEnabledModels({ simulated: true });
+      }
+    };
+    fetchModels();
+  }, [addLog]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const activeConversation = conversations.find(
@@ -192,7 +231,7 @@ function App() {
       content,
       timestamp: getTimestamp(),
     };
-    
+
     addLog({
       action: 'User message sent',
       api: 'api/v1/chat/sendMessage',
@@ -215,7 +254,7 @@ function App() {
     );
 
     setIsTyping(true);
-    
+
     addLog({
       action: 'Requesting AI response',
       api: 'api/v1/chat/completion',
@@ -223,13 +262,95 @@ function App() {
       type: 'info'
     });
 
-    // Simulate AI response delay
+    // Use real API for non-simulated models
+    if (!isSimulatedModel(selectedModel)) {
+      try {
+        // Build messages array for API request
+        const currentConv = conversations.find(c => c.id === activeConversationId);
+        const apiMessages: ChatCompletionMessage[] = [
+          ...(currentConv?.messages || []).map(m => ({
+            role: m.role as 'user' | 'assistant' | 'system',
+            content: m.content,
+          })),
+          { role: 'user' as const, content },
+        ];
+
+        addLog({
+          action: 'Calling real API',
+          api: 'api/v1/chat/completions',
+          payload: { model: selectedModel, messageCount: apiMessages.length },
+          type: 'info'
+        });
+
+        const response = await chatStreamClient.createCompletion({
+          model: selectedModel,
+          messages: apiMessages,
+          temperature: 0.7,
+          maxTokens: 4096,
+        });
+
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: response.choices[0]?.message?.content || "No response received.",
+          timestamp: getTimestamp(),
+        };
+
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === activeConversationId
+              ? { ...conv, messages: [...conv.messages, aiMessage] }
+              : conv
+          )
+        );
+        setIsTyping(false);
+
+        addLog({
+          action: 'AI response received',
+          api: 'api/v1/chat/completions',
+          payload: {
+            messageLength: aiMessage.content.length,
+            model: response.model,
+            usage: response.usage,
+          },
+          type: 'success'
+        });
+        return;
+      } catch (error) {
+        addLog({
+          action: 'API call failed',
+          api: 'api/v1/chat/completions',
+          payload: { error: String(error) },
+          type: 'error'
+        });
+
+        // Show error message to user
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: `**Error:** Failed to get response from ${selectedModel}. ${error instanceof Error ? error.message : 'Please check your connection settings.'}`,
+          timestamp: getTimestamp(),
+        };
+
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === activeConversationId
+              ? { ...conv, messages: [...conv.messages, errorMessage] }
+              : conv
+          )
+        );
+        setIsTyping(false);
+        return;
+      }
+    }
+
+    // Simulated model - use mock responses
     setTimeout(() => {
       let aiMessage: Message;
 
       // Check for structured content triggers
       const lowerContent = content.trim().toLowerCase();
-      
+
       if (lowerContent === "gettable") {
         const structuredData = {
           type: "panel.table",
@@ -599,6 +720,7 @@ function App() {
           selectedModel={selectedModel}
           onModelChange={setSelectedModel}
           enabledModels={enabledModels}
+          availableModels={availableModels}
         />
 
         <div className="flex-1 overflow-hidden">

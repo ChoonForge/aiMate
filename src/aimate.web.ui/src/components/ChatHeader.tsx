@@ -20,6 +20,12 @@ import { AboutModal } from "./AboutModal";
 import { HelpModal } from "./HelpModal";
 import { useDebug } from "./DebugContext";
 
+interface ModelOption {
+  id: string;
+  name: string;
+  color: string;
+}
+
 interface ChatHeaderProps {
   onNewChat: () => void;
   onToggleSidebar?: () => void;
@@ -27,22 +33,19 @@ interface ChatHeaderProps {
   selectedModel?: string;
   onModelChange?: (model: string) => void;
   enabledModels?: Record<string, boolean>;
+  availableModels?: ModelOption[];
 }
 
-export function ChatHeader({ 
-  onNewChat, 
-  onToggleSidebar, 
+export function ChatHeader({
+  onNewChat,
+  onToggleSidebar,
   sidebarOpen,
-  selectedModel = "gpt-4",
+  selectedModel = "simulated",
   onModelChange,
   enabledModels = {
-    "gpt-4": true,
-    "gpt-4-turbo": true,
-    "gpt-3.5-turbo": true,
-    "claude-3-opus": true,
-    "claude-3-sonnet": true,
-    "structured-gpt": true,
-  }
+    "simulated": true,
+  },
+  availableModels,
 }: ChatHeaderProps) {
   const { showcaseMode } = useDebug();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -51,14 +54,12 @@ export function ChatHeader({
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [modelSelectOpen, setModelSelectOpen] = useState(false);
 
-  const models = [
-    { id: "gpt-4", name: "GPT-4", color: "text-purple-500" },
-    { id: "gpt-4-turbo", name: "GPT-4 Turbo", color: "text-blue-500" },
-    { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo", color: "text-green-500" },
-    { id: "claude-3-opus", name: "Claude 3 Opus", color: "text-orange-500" },
-    { id: "claude-3-sonnet", name: "Claude 3 Sonnet", color: "text-amber-500" },
-    { id: "structured-gpt", name: "Structured GPT", color: "text-cyan-500" },
+  // Use provided models or fall back to static list
+  const defaultModels: ModelOption[] = [
+    { id: "simulated", name: "Simulated", color: "text-gray-400" },
   ];
+
+  const models = availableModels || defaultModels;
 
   const handleModelChange = (value: string) => {
     if (onModelChange) {
