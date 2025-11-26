@@ -412,6 +412,8 @@ if (DEBUG) {
 
 **[View complete endpoint documentation](REST_API.md)**
 
+**[View comprehensive CRUD operations guide](../API_CRUD_OPERATIONS.md)**
+
 ---
 
 ## 🔐 Security

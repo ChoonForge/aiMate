@@ -515,7 +515,7 @@ Authorization: Bearer YOUR_API_KEY
 
 ## Conversation API
 
-Manage conversations within workspaces.
+Manage conversations within workspaces. Full CRUD operations available.
 
 ### GET /api/v1/workspaces/{workspaceId}/conversations
 
@@ -531,14 +531,42 @@ Authorization: Bearer YOUR_API_KEY
 ```json
 [
   {
-    "id": "660e8400-e29b-41d4-a716-446655440000",
+    "id": 660000,
+    "workspaceId": 550000,
     "title": "Project Discussion",
-    "workspaceId": "550e8400-e29b-41d4-a716-446655440000",
+    "modelId": "gpt-4",
+    "isPinned": false,
+    "isArchived": false,
     "createdAt": "2025-01-18T10:00:00Z",
     "updatedAt": "2025-01-18T12:30:00Z",
     "messageCount": 15
   }
 ]
+```
+
+### GET /api/v1/workspaces/{workspaceId}/conversations/{conversationId}
+
+Get a specific conversation by ID.
+
+**Request:**
+```http
+GET /api/v1/workspaces/550e8400-e29b-41d4-a716-446655440000/conversations/660e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:**
+```json
+{
+  "id": 660000,
+  "workspaceId": 550000,
+  "title": "Project Discussion",
+  "modelId": "gpt-4",
+  "isPinned": false,
+  "isArchived": false,
+  "createdAt": "2025-01-18T10:00:00Z",
+  "updatedAt": "2025-01-18T12:30:00Z",
+  "messageCount": 15
+}
 ```
 
 ### POST /api/v1/workspaces/{workspaceId}/conversations
@@ -559,11 +587,75 @@ Content-Type: application/json
 **Response:**
 ```json
 {
-  "id": "770e8400-e29b-41d4-a716-446655440000",
+  "id": 770000,
+  "workspaceId": 550000,
   "title": "New Discussion",
-  "workspaceId": "550e8400-e29b-41d4-a716-446655440000",
+  "modelId": null,
+  "isPinned": false,
+  "isArchived": false,
   "createdAt": "2025-01-18T14:00:00Z",
-  "updatedAt": "2025-01-18T14:00:00Z"
+  "updatedAt": "2025-01-18T14:00:00Z",
+  "messageCount": 0
+}
+```
+
+### PUT /api/v1/workspaces/{workspaceId}/conversations/{conversationId}
+
+Update an existing conversation.
+
+**Request:**
+```http
+PUT /api/v1/workspaces/550e8400-e29b-41d4-a716-446655440000/conversations/660e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+
+{
+  "title": "Updated Title",
+  "modelId": "gpt-4",
+  "isPinned": true,
+  "isArchived": false
+}
+```
+
+**Response:**
+```json
+{
+  "id": 660000,
+  "workspaceId": 550000,
+  "title": "Updated Title",
+  "modelId": "gpt-4",
+  "isPinned": true,
+  "isArchived": false,
+  "createdAt": "2025-01-18T10:00:00Z",
+  "updatedAt": "2025-01-18T14:30:00Z",
+  "messageCount": 15
+}
+```
+
+**Update Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `title` | string | No | Conversation title |
+| `modelId` | string | No | AI model ID for this conversation |
+| `isPinned` | boolean | No | Pin/unpin the conversation |
+| `isArchived` | boolean | No | Archive/unarchive the conversation |
+
+### DELETE /api/v1/workspaces/{workspaceId}/conversations/{conversationId}
+
+Delete a conversation.
+
+**Request:**
+```http
+DELETE /api/v1/workspaces/550e8400-e29b-41d4-a716-446655440000/conversations/660e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Conversation deleted successfully"
 }
 ```
 
@@ -1829,6 +1921,18 @@ async function cachedChatCompletion(message: string): Promise<string> {
   return response;
 }
 ```
+
+---
+
+## Complete CRUD Operations
+
+For a comprehensive guide to all CRUD operations across all API resources, including:
+- 12 resources with complete CRUD implementation
+- 7 resources with partial CRUD (missing operations identified)
+- Implementation templates for adding missing endpoints
+- Standard CRUD patterns and best practices
+
+**See:** [API_CRUD_OPERATIONS.md](../API_CRUD_OPERATIONS.md)
 
 ---
 
