@@ -377,15 +377,40 @@ if (DEBUG) {
 
 **Full documentation:** [REST_API.md](REST_API.md)
 
-**Endpoints:**
+### Core APIs
 - `POST /api/v1/chat/completions` - Chat completion
 - `POST /api/v1/chat/completions/stream` - Streaming chat
 - `GET /api/v1/workspaces` - List workspaces
 - `POST /api/v1/workspaces` - Create workspace
+
+### Workspace & Conversations
+- `GET /api/v1/workspaces/{id}/conversations` - List conversations
+- `POST /api/v1/workspaces/{id}/conversations` - Create conversation
+
+### Feedback & Ratings
 - `POST /api/v1/feedback/messages/{id}` - Submit feedback
-- `POST /api/v1/knowledge/search` - Search knowledge base
+- `GET /api/v1/feedback/stats/models/{modelId}` - Get model statistics
+
+### Knowledge & Search
+- `GET /api/v1/knowledge` - List knowledge articles
+- `POST /api/v1/knowledge/search` - Semantic search knowledge base
+- `GET /api/v1/search` - Global search
+- `GET /api/v1/search/conversations` - Search conversations
+- `GET /api/v1/search/messages` - Search messages
+
+### Tools & Utilities
 - `GET /api/v1/tools` - List MCP tools
 - `POST /api/v1/tools/execute` - Execute tool
+- `POST /api/v1/notesapi` - Create note
+- `GET /api/v1/usage` - Get usage statistics
+- `GET /api/v1/settings` - Get user settings
+
+### Admin Operations
+- `GET /api/v1/admin/api-keys` - List API keys (admin)
+- `POST /api/v1/admin/api-keys` - Create API key (admin)
+- `DELETE /api/v1/admin/api-keys/{keyId}` - Revoke API key (admin)
+
+**[View complete endpoint documentation](REST_API.md)**
 
 ---
 
