@@ -15,11 +15,16 @@
 4. [Error Handling](#error-handling)
 5. [Chat API](#chat-api)
 6. [Workspace API](#workspace-api)
-7. [Feedback API](#feedback-api)
-8. [Knowledge Base API](#knowledge-base-api)
-9. [Tools API](#tools-api)
-10. [Admin API](#admin-api)
-11. [Code Examples](#code-examples)
+7. [Conversation API](#conversation-api)
+8. [Feedback API](#feedback-api)
+9. [Knowledge Base API](#knowledge-base-api)
+10. [Tools API](#tools-api)
+11. [Search API](#search-api)
+12. [Notes API](#notes-api)
+13. [Settings API](#settings-api)
+14. [Usage API](#usage-api)
+15. [Admin API](#admin-api)
+16. [Code Examples](#code-examples)
 
 ---
 
@@ -508,6 +513,62 @@ Authorization: Bearer YOUR_API_KEY
 
 ---
 
+## Conversation API
+
+Manage conversations within workspaces.
+
+### GET /api/v1/workspaces/{workspaceId}/conversations
+
+Get all conversations in a workspace.
+
+**Request:**
+```http
+GET /api/v1/workspaces/550e8400-e29b-41d4-a716-446655440000/conversations
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:**
+```json
+[
+  {
+    "id": "660e8400-e29b-41d4-a716-446655440000",
+    "title": "Project Discussion",
+    "workspaceId": "550e8400-e29b-41d4-a716-446655440000",
+    "createdAt": "2025-01-18T10:00:00Z",
+    "updatedAt": "2025-01-18T12:30:00Z",
+    "messageCount": 15
+  }
+]
+```
+
+### POST /api/v1/workspaces/{workspaceId}/conversations
+
+Create a new conversation in a workspace.
+
+**Request:**
+```http
+POST /api/v1/workspaces/550e8400-e29b-41d4-a716-446655440000/conversations
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+
+{
+  "title": "New Discussion"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "770e8400-e29b-41d4-a716-446655440000",
+  "title": "New Discussion",
+  "workspaceId": "550e8400-e29b-41d4-a716-446655440000",
+  "createdAt": "2025-01-18T14:00:00Z",
+  "updatedAt": "2025-01-18T14:00:00Z"
+}
+```
+
+---
+
 ## Feedback API
 
 Rate and provide feedback on AI responses.
@@ -860,6 +921,376 @@ Content-Type: application/json
 
 ---
 
+## Search API
+
+Search across conversations, messages, and knowledge base.
+
+### GET /api/v1/search/conversations
+
+Search conversations by title or metadata.
+
+**Request:**
+```http
+GET /api/v1/search/conversations?q=project&limit=10
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440000",
+      "title": "Project Discussion",
+      "workspaceId": "550e8400-e29b-41d4-a716-446655440000",
+      "relevance": 0.95
+    }
+  ],
+  "totalResults": 1
+}
+```
+
+### GET /api/v1/search/messages
+
+Search messages by content.
+
+**Request:**
+```http
+GET /api/v1/search/messages?q=API documentation&limit=10
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "id": "msg-123",
+      "content": "Here is the API documentation...",
+      "conversationId": "660e8400-e29b-41d4-a716-446655440000",
+      "createdAt": "2025-01-18T10:00:00Z",
+      "relevance": 0.92
+    }
+  ],
+  "totalResults": 5
+}
+```
+
+### GET /api/v1/search/knowledge/semantic
+
+Semantic search in knowledge base using AI embeddings.
+
+**Request:**
+```http
+GET /api/v1/search/knowledge/semantic?q=how to use workspaces&limit=5&threshold=0.7
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "id": "article-1",
+      "title": "Workspace Management Guide",
+      "content": "Workspaces are...",
+      "score": 0.89,
+      "relevance": "high"
+    }
+  ],
+  "totalResults": 3
+}
+```
+
+### GET /api/v1/search/knowledge
+
+Full-text search in knowledge base.
+
+**Request:**
+```http
+GET /api/v1/search/knowledge?q=API&limit=10
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "id": "article-2",
+      "title": "REST API Documentation",
+      "snippet": "The REST API provides programmatic access...",
+      "viewCount": 150
+    }
+  ],
+  "totalResults": 8
+}
+```
+
+### GET /api/v1/search
+
+Global search across all content types.
+
+**Request:**
+```http
+GET /api/v1/search?q=workspace&limit=20
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:**
+```json
+{
+  "conversations": [
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440000",
+      "title": "Workspace Discussion"
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg-123",
+      "content": "Let's discuss workspace features..."
+    }
+  ],
+  "knowledge": [
+    {
+      "id": "article-1",
+      "title": "Workspace Guide"
+    }
+  ]
+}
+```
+
+---
+
+## Notes API
+
+Create and manage personal notes.
+
+### GET /api/v1/notesapi
+
+Get all notes for the authenticated user.
+
+**Request:**
+```http
+GET /api/v1/notesapi
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:**
+```json
+[
+  {
+    "id": "note-1",
+    "title": "Meeting Notes",
+    "content": "Discussion about new features...",
+    "createdAt": "2025-01-18T10:00:00Z",
+    "updatedAt": "2025-01-18T12:30:00Z"
+  }
+]
+```
+
+### GET /api/v1/notesapi/{id}
+
+Get a specific note by ID.
+
+**Request:**
+```http
+GET /api/v1/notesapi/note-1
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:**
+```json
+{
+  "id": "note-1",
+  "title": "Meeting Notes",
+  "content": "Discussion about new features...",
+  "createdAt": "2025-01-18T10:00:00Z",
+  "updatedAt": "2025-01-18T12:30:00Z"
+}
+```
+
+### POST /api/v1/notesapi
+
+Create a new note.
+
+**Request:**
+```http
+POST /api/v1/notesapi
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+
+{
+  "title": "Quick Note",
+  "content": "Important information to remember..."
+}
+```
+
+**Response:**
+```json
+{
+  "id": "note-2",
+  "title": "Quick Note",
+  "content": "Important information to remember...",
+  "createdAt": "2025-01-18T14:00:00Z",
+  "updatedAt": "2025-01-18T14:00:00Z"
+}
+```
+
+### PUT /api/v1/notesapi/{id}
+
+Update an existing note.
+
+**Request:**
+```http
+PUT /api/v1/notesapi/note-1
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+
+{
+  "title": "Updated Meeting Notes",
+  "content": "Updated content..."
+}
+```
+
+**Response:**
+```json
+{
+  "id": "note-1",
+  "title": "Updated Meeting Notes",
+  "content": "Updated content...",
+  "createdAt": "2025-01-18T10:00:00Z",
+  "updatedAt": "2025-01-18T14:30:00Z"
+}
+```
+
+### DELETE /api/v1/notesapi/{id}
+
+Delete a note.
+
+**Request:**
+```http
+DELETE /api/v1/notesapi/note-1
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:**
+```http
+204 No Content
+```
+
+---
+
+## Settings API
+
+Manage user settings and preferences.
+
+### GET /api/v1/settings
+
+Get user settings.
+
+**Request:**
+```http
+GET /api/v1/settings
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:**
+```json
+{
+  "theme": "dark",
+  "notifications": {
+    "email": true,
+    "push": false
+  },
+  "language": "en",
+  "timezone": "Pacific/Auckland",
+  "defaultModel": "gpt-4"
+}
+```
+
+### POST /api/v1/settings
+
+Update user settings.
+
+**Request:**
+```http
+POST /api/v1/settings
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+
+{
+  "theme": "light",
+  "notifications": {
+    "email": false,
+    "push": true
+  },
+  "defaultModel": "claude-3-5-sonnet-20241022"
+}
+```
+
+**Response:**
+```json
+{
+  "theme": "light",
+  "notifications": {
+    "email": false,
+    "push": true
+  },
+  "language": "en",
+  "timezone": "Pacific/Auckland",
+  "defaultModel": "claude-3-5-sonnet-20241022"
+}
+```
+
+---
+
+## Usage API
+
+Get usage statistics and metrics.
+
+### GET /api/v1/usage
+
+Get usage statistics for the authenticated user.
+
+**Request:**
+```http
+GET /api/v1/usage?period=month
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:**
+```json
+{
+  "period": "month",
+  "totalRequests": 2450,
+  "requestsRemaining": 7550,
+  "tokensUsed": 125000,
+  "costs": {
+    "currency": "USD",
+    "amount": 12.50
+  },
+  "breakdown": {
+    "chatCompletions": {
+      "count": 1200,
+      "tokensUsed": 95000
+    },
+    "searchRequests": {
+      "count": 800,
+      "tokensUsed": 20000
+    },
+    "other": {
+      "count": 450,
+      "tokensUsed": 10000
+    }
+  },
+  "resetDate": "2025-02-18T00:00:00Z"
+}
+```
+
+---
+
 ## Admin API
 
 Administrative operations (requires admin role).
@@ -933,6 +1364,117 @@ Authorization: Bearer YOUR_ADMIN_API_KEY
 ```http
 204 No Content
 ```
+
+---
+
+## Additional APIs
+
+The following APIs are also available in the system:
+
+### Connection API (`/api/v1/connection`)
+
+Manage connection status and connection-related operations.
+
+- **GET** `/` - Get connection status
+- **POST** `/` - Establish connection
+
+### Code Files API (`/api/v1/codefiles`)
+
+Manage code files and code snippets.
+
+- **GET** `/` - List code files
+- **POST** `/` - Create/upload code file
+- **GET** `/{id}` - Get specific code file
+- **PUT** `/{id}` - Update code file
+- **DELETE** `/{id}` - Delete code file
+
+### Projects API (`/api/v1/projects`)
+
+Manage projects and project organization.
+
+- **GET** `/` - List projects
+- **POST** `/` - Create project
+- **GET** `/{id}` - Get specific project
+- **PUT** `/{id}` - Update project
+- **DELETE** `/{id}` - Delete project
+
+### Organization API (`/api/v1/organization`)
+
+Manage organization settings and members.
+
+- **GET** `/` - Get organization info
+- **POST** `/` - Create organization
+- **PUT** `/` - Update organization
+
+### Group API (`/api/v1/group`)
+
+Manage user groups and group permissions.
+
+- **GET** `/` - List groups
+- **POST** `/` - Create group
+- **GET** `/{id}` - Get specific group
+- **PUT** `/{id}` - Update group
+- **DELETE** `/{id}` - Delete group
+
+### Plugin API (`/api/v1/plugin`)
+
+Manage plugins and extensions.
+
+- **GET** `/` - List plugins
+- **POST** `/` - Install plugin
+- **DELETE** `/{id}` - Uninstall plugin
+
+### Code Compilation API (`/api/v1/codecompilation`)
+
+Compile and execute code.
+
+- **POST** `/` - Compile code
+- **POST** `/execute` - Execute compiled code
+
+### Attachments API (`/api/v1/attachments`)
+
+Manage file attachments.
+
+- **GET** `/` - List attachments
+- **POST** `/` - Upload attachment
+- **GET** `/{id}` - Get attachment
+- **DELETE** `/{id}` - Delete attachment
+
+### File API (`/api/v1/file`)
+
+Manage files and file operations.
+
+- **GET** `/` - List files
+- **POST** `/` - Upload file
+- **GET** `/{id}` - Get file
+- **PUT** `/{id}` - Update file metadata
+- **DELETE** `/{id}` - Delete file
+
+### Structured Content API (`/api/v1/structuredcontent`)
+
+Manage structured content and templates.
+
+- **GET** `/` - List content items
+- **POST** `/` - Create content
+- **GET** `/{id}` - Get specific content
+- **PUT** `/{id}` - Update content
+- **DELETE** `/{id}` - Delete content
+
+### Feedback System API (`/api/v1/feedbacksystem`)
+
+System-level feedback operations.
+
+- **GET** `/templates` - Get feedback templates
+- **POST** `/templates` - Create template (admin)
+- **PUT** `/templates/{id}` - Update template (admin)
+- **DELETE** `/templates/{id}` - Delete template (admin)
+
+### Monaco Config API (`/api/v1/monacoconfig`)
+
+Get and manage Monaco editor configuration.
+
+- **GET** `/` - Get Monaco editor config
+- **POST** `/` - Update Monaco editor config
 
 ---
 
