@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useDebug } from "./DebugContext";
+import { useAdminSettings } from "../context/AdminSettingsContext";
 import { ConnectionEditDialog } from "./ConnectionEditDialog";
 import { ModelEditDialog } from "./ModelEditDialog";
 import { MCPEditDialog } from "./MCPEditDialog";
@@ -129,7 +130,8 @@ export function AdminModal({ open, onOpenChange, enabledModels, onToggleModel }:
 
 function GeneralTab() {
   const { debugEnabled, setDebugEnabled } = useDebug();
-  
+  const { settings, updateGeneral } = useAdminSettings();
+
   return (
     <div className="space-y-4">
       <div>
@@ -137,21 +139,36 @@ function GeneralTab() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label htmlFor="admin-enabled">Enable Admin Panel</Label>
-            <Switch id="admin-enabled" defaultChecked />
+            <Switch
+              id="admin-enabled"
+              checked={settings.general.adminEnabled}
+              onCheckedChange={(checked) => updateGeneral({ adminEnabled: checked })}
+              className="data-[state=checked]:bg-purple-600"
+            />
           </div>
           <div className="flex items-center justify-between">
             <Label htmlFor="user-registration">Allow User Registration</Label>
-            <Switch id="user-registration" defaultChecked />
+            <Switch
+              id="user-registration"
+              checked={settings.general.userRegistration}
+              onCheckedChange={(checked) => updateGeneral({ userRegistration: checked })}
+              className="data-[state=checked]:bg-purple-600"
+            />
           </div>
           <div className="flex items-center justify-between">
             <Label htmlFor="api-access">Enable API Access</Label>
-            <Switch id="api-access" />
+            <Switch
+              id="api-access"
+              checked={settings.general.apiAccess}
+              onCheckedChange={(checked) => updateGeneral({ apiAccess: checked })}
+              className="data-[state=checked]:bg-purple-600"
+            />
           </div>
         </div>
       </div>
-      
+
       <Separator />
-      
+
       <div>
         <h3 className="font-semibold mb-3">Developer Settings</h3>
         <div className="space-y-4">
@@ -162,8 +179,8 @@ function GeneralTab() {
                 Display debug console with API calls and payloads
               </p>
             </div>
-            <Switch 
-              id="debug-mode" 
+            <Switch
+              id="debug-mode"
               checked={debugEnabled}
               onCheckedChange={setDebugEnabled}
               className="data-[state=checked]:bg-purple-600"
@@ -176,51 +193,48 @@ function GeneralTab() {
 }
 
 function InterfaceTab() {
-  const [localTaskModel, setLocalTaskModel] = useState("Current Model");
-  const [externalTaskModel, setExternalTaskModel] = useState("Current Model");
-  const [titleGeneration, setTitleGeneration] = useState(true);
-  const [titleGenerationPrompt, setTitleGenerationPrompt] = useState("Leave empty to use the default prompt, or enter a custom prompt");
-  const [followUpGeneration, setFollowUpGeneration] = useState(false);
-  const [tagsGeneration, setTagsGeneration] = useState(false);
-  const [retrievalQueryGeneration, setRetrievalQueryGeneration] = useState(false);
-  const [webSearchQueryGeneration, setWebSearchQueryGeneration] = useState(false);
-  const [queryGenerationPrompt, setQueryGenerationPrompt] = useState("Leave empty to use the default prompt, or enter a custom prompt");
-  const [autocompleteGeneration, setAutocompleteGeneration] = useState(false);
-  const [imagePromptGenerationPrompt, setImagePromptGenerationPrompt] = useState("Leave empty to use the default prompt, or enter a custom prompt");
-  const [toolsFunctionCallingPrompt, setToolsFunctionCallingPrompt] = useState("Leave empty to use the default prompt, or enter a custom prompt");
-  
-  const [banners, setBanners] = useState([
-    { id: "1", type: "Type", test: "Test" }
-  ]);
-  
-  const [promptSuggestions, setPromptSuggestions] = useState([
-    {
-      id: "1",
-      title: "Title (e.g. Tell me a fun fact)",
-      subtitle: "Subtitle (e.g. about the Roman Empire)",
-      prompt: "Prompt (e.g. Tell me a fun fact about the Roman Empire)"
-    }
-  ]);
+  const { settings, updateInterface } = useAdminSettings();
+  const iface = settings.interface;
 
   const addBanner = () => {
-    setBanners([...banners, { id: Date.now().toString(), type: "Type", test: "Test" }]);
+    updateInterface({
+      banners: [...iface.banners, { id: Date.now().toString(), type: "Type", text: "Test", enabled: true }]
+    });
   };
 
   const removeBanner = (id: string) => {
-    setBanners(banners.filter(b => b.id !== id));
+    updateInterface({
+      banners: iface.banners.filter(b => b.id !== id)
+    });
+  };
+
+  const updateBanner = (id: string, updates: Partial<typeof iface.banners[0]>) => {
+    updateInterface({
+      banners: iface.banners.map(b => b.id === id ? { ...b, ...updates } : b)
+    });
   };
 
   const addPromptSuggestion = () => {
-    setPromptSuggestions([...promptSuggestions, {
-      id: Date.now().toString(),
-      title: "Title (e.g. Tell me a fun fact)",
-      subtitle: "Subtitle (e.g. about the Roman Empire)",
-      prompt: "Prompt (e.g. Tell me a fun fact about the Roman Empire)"
-    }]);
+    updateInterface({
+      promptSuggestions: [...iface.promptSuggestions, {
+        id: Date.now().toString(),
+        title: "Title (e.g. Tell me a fun fact)",
+        subtitle: "Subtitle (e.g. about the Roman Empire)",
+        prompt: "Prompt (e.g. Tell me a fun fact about the Roman Empire)"
+      }]
+    });
   };
 
   const removePromptSuggestion = (id: string) => {
-    setPromptSuggestions(promptSuggestions.filter(p => p.id !== id));
+    updateInterface({
+      promptSuggestions: iface.promptSuggestions.filter(p => p.id !== id)
+    });
+  };
+
+  const updatePromptSuggestion = (id: string, updates: Partial<typeof iface.promptSuggestions[0]>) => {
+    updateInterface({
+      promptSuggestions: iface.promptSuggestions.map(p => p.id === id ? { ...p, ...updates } : p)
+    });
   };
 
   return (
@@ -236,11 +250,11 @@ function InterfaceTab() {
             </svg>
           </button>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="space-y-2">
             <Label>Local Task Model</Label>
-            <Select value={localTaskModel} onValueChange={setLocalTaskModel}>
+            <Select value={iface.localTaskModel} onValueChange={(v) => updateInterface({ localTaskModel: v })}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -251,7 +265,7 @@ function InterfaceTab() {
           </div>
           <div className="space-y-2">
             <Label>External Task Model</Label>
-            <Select value={externalTaskModel} onValueChange={setExternalTaskModel}>
+            <Select value={iface.externalTaskModel} onValueChange={(v) => updateInterface({ externalTaskModel: v })}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -269,17 +283,17 @@ function InterfaceTab() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold">Title Generation</h3>
-          <Switch 
-            checked={titleGeneration} 
-            onCheckedChange={setTitleGeneration}
+          <Switch
+            checked={iface.titleGeneration}
+            onCheckedChange={(v) => updateInterface({ titleGeneration: v })}
             className="data-[state=checked]:bg-purple-600"
           />
         </div>
         <div className="space-y-2">
           <Label>Title Generation Prompt</Label>
           <Textarea
-            value={titleGenerationPrompt}
-            onChange={(e) => setTitleGenerationPrompt(e.target.value)}
+            value={iface.titleGenerationPrompt}
+            onChange={(e) => updateInterface({ titleGenerationPrompt: e.target.value })}
             className="min-h-[60px]"
             placeholder="Leave empty to use the default prompt, or enter a custom prompt"
           />
@@ -289,36 +303,36 @@ function InterfaceTab() {
       {/* Toggle Sections */}
       <div className="flex items-center justify-between">
         <Label>Follow Up Generation</Label>
-        <Switch 
-          checked={followUpGeneration} 
-          onCheckedChange={setFollowUpGeneration}
+        <Switch
+          checked={iface.followUpGeneration}
+          onCheckedChange={(v) => updateInterface({ followUpGeneration: v })}
           className="data-[state=checked]:bg-purple-600"
         />
       </div>
 
       <div className="flex items-center justify-between">
         <Label>Tags Generation</Label>
-        <Switch 
-          checked={tagsGeneration} 
-          onCheckedChange={setTagsGeneration}
+        <Switch
+          checked={iface.tagsGeneration}
+          onCheckedChange={(v) => updateInterface({ tagsGeneration: v })}
           className="data-[state=checked]:bg-purple-600"
         />
       </div>
 
       <div className="flex items-center justify-between">
         <Label>Retrieval Query Generation</Label>
-        <Switch 
-          checked={retrievalQueryGeneration} 
-          onCheckedChange={setRetrievalQueryGeneration}
+        <Switch
+          checked={iface.retrievalQueryGeneration}
+          onCheckedChange={(v) => updateInterface({ retrievalQueryGeneration: v })}
           className="data-[state=checked]:bg-purple-600"
         />
       </div>
 
       <div className="flex items-center justify-between">
         <Label>Web Search Query Generation</Label>
-        <Switch 
-          checked={webSearchQueryGeneration} 
-          onCheckedChange={setWebSearchQueryGeneration}
+        <Switch
+          checked={iface.webSearchQueryGeneration}
+          onCheckedChange={(v) => updateInterface({ webSearchQueryGeneration: v })}
           className="data-[state=checked]:bg-purple-600"
         />
       </div>
@@ -327,8 +341,8 @@ function InterfaceTab() {
       <div className="space-y-2">
         <Label>Query Generation Prompt</Label>
         <Textarea
-          value={queryGenerationPrompt}
-          onChange={(e) => setQueryGenerationPrompt(e.target.value)}
+          value={iface.queryGenerationPrompt}
+          onChange={(e) => updateInterface({ queryGenerationPrompt: e.target.value })}
           className="min-h-[60px]"
           placeholder="Leave empty to use the default prompt, or enter a custom prompt"
         />
@@ -336,9 +350,9 @@ function InterfaceTab() {
 
       <div className="flex items-center justify-between">
         <Label>Autocomplete Generation</Label>
-        <Switch 
-          checked={autocompleteGeneration} 
-          onCheckedChange={setAutocompleteGeneration}
+        <Switch
+          checked={iface.autocompleteGeneration}
+          onCheckedChange={(v) => updateInterface({ autocompleteGeneration: v })}
           className="data-[state=checked]:bg-purple-600"
         />
       </div>
@@ -347,8 +361,8 @@ function InterfaceTab() {
       <div className="space-y-2">
         <Label>Image Prompt Generation Prompt</Label>
         <Textarea
-          value={imagePromptGenerationPrompt}
-          onChange={(e) => setImagePromptGenerationPrompt(e.target.value)}
+          value={iface.imagePromptGenerationPrompt}
+          onChange={(e) => updateInterface({ imagePromptGenerationPrompt: e.target.value })}
           className="min-h-[60px]"
           placeholder="Leave empty to use the default prompt, or enter a custom prompt"
         />
@@ -358,8 +372,8 @@ function InterfaceTab() {
       <div className="space-y-2">
         <Label>Tools Function Calling Prompt</Label>
         <Textarea
-          value={toolsFunctionCallingPrompt}
-          onChange={(e) => setToolsFunctionCallingPrompt(e.target.value)}
+          value={iface.toolsFunctionCallingPrompt}
+          onChange={(e) => updateInterface({ toolsFunctionCallingPrompt: e.target.value })}
           className="min-h-[60px]"
           placeholder="Leave empty to use the default prompt, or enter a custom prompt"
         />
@@ -370,25 +384,25 @@ function InterfaceTab() {
       {/* UI Section */}
       <div>
         <h3 className="font-semibold mb-4">UI</h3>
-        
+
         {/* Banners */}
         <div className="space-y-3 mb-4">
           <div className="flex items-center justify-between">
             <Label>Banners</Label>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="h-8 w-8 cursor-pointer"
               onClick={addBanner}
             >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
-          
-          {banners.map((banner, index) => (
+
+          {iface.banners.map((banner) => (
             <div key={banner.id} className="flex gap-2 items-center p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
               <div className="flex gap-2 flex-1">
-                <Select defaultValue={banner.type}>
+                <Select value={banner.type} onValueChange={(v) => updateBanner(banner.id, { type: v })}>
                   <SelectTrigger className="w-24">
                     <SelectValue />
                   </SelectTrigger>
@@ -398,13 +412,21 @@ function InterfaceTab() {
                     <SelectItem value="Warning">Warning</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input defaultValue={banner.test} className="flex-1" />
+                <Input
+                  value={banner.text}
+                  onChange={(e) => updateBanner(banner.id, { text: e.target.value })}
+                  className="flex-1"
+                />
               </div>
               <div className="flex gap-1">
-                <Switch defaultChecked className="data-[state=checked]:bg-purple-600" />
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Switch
+                  checked={banner.enabled}
+                  onCheckedChange={(v) => updateBanner(banner.id, { enabled: v })}
+                  className="data-[state=checked]:bg-purple-600"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="h-8 w-8 cursor-pointer"
                   onClick={() => removeBanner(banner.id)}
                 >
@@ -419,36 +441,39 @@ function InterfaceTab() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <Label>Default Prompt Suggestions</Label>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="h-8 w-8 cursor-pointer"
               onClick={addPromptSuggestion}
             >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
-          
-          {promptSuggestions.map((suggestion) => (
+
+          {iface.promptSuggestions.map((suggestion) => (
             <div key={suggestion.id} className="space-y-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg relative">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="h-6 w-6 absolute top-2 right-2 cursor-pointer"
                 onClick={() => removePromptSuggestion(suggestion.id)}
               >
                 <X className="h-3 w-3" />
               </Button>
-              <Input 
-                defaultValue={suggestion.title}
+              <Input
+                value={suggestion.title}
+                onChange={(e) => updatePromptSuggestion(suggestion.id, { title: e.target.value })}
                 className="text-sm"
               />
-              <Input 
-                defaultValue={suggestion.subtitle}
+              <Input
+                value={suggestion.subtitle}
+                onChange={(e) => updatePromptSuggestion(suggestion.id, { subtitle: e.target.value })}
                 className="text-xs text-gray-500 dark:text-gray-400"
               />
-              <Textarea 
-                defaultValue={suggestion.prompt}
+              <Textarea
+                value={suggestion.prompt}
+                onChange={(e) => updatePromptSuggestion(suggestion.id, { prompt: e.target.value })}
                 className="min-h-[60px] text-sm"
               />
             </div>
@@ -471,7 +496,7 @@ function InterfaceTab() {
         </Button>
         <Button variant="outline" className="cursor-pointer">
           <Download className="h-4 w-4 mr-2" />
-          Export Prompt Suggestions (1)
+          Export Prompt Suggestions ({iface.promptSuggestions.length})
         </Button>
       </div>
     </div>
@@ -1756,29 +1781,17 @@ function DocumentsTab() {
 }
 
 function WebSearchTab() {
-  const [webSearchEnabled, setWebSearchEnabled] = useState(true);
-  const [searchEngine, setSearchEngine] = useState("google");
-  const [enableQuerySuggestions, setEnableQuerySuggestions] = useState(true);
-  const [enableWebLoader, setEnableWebLoader] = useState(false);
-  const [resultCount, setResultCount] = useState("5");
-  const [searxngUrl, setSearxngUrl] = useState("");
-  const [serpApiKey, setSerpApiKey] = useState("");
-  const [googleSearchApiKey, setGoogleSearchApiKey] = useState("");
-  const [googleSearchEngineId, setGoogleSearchEngineId] = useState("");
-  const [braveSearchApiKey, setBraveSearchApiKey] = useState("");
-  const [serperApiKey, setSerperApiKey] = useState("");
-  const [serplyApiKey, setSerplyApiKey] = useState("");
-  const [tavityApiKey, setTavityApiKey] = useState("");
-  const [searchapiApiKey, setSearchapiApiKey] = useState("");
+  const { settings, updateWebSearch } = useAdminSettings();
+  const ws = settings.webSearch;
 
   return (
     <div className="space-y-6">
       {/* Enable Web Search */}
       <div className="flex items-center justify-between">
         <Label>Enable Web Search</Label>
-        <Switch 
-          checked={webSearchEnabled} 
-          onCheckedChange={setWebSearchEnabled}
+        <Switch
+          checked={ws.webSearchEnabled}
+          onCheckedChange={(v) => updateWebSearch({ webSearchEnabled: v })}
           className="data-[state=checked]:bg-purple-600"
         />
       </div>
@@ -1788,7 +1801,7 @@ function WebSearchTab() {
       {/* Search Engine */}
       <div className="space-y-2">
         <Label>Search Engine</Label>
-        <Select value={searchEngine} onValueChange={setSearchEngine}>
+        <Select value={ws.searchEngine} onValueChange={(v) => updateWebSearch({ searchEngine: v })}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -1811,9 +1824,9 @@ function WebSearchTab() {
       {/* Query Suggestions */}
       <div className="flex items-center justify-between">
         <Label>Enable Query Suggestions</Label>
-        <Switch 
-          checked={enableQuerySuggestions} 
-          onCheckedChange={setEnableQuerySuggestions}
+        <Switch
+          checked={ws.enableQuerySuggestions}
+          onCheckedChange={(v) => updateWebSearch({ enableQuerySuggestions: v })}
           className="data-[state=checked]:bg-purple-600"
         />
       </div>
@@ -1821,9 +1834,9 @@ function WebSearchTab() {
       {/* Web Loader */}
       <div className="flex items-center justify-between">
         <Label>Enable Web Loader for All URLs</Label>
-        <Switch 
-          checked={enableWebLoader} 
-          onCheckedChange={setEnableWebLoader}
+        <Switch
+          checked={ws.enableWebLoader}
+          onCheckedChange={(v) => updateWebSearch({ enableWebLoader: v })}
           className="data-[state=checked]:bg-purple-600"
         />
       </div>
@@ -1833,10 +1846,10 @@ function WebSearchTab() {
       {/* Result Count */}
       <div className="space-y-2">
         <Label>Result Count</Label>
-        <Input 
-          type="number" 
-          value={resultCount} 
-          onChange={(e) => setResultCount(e.target.value)}
+        <Input
+          type="number"
+          value={ws.resultCount}
+          onChange={(e) => updateWebSearch({ resultCount: e.target.value })}
           min="1"
           max="20"
         />
@@ -1847,108 +1860,108 @@ function WebSearchTab() {
       {/* API Keys Section */}
       <div className="space-y-4">
         <h3 className="font-semibold">API Keys</h3>
-        
-        {searchEngine === "searxng" && (
+
+        {ws.searchEngine === "searxng" && (
           <div className="space-y-2">
             <Label>SearXNG Instance URL</Label>
-            <Input 
+            <Input
               type="url"
-              value={searxngUrl} 
-              onChange={(e) => setSearxngUrl(e.target.value)}
+              value={ws.searxngUrl}
+              onChange={(e) => updateWebSearch({ searxngUrl: e.target.value })}
               placeholder="https://searxng.example.com"
             />
           </div>
         )}
 
-        {searchEngine === "serpapi" && (
+        {ws.searchEngine === "serpapi" && (
           <div className="space-y-2">
             <Label>SerpAPI API Key</Label>
-            <Input 
+            <Input
               type="password"
-              value={serpApiKey} 
-              onChange={(e) => setSerpApiKey(e.target.value)}
+              value={ws.serpApiKey}
+              onChange={(e) => updateWebSearch({ serpApiKey: e.target.value })}
               placeholder="Enter your SerpAPI key"
             />
           </div>
         )}
 
-        {searchEngine === "google" && (
+        {ws.searchEngine === "google" && (
           <>
             <div className="space-y-2">
               <Label>Google Search API Key</Label>
-              <Input 
+              <Input
                 type="password"
-                value={googleSearchApiKey} 
-                onChange={(e) => setGoogleSearchApiKey(e.target.value)}
+                value={ws.googleSearchApiKey}
+                onChange={(e) => updateWebSearch({ googleSearchApiKey: e.target.value })}
                 placeholder="Enter your Google API key"
               />
             </div>
             <div className="space-y-2">
               <Label>Google Search Engine ID</Label>
-              <Input 
-                value={googleSearchEngineId} 
-                onChange={(e) => setGoogleSearchEngineId(e.target.value)}
+              <Input
+                value={ws.googleSearchEngineId}
+                onChange={(e) => updateWebSearch({ googleSearchEngineId: e.target.value })}
                 placeholder="Enter your Search Engine ID"
               />
             </div>
           </>
         )}
 
-        {searchEngine === "brave" && (
+        {ws.searchEngine === "brave" && (
           <div className="space-y-2">
             <Label>Brave Search API Key</Label>
-            <Input 
+            <Input
               type="password"
-              value={braveSearchApiKey} 
-              onChange={(e) => setBraveSearchApiKey(e.target.value)}
+              value={ws.braveSearchApiKey}
+              onChange={(e) => updateWebSearch({ braveSearchApiKey: e.target.value })}
               placeholder="Enter your Brave Search API key"
             />
           </div>
         )}
 
-        {searchEngine === "serper" && (
+        {ws.searchEngine === "serper" && (
           <div className="space-y-2">
             <Label>Serper API Key</Label>
-            <Input 
+            <Input
               type="password"
-              value={serperApiKey} 
-              onChange={(e) => setSerperApiKey(e.target.value)}
+              value={ws.serperApiKey}
+              onChange={(e) => updateWebSearch({ serperApiKey: e.target.value })}
               placeholder="Enter your Serper API key"
             />
           </div>
         )}
 
-        {searchEngine === "serply" && (
+        {ws.searchEngine === "serply" && (
           <div className="space-y-2">
             <Label>Serply API Key</Label>
-            <Input 
+            <Input
               type="password"
-              value={serplyApiKey} 
-              onChange={(e) => setSerplyApiKey(e.target.value)}
+              value={ws.serplyApiKey}
+              onChange={(e) => updateWebSearch({ serplyApiKey: e.target.value })}
               placeholder="Enter your Serply API key"
             />
           </div>
         )}
 
-        {searchEngine === "tavity" && (
+        {ws.searchEngine === "tavity" && (
           <div className="space-y-2">
             <Label>Tavity API Key</Label>
-            <Input 
+            <Input
               type="password"
-              value={tavityApiKey} 
-              onChange={(e) => setTavityApiKey(e.target.value)}
+              value={ws.tavityApiKey}
+              onChange={(e) => updateWebSearch({ tavityApiKey: e.target.value })}
               placeholder="Enter your Tavity API key"
             />
           </div>
         )}
 
-        {searchEngine === "searchapi" && (
+        {ws.searchEngine === "searchapi" && (
           <div className="space-y-2">
             <Label>SearchAPI API Key</Label>
-            <Input 
+            <Input
               type="password"
-              value={searchapiApiKey} 
-              onChange={(e) => setSearchapiApiKey(e.target.value)}
+              value={ws.searchapiApiKey}
+              onChange={(e) => updateWebSearch({ searchapiApiKey: e.target.value })}
               placeholder="Enter your SearchAPI key"
             />
           </div>
@@ -1959,6 +1972,8 @@ function WebSearchTab() {
 }
 
 function CodeExecutionTab() {
+  const { settings, updateCodeExecution } = useAdminSettings();
+
   return (
     <div className="space-y-4">
       <div>
@@ -1966,7 +1981,11 @@ function CodeExecutionTab() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label>Enable Code Execution</Label>
-            <Switch />
+            <Switch
+              checked={settings.codeExecution.codeExecutionEnabled}
+              onCheckedChange={(v) => updateCodeExecution({ codeExecutionEnabled: v })}
+              className="data-[state=checked]:bg-purple-600"
+            />
           </div>
           <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
             <p className="text-sm text-yellow-800 dark:text-yellow-200">
@@ -1980,6 +1999,9 @@ function CodeExecutionTab() {
 }
 
 function AudioTab() {
+  const { settings, updateAudio } = useAdminSettings();
+  const audio = settings.audio;
+
   return (
     <div className="space-y-4">
       <div>
@@ -1987,15 +2009,23 @@ function AudioTab() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label>Enable Voice Input</Label>
-            <Switch defaultChecked />
+            <Switch
+              checked={audio.voiceInputEnabled}
+              onCheckedChange={(v) => updateAudio({ voiceInputEnabled: v })}
+              className="data-[state=checked]:bg-purple-600"
+            />
           </div>
           <div className="flex items-center justify-between">
             <Label>Enable Text-to-Speech</Label>
-            <Switch defaultChecked />
+            <Switch
+              checked={audio.textToSpeechEnabled}
+              onCheckedChange={(v) => updateAudio({ textToSpeechEnabled: v })}
+              className="data-[state=checked]:bg-purple-600"
+            />
           </div>
           <div>
             <Label>Voice Model</Label>
-            <Select defaultValue="alloy">
+            <Select value={audio.voiceModel} onValueChange={(v) => updateAudio({ voiceModel: v })}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -2013,6 +2043,9 @@ function AudioTab() {
 }
 
 function ImagesTab() {
+  const { settings, updateImages } = useAdminSettings();
+  const images = settings.images;
+
   return (
     <div className="space-y-4">
       <div>
@@ -2020,11 +2053,15 @@ function ImagesTab() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label>Enable Image Generation</Label>
-            <Switch defaultChecked />
+            <Switch
+              checked={images.imageGenerationEnabled}
+              onCheckedChange={(v) => updateImages({ imageGenerationEnabled: v })}
+              className="data-[state=checked]:bg-purple-600"
+            />
           </div>
           <div>
             <Label>Image Model</Label>
-            <Select defaultValue="dall-e-3">
+            <Select value={images.imageModel} onValueChange={(v) => updateImages({ imageModel: v })}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>

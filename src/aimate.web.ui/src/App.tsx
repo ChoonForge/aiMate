@@ -10,6 +10,7 @@ import { ShowcaseModeIndicator } from "./components/ShowcaseModeIndicator";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { DebugProvider, useDebug } from "./components/DebugContext";
 import { AuthProvider } from "./context/AuthContext";
+import { AdminSettingsProvider } from "./context/AdminSettingsContext";
 import { ScrollArea } from "./components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTitle } from "./components/ui/sheet";
 import { Sparkles } from "lucide-react";
@@ -790,11 +791,13 @@ function AppWrapper() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ThemeProvider defaultTheme="dark">
-          <DebugProvider>
-            <App />
-          </DebugProvider>
-        </ThemeProvider>
+        <AdminSettingsProvider>
+          <ThemeProvider defaultTheme="dark">
+            <DebugProvider>
+              <App />
+            </DebugProvider>
+          </ThemeProvider>
+        </AdminSettingsProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
