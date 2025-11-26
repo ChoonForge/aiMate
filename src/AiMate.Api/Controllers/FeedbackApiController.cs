@@ -3,7 +3,7 @@ using AiMate.Core.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AiMate.Web.Controllers;
+namespace AiMate.Api.Controllers;
 
 /// <summary>
 /// API for managing message feedback and ratings
@@ -76,6 +76,69 @@ public class FeedbackApiController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create feedback for message {MessageId}", messageId);
+            return StatusCode(500, new { error = "Internal server error", message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Update existing feedback for a message
+    /// </summary>
+    /// <param name="feedbackId">Feedback ID to update</param>
+    /// <param name="request">Updated feedback data</param>
+    /// <returns>Updated feedback details</returns>
+    /// <response code="200">Feedback updated successfully</response>
+    /// <response code="404">Feedback not found</response>
+    /// <response code="500">Internal server error</response>
+    [HttpPut("{feedbackId}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UpdateFeedback(
+        Guid feedbackId,
+        [FromBody] UpdateFeedbackRequest request)
+    {
+        try
+        {
+            _logger.LogInformation("Updating feedback {FeedbackId}", feedbackId);
+
+            var feedback = await _feedbackService.GetFeedbackByIdAsync(feedbackId);
+            if (feedback == null)
+            {
+                return NotFound(new { error = "Feedback not found" });
+            }
+
+            // Update fields if provided
+            if (request.Rating.HasValue)
+                feedback.Rating = request.Rating.Value;
+
+            if (!string.IsNullOrEmpty(request.TextFeedback))
+                feedback.TextFeedback = request.TextFeedback;
+
+            if (request.Tags?.Count > 0)
+            {
+                feedback.Tags = request.Tags.Select(t => new FeedbackTag
+                {
+                    Key = t.Key,
+                    Value = t.Value,
+                    Color = t.Color,
+                    Sentiment = t.Sentiment
+                }).ToList();
+            }
+
+            if (!string.IsNullOrEmpty(request.ModelId))
+                feedback.ModelId = request.ModelId;
+
+            if (request.ResponseTimeMs.HasValue)
+                feedback.ResponseTimeMs = request.ResponseTimeMs.Value;
+
+            await _feedbackService.UpdateFeedbackAsync(feedback);
+
+            _logger.LogInformation("Feedback {FeedbackId} updated successfully", feedbackId);
+            return Ok(new { feedback.Id, feedback.Rating, feedback.CreatedAt, feedback.UpdatedAt });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update feedback {FeedbackId}", feedbackId);
             return StatusCode(500, new { error = "Internal server error", message = ex.Message });
         }
     }
@@ -457,4 +520,13 @@ public class UpdateTagTemplateRequest
     public bool? IsActive { get; set; }
     public bool? IsRequired { get; set; }
     public int? DisplayOrder { get; set; }
+}
+
+public class UpdateFeedbackRequest
+{
+    public int? Rating { get; set; }
+    public string? TextFeedback { get; set; }
+    public List<FeedbackTagDto>? Tags { get; set; }
+    public string? ModelId { get; set; }
+    public long? ResponseTimeMs { get; set; }
 }

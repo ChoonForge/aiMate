@@ -708,6 +708,42 @@ Content-Type: application/json
 }
 ```
 
+### PUT /api/v1/feedback/{feedbackId}
+
+Update existing feedback for a message.
+
+**Request:**
+```http
+PUT /api/v1/feedback/990e8400-e29b-41d4-a716-446655440000
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+
+{
+  "rating": 9,
+  "textFeedback": "Even better on second thought!",
+  "tags": [
+    {
+      "key": "quality",
+      "value": "very-high",
+      "color": "success",
+      "sentiment": "positive"
+    }
+  ],
+  "modelId": "gpt-4",
+  "responseTimeMs": 2200
+}
+```
+
+**Response:**
+```json
+{
+  "id": "990e8400-e29b-41d4-a716-446655440000",
+  "rating": 9,
+  "createdAt": "2025-01-18T15:00:00Z",
+  "updatedAt": "2025-01-18T15:05:00Z"
+}
+```
+
 ### GET /api/v1/feedback/messages/{messageId}
 
 Get feedback for a specific message.
@@ -724,20 +760,20 @@ Authorization: Bearer YOUR_API_KEY
   "id": "990e8400-e29b-41d4-a716-446655440000",
   "messageId": "880e8400-e29b-41d4-a716-446655440000",
   "userId": "user-guid",
-  "rating": 8,
-  "textFeedback": "Great response, very helpful!",
+  "rating": 9,
+  "textFeedback": "Even better on second thought!",
   "tags": [
     {
       "key": "quality",
-      "value": "high",
+      "value": "very-high",
       "color": "success",
       "sentiment": "positive"
     }
   ],
   "modelId": "gpt-4",
-  "responseTimeMs": 2500,
+  "responseTimeMs": 2200,
   "createdAt": "2025-01-18T15:00:00Z",
-  "updatedAt": "2025-01-18T15:00:00Z"
+  "updatedAt": "2025-01-18T15:05:00Z"
 }
 ```
 
@@ -1304,11 +1340,11 @@ Authorization: Bearer YOUR_API_KEY
 
 ### POST /api/v1/settings
 
-Update user settings.
+Update user settings (legacy POST method).
 
 **Request:**
 ```http
-POST /api/v1/settings
+POST /api/v1/settings?userId=user-guid
 Authorization: Bearer YOUR_API_KEY
 Content-Type: application/json
 
@@ -1325,14 +1361,58 @@ Content-Type: application/json
 **Response:**
 ```json
 {
+  "success": true,
+  "message": "Settings updated successfully"
+}
+```
+
+### PUT /api/v1/settings
+
+Update user settings (REST compliant).
+
+**Request:**
+```http
+PUT /api/v1/settings?userId=user-guid
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+
+{
   "theme": "light",
   "notifications": {
     "email": false,
     "push": true
   },
   "language": "en",
-  "timezone": "Pacific/Auckland",
-  "defaultModel": "claude-3-5-sonnet-20241022"
+  "defaultModel": "claude-3-5-sonnet-20241022",
+  "defaultPersonality": "KiwiDev"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Settings updated successfully"
+}
+```
+
+### DELETE /api/v1/settings
+
+Reset user settings to defaults.
+
+**Request:**
+```http
+DELETE /api/v1/settings?userId=user-guid
+Authorization: Bearer YOUR_API_KEY
+```
+
+**Response:**
+```json
+{
+  "username": "john.doe",
+  "email": "john@example.com",
+  "userTier": "Developer",
+  "defaultPersonality": "KiwiDev"
 }
 ```
 
@@ -1508,13 +1588,25 @@ Manage user groups and group permissions.
 - **PUT** `/{id}` - Update group
 - **DELETE** `/{id}` - Delete group
 
-### Plugin API (`/api/v1/plugin`)
+### Plugin API (`/api/v1/plugins`)
 
 Manage plugins and extensions.
 
-- **GET** `/` - List plugins
-- **POST** `/` - Install plugin
-- **DELETE** `/{id}` - Uninstall plugin
+**Plugin Management:**
+- **GET** `/` - List all loaded plugins
+- **GET** `/{id}` - Get specific plugin details
+- **POST** `/{id}/toggle` - Toggle plugin enabled state
+- **POST** `/reload` - Reload all plugins
+
+**Plugin Settings:**
+- **GET** `/{id}/settings` - Get plugin settings schema and values
+- **POST** `/{id}/settings` - Save plugin settings
+- **PUT** `/{id}/settings` - Update plugin settings (REST compliant)
+- **DELETE** `/{id}/settings` - Delete plugin settings (admin only)
+
+**Plugin Tools & Actions:**
+- **GET** `/tools` - Get available tools from all plugins
+- **POST** `/actions` - Get message actions for a message
 
 ### Code Compilation API (`/api/v1/codecompilation`)
 
@@ -1552,14 +1644,33 @@ Manage structured content and templates.
 - **PUT** `/{id}` - Update content
 - **DELETE** `/{id}` - Delete content
 
-### Feedback System API (`/api/v1/feedbacksystem`)
+### Feedback System API (`/api/v1`)
 
-System-level feedback operations.
+System-level feedback operations and error logging.
 
-- **GET** `/templates` - Get feedback templates
-- **POST** `/templates` - Create template (admin)
-- **PUT** `/templates/{id}` - Update template (admin)
-- **DELETE** `/templates/{id}` - Delete template (admin)
+**User Feedback:**
+- **POST** `/system-feedback` - Submit user feedback
+- **GET** `/system-feedback` - Get user feedback
+- **GET** `/system-feedback/filter` - Get filtered feedback (admin)
+- **GET** `/system-feedback/{id}` - Get specific feedback
+- **PUT** `/system-feedback/{id}/status` - Update feedback status (admin)
+- **PUT** `/system-feedback/{id}/assign` - Assign feedback to admin
+- **DELETE** `/system-feedback/{id}` - Delete feedback
+- **GET** `/system-feedback/stats` - Get feedback statistics (admin)
+
+**Feedback Templates:**
+- **GET** `/feedback/templates` - Get feedback templates
+- **POST** `/feedback/templates` - Create template (admin)
+- **PUT** `/feedback/templates/{id}` - Update template (admin)
+- **DELETE** `/feedback/templates/{id}` - Delete template (admin)
+
+**Error Logging:**
+- **POST** `/errors/log` - Log frontend error (public, rate-limited)
+- **GET** `/errors` - Get error logs (admin)
+- **GET** `/errors/{id}` - Get specific error (admin)
+- **PUT** `/errors/{id}/resolve` - Mark error as resolved (admin)
+- **DELETE** `/errors/{id}` - Delete error log (admin)
+- **GET** `/errors/stats` - Get error statistics (admin)
 
 ### Monaco Config API (`/api/v1/monacoconfig`)
 

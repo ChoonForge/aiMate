@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
-namespace AiMate.Web.Controllers;
+namespace AiMate.Api.Controllers;
 
 /// <summary>
 /// API for general user feedback and automated error logging (alpha testing)
@@ -417,6 +417,40 @@ public class FeedbackSystemApiController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return NotFound(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Delete an error log (admin only)
+    /// </summary>
+    /// <param name="id">Error ID</param>
+    /// <returns>No content</returns>
+    /// <response code="204">Error deleted successfully</response>
+    /// <response code="404">Error not found</response>
+    [HttpDelete("errors/{id}")]
+    [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DeleteError(Guid id)
+    {
+        try
+        {
+            var error = await _errorService.GetErrorByIdAsync(id);
+
+            if (error == null)
+                return NotFound("Error not found");
+
+            await _errorService.DeleteErrorAsync(id);
+
+            _logger.LogInformation("Error {Id} deleted by admin", id);
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete error {Id}", id);
+            return StatusCode(500, new { error = "Failed to delete error", message = ex.Message });
         }
     }
 

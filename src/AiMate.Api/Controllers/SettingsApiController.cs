@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
-namespace AiMate.Web.Controllers;
+namespace AiMate.Api.Controllers;
 
 /// <summary>
 /// Settings API for managing user preferences and configuration
@@ -120,6 +120,55 @@ public class SettingsApiController : ControllerBase
     }
 
     /// <summary>
+    /// Update user settings (REST PUT method)
+    /// </summary>
+    [HttpPut]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UpdateSettingsPut([FromBody] UserSettingsDto settings, [FromQuery] string userId)
+    {
+        try
+        {
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return BadRequest("Invalid user ID");
+            }
+
+            _logger.LogInformation("Updating settings for user {UserId} via PUT", userId);
+
+            var user = await _context.Users.FindAsync(userGuid);
+
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+
+            // Update User entity fields that are in settings
+            if (settings.DefaultPersonality != null &&
+                Enum.TryParse<AiMate.Core.Enums.PersonalityMode>(settings.DefaultPersonality, out var personality))
+            {
+                user.DefaultPersonality = personality;
+            }
+
+            // Serialize and save full settings to PreferencesJson
+            user.PreferencesJson = JsonSerializer.Serialize(settings);
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Settings updated for user {UserId} via PUT", userId);
+
+            return Ok(new { success = true, message = "Settings updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating settings for user {UserId}", userId);
+            return StatusCode(500, new { error = "Failed to update settings", message = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Reset settings to defaults
     /// </summary>
     [HttpPost("reset")]
@@ -154,6 +203,55 @@ public class SettingsApiController : ControllerBase
             };
 
             _logger.LogInformation("Settings reset to defaults for user {UserId}", userId);
+
+            return Ok(defaultSettings);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting settings for user {UserId}", userId);
+            return StatusCode(500, new { error = "Failed to reset settings", message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Delete/Reset settings to defaults (REST DELETE method)
+    /// </summary>
+    [HttpDelete]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DeleteSettings([FromQuery] string userId)
+    {
+        try
+        {
+            if (!Guid.TryParse(userId, out var userGuid))
+            {
+                return BadRequest("Invalid user ID");
+            }
+
+            _logger.LogInformation("Deleting/resetting settings for user {UserId}", userId);
+
+            var user = await _context.Users.FindAsync(userGuid);
+
+            if (user == null)
+            {
+                return NotFound("User not found");
+            }
+
+            // Clear PreferencesJson to reset to defaults
+            user.PreferencesJson = null;
+            await _context.SaveChangesAsync();
+
+            var defaultSettings = new UserSettingsDto
+            {
+                Username = user.Username,
+                Email = user.Email,
+                UserTier = user.Tier.ToString(),
+                DefaultPersonality = user.DefaultPersonality.ToString()
+            };
+
+            _logger.LogInformation("Settings reset to defaults for user {UserId} via DELETE", userId);
 
             return Ok(defaultSettings);
         }
