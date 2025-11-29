@@ -832,6 +832,7 @@ export interface ConnectionDto {
   models: string[];
   updatedAt?: string;
   enabled?: boolean;
+  url?: string;
 }
 
 export interface CreateConnectionDto {
@@ -839,12 +840,14 @@ export interface CreateConnectionDto {
   name: string;
   apiKey: string;
   isActive: boolean;
+  url?: string;
 }
 
 export interface UpdateConnectionDto {
   name?: string;
   isActive?: boolean;
   apiKey?: string;
+  url?: string;
 }
 
 export interface ConnectionTestResponse {

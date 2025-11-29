@@ -1209,10 +1209,25 @@ function ConnectionsTab() {
   const { addLog } = useDebug();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedConnection, setSelectedConnection] = useState<any>(null);
-  const { connections, toggleConnection, createConnection, updateConnection, deleteConnection: deleteConnectionApi } = useAdmin();
+  const { connections, toggleConnection, createConnection, updateConnection, deleteConnection: deleteConnectionApi, testConnection } = useAdmin();
+
+  // Map ConnectionDto to dialog Connection format
+  const mapToDialogConnection = (conn: any) => ({
+    id: conn.id,
+    name: conn.name,
+    type: conn.provider || 'Custom',
+    url: conn.url || '',
+    auth: 'None',
+    headers: '',
+    prefixId: '',
+    providerType: conn.provider || 'Custom',
+    modelIds: conn.models || [],
+    tags: [],
+    enabled: conn.isActive ?? conn.enabled ?? true,
+  });
 
   const handleEdit = (connection: any) => {
-    setSelectedConnection(connection);
+    setSelectedConnection(mapToDialogConnection(connection));
     setEditDialogOpen(true);
     addLog({
       action: `Editing connection: ${connection.name}`,
@@ -1418,16 +1433,57 @@ function ConnectionsTab() {
 
         <Separator />
 
-        {/* Direct Connections Section */}
+        {/* Direct Connections Section - LM Server / Custom */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold">Direct Connections</h3>
-            <Switch className="data-[state=checked]:bg-purple-600" />
+            <h3 className="font-semibold">Direct Connections (LM Server)</h3>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={handleAdd}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-            Direct Connections allow users to connect to their own OpenAI
-            compatible API endpoints.
+            Connect to LM Studio, Ollama, or any OpenAI-compatible API endpoint.
           </p>
+          <div className="space-y-2">
+            {connections.map((connection) => (
+              <div
+                key={connection.id}
+                className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium">{connection.name}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {(connection as any).url || connection.apiKeyPrefix || 'No URL configured'}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Switch
+                    checked={connection.isActive ?? connection.enabled}
+                    onCheckedChange={() => handleToggle(connection.id)}
+                    className="data-[state=checked]:bg-purple-600"
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8"
+                    onClick={() => handleEdit(connection)}
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            {connections.length === 0 && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                No connections configured. Click + to add one.
+              </p>
+            )}
+          </div>
         </div>
 
         <Separator />

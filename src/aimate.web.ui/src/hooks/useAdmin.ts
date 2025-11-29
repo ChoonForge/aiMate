@@ -1,7 +1,8 @@
 /**
  * Admin Data Hook
- * 
- * Manages admin data fetching, caching, and mutations
+ *
+ * Manages admin data fetching, caching, and mutations.
+ * In offline mode, uses AdminSettingsContext for localStorage persistence.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -14,14 +15,70 @@ import {
   AdminDashboardDto,
 } from '../api/services';
 import { AppConfig } from '../utils/config';
+import { useAdminSettings, Connection as AdminConnection, Model as AdminModel } from '../context/AdminSettingsContext';
+
+// Storage key for offline admin data
+const OFFLINE_STORAGE_KEY = 'aimate-admin-offline-data';
+
+// Helper to convert AdminSettingsContext Connection to ConnectionDto
+function toConnectionDto(conn: AdminConnection): ConnectionDto {
+  return {
+    id: conn.id,
+    provider: (conn.type as ConnectionDto['provider']) || 'Custom',
+    name: conn.name,
+    isActive: conn.enabled,
+    apiKeyPrefix: conn.apiKey ? conn.apiKey.substring(0, 10) + '...' : '',
+    createdAt: new Date().toISOString(),
+    models: [],
+    enabled: conn.enabled,
+    url: conn.url,
+  };
+}
+
+// Helper to convert AdminSettingsContext Model to ModelDto
+function toModelDto(model: AdminModel): ModelDto {
+  return {
+    id: model.id,
+    name: model.name,
+    provider: model.connection || 'Custom',
+    isActive: true,
+    contextWindow: 4096,
+    color: model.color,
+    capabilities: ['chat'],
+  };
+}
+
+// Helper to convert ConnectionDto to AdminConnection
+function toAdminConnection(dto: ConnectionDto): AdminConnection {
+  return {
+    id: dto.id,
+    name: dto.name,
+    type: dto.provider,
+    url: (dto as any).url || '',
+    enabled: dto.isActive ?? dto.enabled ?? true,
+    apiKey: dto.apiKeyPrefix,
+  };
+}
+
+// Helper to convert ModelDto to AdminModel
+function toAdminModel(dto: ModelDto): AdminModel {
+  return {
+    id: dto.id,
+    name: dto.name,
+    color: dto.color || 'text-gray-500',
+    description: '',
+    connection: dto.provider,
+  };
+}
 
 export function useAdmin() {
+  const adminSettings = useAdminSettings();
   const [dashboard, setDashboard] = useState<AdminDashboardDto | null>(null);
   const [models, setModels] = useState<ModelDto[]>([]);
   const [connections, setConnections] = useState<ConnectionDto[]>([]);
   const [mcpServers, setMcpServers] = useState<McpServerDto[]>([]);
   const [users, setUsers] = useState<any[]>([]);
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,54 +131,10 @@ export function useAdmin() {
 
   const loadModels = useCallback(async () => {
     if (AppConfig.isOfflineMode()) {
-      // Use mock models in offline mode
-      setModels([
-        { 
-          id: 'gpt-4', 
-          name: 'GPT-4', 
-          provider: 'OpenAI',
-          isActive: true,
-          contextWindow: 8192,
-          color: 'text-purple-500',
-          capabilities: ['chat', 'code', 'analysis'],
-        },
-        { 
-          id: 'gpt-4-turbo', 
-          name: 'GPT-4 Turbo', 
-          provider: 'OpenAI',
-          isActive: true,
-          contextWindow: 128000,
-          color: 'text-blue-500',
-          capabilities: ['chat', 'code', 'analysis', 'vision'],
-        },
-        { 
-          id: 'gpt-3.5-turbo', 
-          name: 'GPT-3.5 Turbo', 
-          provider: 'OpenAI',
-          isActive: true,
-          contextWindow: 16384,
-          color: 'text-green-500',
-          capabilities: ['chat', 'code'],
-        },
-        { 
-          id: 'claude-3-opus', 
-          name: 'Claude 3 Opus', 
-          provider: 'Anthropic',
-          isActive: true,
-          contextWindow: 200000,
-          color: 'text-orange-500',
-          capabilities: ['chat', 'code', 'analysis'],
-        },
-        { 
-          id: 'claude-3-sonnet', 
-          name: 'Claude 3 Sonnet', 
-          provider: 'Anthropic',
-          isActive: true,
-          contextWindow: 200000,
-          color: 'text-amber-500',
-          capabilities: ['chat', 'code'],
-        },
-      ]);
+      // In offline mode, use AdminSettingsContext for persistence
+      const settingsModels = adminSettings.settings.models;
+      const modelDtos = settingsModels.map(toModelDto);
+      setModels(modelDtos);
       return;
     }
 
@@ -132,7 +145,7 @@ export function useAdmin() {
       console.error('[useAdmin] Failed to load models:', err);
       setModels([]);
     }
-  }, []);
+  }, [adminSettings.settings.models]);
 
   const toggleModel = useCallback(async (modelId: string) => {
     // Optimistic update
@@ -156,15 +169,29 @@ export function useAdmin() {
 
   const createModel = useCallback(async (data: Partial<ModelDto>) => {
     if (AppConfig.isOfflineMode()) {
+      const newId = data.id || `model-${Date.now()}`;
       const newModel: ModelDto = {
-        id: `model-${Date.now()}`,
+        id: newId,
         name: data.name || 'New Model',
         provider: data.provider || 'Custom',
         isActive: data.isActive ?? true,
         contextWindow: data.contextWindow || 4096,
+        color: data.color || 'text-gray-500',
+        capabilities: data.capabilities || ['chat'],
         ...data,
       };
       setModels(prev => [...prev, newModel]);
+
+      // Persist to AdminSettingsContext
+      const newAdminModel: AdminModel = {
+        id: newId,
+        name: data.name || 'New Model',
+        color: data.color || 'text-gray-500',
+        description: '',
+        connection: data.provider || 'Custom',
+      };
+      adminSettings.updateModels([...adminSettings.settings.models, newAdminModel]);
+
       return newModel;
     }
 
@@ -176,15 +203,27 @@ export function useAdmin() {
       console.error('[useAdmin] Failed to create model:', err);
       throw err;
     }
-  }, [loadModels]);
+  }, [loadModels, adminSettings]);
 
   const updateModel = useCallback(async (modelId: string, data: Partial<ModelDto>) => {
     // Optimistic update
-    setModels(prev => prev.map(m => 
+    setModels(prev => prev.map(m =>
       m.id === modelId ? { ...m, ...data } : m
     ));
 
     if (AppConfig.isOfflineMode()) {
+      // Persist to AdminSettingsContext
+      const updatedModels = adminSettings.settings.models.map(m =>
+        m.id === modelId
+          ? {
+              ...m,
+              name: data.name ?? m.name,
+              color: data.color ?? m.color,
+              connection: data.provider ?? m.connection,
+            }
+          : m
+      );
+      adminSettings.updateModels(updatedModels);
       return;
     }
 
@@ -196,13 +235,16 @@ export function useAdmin() {
       await loadModels(); // Revert
       throw err;
     }
-  }, [loadModels]);
+  }, [loadModels, adminSettings]);
 
   const deleteModel = useCallback(async (modelId: string) => {
     // Optimistic update
     setModels(prev => prev.filter(m => m.id !== modelId));
 
     if (AppConfig.isOfflineMode()) {
+      // Persist to AdminSettingsContext
+      const updatedModels = adminSettings.settings.models.filter(m => m.id !== modelId);
+      adminSettings.updateModels(updatedModels);
       return;
     }
 
@@ -213,7 +255,7 @@ export function useAdmin() {
       await loadModels(); // Revert
       throw err;
     }
-  }, [loadModels]);
+  }, [loadModels, adminSettings]);
 
   // ============================================================================
   // CONNECTIONS
@@ -221,27 +263,10 @@ export function useAdmin() {
 
   const loadConnections = useCallback(async () => {
     if (AppConfig.isOfflineMode()) {
-      // Use mock connections in offline mode
-      setConnections([
-        {
-          id: '1',
-          provider: 'OpenAI',
-          name: 'OpenAI API',
-          isActive: true,
-          apiKeyPrefix: 'sk-proj-...',
-          createdAt: new Date().toISOString(),
-          models: ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo'],
-        },
-        {
-          id: '2',
-          provider: 'Anthropic',
-          name: 'Anthropic API',
-          isActive: false,
-          apiKeyPrefix: 'sk-ant-...',
-          createdAt: new Date().toISOString(),
-          models: ['claude-3-opus', 'claude-3-sonnet'],
-        },
-      ]);
+      // In offline mode, use AdminSettingsContext for persistence
+      const settingsConnections = adminSettings.settings.connections;
+      const connectionDtos = settingsConnections.map(toConnectionDto);
+      setConnections(connectionDtos);
       return;
     }
 
@@ -252,7 +277,7 @@ export function useAdmin() {
       console.error('[useAdmin] Failed to load connections:', err);
       setConnections([]);
     }
-  }, []);
+  }, [adminSettings.settings.connections]);
 
   const toggleConnection = useCallback(async (connectionId: string) => {
     // Optimistic update
@@ -260,12 +285,17 @@ export function useAdmin() {
     setConnections(prev => {
       const connection = prev.find(c => c.id === connectionId);
       wasActive = connection?.isActive || false;
-      return prev.map(c => 
-        c.id === connectionId ? { ...c, isActive: !c.isActive } : c
+      return prev.map(c =>
+        c.id === connectionId ? { ...c, isActive: !c.isActive, enabled: !c.isActive } : c
       );
     });
 
     if (AppConfig.isOfflineMode()) {
+      // Persist to AdminSettingsContext
+      const updatedConnections = adminSettings.settings.connections.map(c =>
+        c.id === connectionId ? { ...c, enabled: !c.enabled } : c
+      );
+      adminSettings.updateConnections(updatedConnections);
       return;
     }
 
@@ -280,20 +310,35 @@ export function useAdmin() {
       console.error('[useAdmin] Failed to toggle connection:', err);
       await loadConnections(); // Revert
     }
-  }, [loadConnections]);
+  }, [loadConnections, adminSettings]);
 
   const createConnection = useCallback(async (data: any) => {
     if (AppConfig.isOfflineMode()) {
+      const newId = `conn-${Date.now()}`;
       const newConnection: ConnectionDto = {
-        id: `conn-${Date.now()}`,
-        provider: data.provider,
+        id: newId,
+        provider: data.provider || data.providerType || 'Custom',
         name: data.name,
-        isActive: data.isActive ?? true,
+        isActive: data.isActive ?? data.enabled ?? true,
         apiKeyPrefix: data.apiKey?.substring(0, 10) + '...',
         createdAt: new Date().toISOString(),
-        models: [],
+        models: data.modelIds || [],
+        enabled: data.enabled ?? true,
+        url: data.url,
       };
       setConnections(prev => [...prev, newConnection]);
+
+      // Persist to AdminSettingsContext
+      const newAdminConnection: AdminConnection = {
+        id: newId,
+        name: data.name,
+        type: data.provider || data.providerType || 'Custom',
+        url: data.url || '',
+        enabled: data.enabled ?? true,
+        apiKey: data.apiKey,
+      };
+      adminSettings.updateConnections([...adminSettings.settings.connections, newAdminConnection]);
+
       return newConnection;
     }
 
@@ -305,15 +350,29 @@ export function useAdmin() {
       console.error('[useAdmin] Failed to create connection:', err);
       throw err;
     }
-  }, [loadConnections]);
+  }, [loadConnections, adminSettings]);
 
   const updateConnection = useCallback(async (connectionId: string, data: any) => {
     // Optimistic update
-    setConnections(prev => prev.map(c => 
+    setConnections(prev => prev.map(c =>
       c.id === connectionId ? { ...c, ...data } : c
     ));
 
     if (AppConfig.isOfflineMode()) {
+      // Persist to AdminSettingsContext
+      const updatedConnections = adminSettings.settings.connections.map(c =>
+        c.id === connectionId
+          ? {
+              ...c,
+              name: data.name ?? c.name,
+              type: data.provider ?? data.providerType ?? c.type,
+              url: data.url ?? c.url,
+              enabled: data.enabled ?? data.isActive ?? c.enabled,
+              apiKey: data.apiKey ?? c.apiKey,
+            }
+          : c
+      );
+      adminSettings.updateConnections(updatedConnections);
       return;
     }
 
@@ -325,13 +384,16 @@ export function useAdmin() {
       await loadConnections(); // Revert
       throw err;
     }
-  }, [loadConnections]);
+  }, [loadConnections, adminSettings]);
 
   const deleteConnection = useCallback(async (connectionId: string) => {
     // Optimistic update
     setConnections(prev => prev.filter(c => c.id !== connectionId));
 
     if (AppConfig.isOfflineMode()) {
+      // Persist to AdminSettingsContext
+      const updatedConnections = adminSettings.settings.connections.filter(c => c.id !== connectionId);
+      adminSettings.updateConnections(updatedConnections);
       return;
     }
 
@@ -342,16 +404,54 @@ export function useAdmin() {
       await loadConnections(); // Revert
       throw err;
     }
-  }, [loadConnections]);
+  }, [loadConnections, adminSettings]);
 
   const testConnection = useCallback(async (connectionId: string) => {
+    // In offline mode, test directly against the LM server
     if (AppConfig.isOfflineMode()) {
-      return {
-        success: true,
-        message: 'Connection test successful (offline mode)',
-        provider: 'OpenAI',
-        availableModels: ['gpt-4', 'gpt-3.5-turbo'],
-      };
+      const connection = adminSettings.settings.connections.find(c => c.id === connectionId);
+      if (!connection?.url) {
+        return {
+          success: false,
+          message: 'No URL configured for this connection',
+          provider: connection?.type || 'Unknown',
+          availableModels: [],
+        };
+      }
+
+      try {
+        // Test connection by fetching models from the LM server
+        const modelsUrl = connection.url.replace(/\/$/, '') + '/models';
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        if (connection.apiKey) {
+          headers['Authorization'] = `Bearer ${connection.apiKey}`;
+        }
+
+        const response = await fetch(modelsUrl, { headers });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const modelIds = (data.data || data.models || []).map((m: any) => m.id || m.name || m);
+
+        return {
+          success: true,
+          message: `Connected! Found ${modelIds.length} models`,
+          provider: connection.type || 'Custom',
+          availableModels: modelIds,
+        };
+      } catch (err) {
+        console.error('[useAdmin] LM server connection test failed:', err);
+        return {
+          success: false,
+          message: `Connection failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
+          provider: connection.type || 'Custom',
+          availableModels: [],
+        };
+      }
     }
 
     try {
@@ -360,7 +460,58 @@ export function useAdmin() {
       console.error('[useAdmin] Failed to test connection:', err);
       throw err;
     }
-  }, []);
+  }, [adminSettings.settings.connections]);
+
+  // Fetch models from an LM server endpoint and optionally add them
+  const fetchModelsFromServer = useCallback(async (connectionId: string, addToModels = false) => {
+    const connection = adminSettings.settings.connections.find(c => c.id === connectionId);
+    if (!connection?.url) {
+      throw new Error('No URL configured for this connection');
+    }
+
+    const modelsUrl = connection.url.replace(/\/$/, '') + '/models';
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (connection.apiKey) {
+      headers['Authorization'] = `Bearer ${connection.apiKey}`;
+    }
+
+    const response = await fetch(modelsUrl, { headers });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const serverModels = (data.data || data.models || []).map((m: any) => ({
+      id: m.id || m.name || m,
+      name: m.id || m.name || m,
+      owned_by: m.owned_by || connection.name,
+    }));
+
+    if (addToModels && AppConfig.isOfflineMode()) {
+      // Add fetched models that don't already exist
+      const existingIds = new Set(adminSettings.settings.models.map(m => m.id));
+      const newModels = serverModels
+        .filter((m: any) => !existingIds.has(m.id))
+        .map((m: any) => ({
+          id: m.id,
+          name: m.name,
+          color: 'text-cyan-500',
+          description: `From ${connection.name}`,
+          connection: connection.name,
+        }));
+
+      if (newModels.length > 0) {
+        adminSettings.updateModels([...adminSettings.settings.models, ...newModels]);
+        // Also update local state
+        const newModelDtos = newModels.map(toModelDto);
+        setModels(prev => [...prev, ...newModelDtos]);
+      }
+    }
+
+    return serverModels;
+  }, [adminSettings]);
 
   // ============================================================================
   // MCP SERVERS
@@ -561,7 +712,8 @@ export function useAdmin() {
     updateConnection,
     deleteConnection,
     testConnection,
-    
+    fetchModelsFromServer,
+
     // MCP Servers
     toggleMcpServer,
     createMcpServer,
