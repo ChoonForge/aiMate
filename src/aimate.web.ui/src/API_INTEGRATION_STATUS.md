@@ -19,18 +19,22 @@
 - ✅ Offline mode detection
 
 ### Phase 3: Service Layer ✅
-**Files:** `/api/services/` (10 organized files)
-- ✅ `admin.ts` - Admin dashboard, system management
-- ✅ `auth.ts` - Login, registration, JWT refresh
-- ✅ `chat.ts` - Real-time chat with streaming
-- ✅ `connections.ts` - BYOK connection management
-- ✅ `conversations.ts` - Conversation CRUD & search
-- ✅ `files.ts` - File upload/download with progress
-- ✅ `knowledge.ts` - RAG documents & semantic search
-- ✅ `projects.ts` - Project management & collaboration
-- ✅ `settings.ts` - User preferences & configuration
-- ✅ `usage.ts` - Analytics, billing, tracking
-- ✅ `workspaces.ts` - Workspace organization
+**Files:** `/api/services/` (16 organized files)
+- ✅ `admin.service.ts` - Admin dashboard, system management
+- ✅ `auth.service.ts` - Login, registration, JWT refresh
+- ✅ `chat.service.ts` - Real-time chat with streaming
+- ✅ `connections.service.ts` - BYOK connection management
+- ✅ `conversations.service.ts` - Conversation CRUD & search
+- ✅ `feedback.service.ts` - Message ratings & feedback
+- ✅ `files.service.ts` - File upload/download with progress
+- ✅ `knowledge.service.ts` - RAG documents & semantic search
+- ✅ `messages.service.ts` - Message CRUD operations
+- ✅ `projects.service.ts` - Project management & collaboration
+- ✅ `search.service.ts` - Full-text search across conversations
+- ✅ `settings.service.ts` - User preferences & configuration
+- ✅ `usage.service.ts` - Analytics, billing, tracking
+- ✅ `workspace.service.ts` - Single workspace operations
+- ✅ `workspaces.service.ts` - Workspace list & organization
 - ✅ `index.ts` - Clean barrel exports
 
 ### Phase 4: React Hooks Layer ✅

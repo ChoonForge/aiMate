@@ -40,20 +40,92 @@ aiMate.nz is a sovereign AI platform for New Zealanders, built with React/TypeSc
 ### Directory Structure
 ```
 src/aimate.web.ui/
-├── components/
-│   ├── chat/           # Chat interface components
-│   ├── admin/          # Admin panel components
-│   ├── modals/         # Enhancement modals (5 total)
-│   ├── sidebar/        # Sidebar navigation components
-│   └── ui/             # Reusable UI components
-├── hooks/              # Custom React hooks (9 hooks)
-├── services/           # API service layer (9 services)
-├── types/              # TypeScript type definitions
-├── utils/              # Utility functions
-│   ├── api-stubs.ts    # Offline mode mock data
-│   └── debug.ts        # Debug logging system
-├── App.tsx             # Main application component
-└── styles/             # Global styles
+├── public/                    # Static assets
+├── src/
+│   ├── api/                   # API layer
+│   │   ├── client.ts          # Axios instance with JWT & SSE
+│   │   ├── types.ts           # 90+ TypeScript interfaces
+│   │   └── services/          # API service layer (16 files)
+│   │       ├── admin.service.ts
+│   │       ├── auth.service.ts
+│   │       ├── chat.service.ts
+│   │       ├── connections.service.ts
+│   │       ├── conversations.service.ts
+│   │       ├── feedback.service.ts
+│   │       ├── files.service.ts
+│   │       ├── knowledge.service.ts
+│   │       ├── messages.service.ts
+│   │       ├── projects.service.ts
+│   │       ├── search.service.ts
+│   │       ├── settings.service.ts
+│   │       ├── usage.service.ts
+│   │       ├── workspace.service.ts
+│   │       ├── workspaces.service.ts
+│   │       └── index.ts
+│   ├── components/            # React components (flat structure)
+│   │   ├── AboutModal.tsx
+│   │   ├── AdminModal.tsx
+│   │   ├── ArchivedModal.tsx
+│   │   ├── AttachedContext.tsx
+│   │   ├── BaseDialog.tsx
+│   │   ├── BaseModal.tsx
+│   │   ├── ChatHeader.tsx
+│   │   ├── ChatInput.tsx
+│   │   ├── ChatMessage.tsx
+│   │   ├── ConnectionEditDialog.tsx
+│   │   ├── ConversationSidebar.tsx
+│   │   ├── DebugContext.tsx
+│   │   ├── DebugPanel.tsx
+│   │   ├── EmptyState.tsx
+│   │   ├── FilesModal.tsx
+│   │   ├── HelpModal.tsx
+│   │   ├── KnowledgeModal.tsx
+│   │   ├── KnowledgeSuggestions.tsx
+│   │   ├── LazyLoadTrigger.tsx
+│   │   ├── MCPEditDialog.tsx
+│   │   ├── ModelEditDialog.tsx
+│   │   ├── NotesModal.tsx
+│   │   ├── OfflineModeIndicator.tsx
+│   │   ├── PluginEditDialog.tsx
+│   │   ├── ProjectModal.tsx
+│   │   ├── RatingModal.tsx
+│   │   ├── SearchModal.tsx
+│   │   ├── SettingsModal.tsx
+│   │   ├── ShareDialog.tsx
+│   │   ├── ShareModal.tsx
+│   │   ├── ShowcaseModeIndicator.tsx
+│   │   ├── StructuredPanel.tsx
+│   │   ├── ThemeProvider.tsx
+│   │   ├── UsageDetailsDialog.tsx
+│   │   ├── figma/             # Figma integration components
+│   │   └── ui/                # shadcn/ui components (48 files)
+│   ├── context/               # React context providers (4 files)
+│   │   ├── AdminSettingsContext.tsx
+│   │   ├── AppDataContext.tsx
+│   │   ├── AuthContext.tsx
+│   │   └── UserSettingsContext.tsx
+│   ├── hooks/                 # Custom React hooks (9 hooks)
+│   │   ├── useAdmin.ts
+│   │   ├── useChat.ts
+│   │   ├── useConversations.ts
+│   │   ├── useFiles.ts
+│   │   ├── useKnowledge.ts
+│   │   ├── useProjects.ts
+│   │   ├── useSettings.ts
+│   │   ├── useUsage.ts
+│   │   ├── useWorkspaces.ts
+│   │   └── index.ts
+│   ├── styles/                # Global styles
+│   │   └── globals.css
+│   ├── utils/                 # Utility functions
+│   │   └── api-stubs.ts       # Offline mode mock data
+│   ├── App.tsx                # Main application component
+│   └── main.tsx               # Entry point
+├── .env.example               # Environment template
+├── package.json               # Dependencies
+├── tailwind.config.js         # Tailwind configuration
+├── tsconfig.json              # TypeScript configuration
+└── vite.config.ts             # Vite build configuration
 ```
 
 ---
@@ -84,21 +156,28 @@ api.interceptors.request.use((config) => {
 });
 ```
 
-#### 2. Service Files (9 Total)
+#### 2. Service Files (16 Total)
 
 Each service file handles a specific domain:
 
 | Service File | Purpose | Key Methods |
 |-------------|---------|-------------|
-| `authService.ts` | Authentication | `login()`, `logout()`, `register()`, `getCurrentUser()` |
-| `chatService.ts` | Chat & streaming | `sendMessage()`, `streamMessage()`, `regenerateResponse()` |
-| `conversationService.ts` | Conversations | `getConversations()`, `createConversation()`, `deleteConversation()` |
-| `workspaceService.ts` | Workspaces | `getWorkspaces()`, `createWorkspace()`, `updateWorkspace()` |
-| `modelService.ts` | AI models | `getModels()`, `getModelById()`, `updateModel()` |
-| `systemService.ts` | System settings | `getSettings()`, `updateSettings()`, `getSystemStatus()` |
-| `fileService.ts` | File management | `uploadFile()`, `getFiles()`, `deleteFile()` |
-| `searchService.ts` | Search | `searchConversations()`, `searchMessages()` |
-| `analyticsService.ts` | Analytics | `getUsageStats()`, `getModelStats()` |
+| `admin.service.ts` | Admin dashboard | `getStats()`, `getUsers()`, `toggleModel()` |
+| `auth.service.ts` | Authentication | `login()`, `logout()`, `register()`, `getCurrentUser()` |
+| `chat.service.ts` | Chat & streaming | `sendMessage()`, `streamMessage()`, `regenerateResponse()` |
+| `connections.service.ts` | BYOK connections | `getConnections()`, `testConnection()`, `createConnection()` |
+| `conversations.service.ts` | Conversations | `getConversations()`, `createConversation()`, `deleteConversation()` |
+| `feedback.service.ts` | Message feedback | `submitFeedback()`, `getFeedback()`, `rateMesage()` |
+| `files.service.ts` | File management | `uploadFile()`, `getFiles()`, `deleteFile()` |
+| `knowledge.service.ts` | RAG documents | `uploadDocument()`, `searchDocuments()`, `getChunks()` |
+| `messages.service.ts` | Message CRUD | `getMessages()`, `updateMessage()`, `deleteMessage()` |
+| `projects.service.ts` | Project management | `getProjects()`, `createProject()`, `addConversation()` |
+| `search.service.ts` | Search | `searchConversations()`, `searchMessages()` |
+| `settings.service.ts` | User settings | `getSettings()`, `updateSettings()` |
+| `usage.service.ts` | Analytics | `getUsageStats()`, `getModelStats()`, `exportCSV()` |
+| `workspace.service.ts` | Single workspace ops | `getWorkspace()`, `updateWorkspace()` |
+| `workspaces.service.ts` | Workspace list | `getWorkspaces()`, `createWorkspace()`, `deleteWorkspace()` |
+| `index.ts` | Barrel exports | Re-exports all services |
 
 #### 3. API Response Format
 
@@ -1887,6 +1966,6 @@ interface UserPreferences {
 
 *End of System Guide*
 
-**Version**: 1.0.0  
-**Last Updated**: 2024  
+**Version**: 1.0.0
+**Last Updated**: November 2025
 **Maintained By**: aiMate Development Team

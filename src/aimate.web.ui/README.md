@@ -1,73 +1,174 @@
-# React + TypeScript + Vite
+# aiMate.web.ui
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A sovereign AI chat platform for New Zealand, built with React, TypeScript, and Tailwind CSS.
 
-Currently, two official plugins are available:
+## Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+aiMate.web.ui is a production-ready React frontend featuring:
 
-## React Compiler
+- **Real-time streaming chat** with SSE (Server-Sent Events)
+- **Multi-workspace organization** for conversations
+- **Knowledge base integration** with RAG document support
+- **Admin panel** for model and connection management
+- **Offline mode** for local development
+- **Crisis detection** and safety infrastructure for NZ users
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack
 
-## Expanding the ESLint configuration
+- **Framework**: React 18 + TypeScript
+- **Build Tool**: Vite 7.x
+- **Styling**: Tailwind CSS v4
+- **UI Components**: shadcn/ui (48 components)
+- **HTTP Client**: Axios with JWT authentication
+- **Icons**: Lucide React
+- **State Management**: React Query + Context API
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Quick Start
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Prerequisites
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- Node.js 18+
+- npm or yarn
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Installation
+
+```bash
+# Navigate to the UI directory
+cd src/aimate.web.ui
+
+# Install dependencies
+npm install
+
+# Copy environment template
+cp .env.example .env
+
+# Start development server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Environment Variables
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Create a `.env` file with:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# API Configuration
+VITE_API_BASE_URL=http://localhost:5000
+
+# Feature Flags
+VITE_AUTH_ENABLED=true
+VITE_DEBUG_MODE=false
 ```
+
+## Project Structure
+
+```
+src/
+├── api/                    # API layer
+│   ├── client.ts           # Axios instance with JWT & SSE
+│   ├── types.ts            # 90+ TypeScript interfaces
+│   └── services/           # 16 service files
+├── components/             # React components (35 custom + 48 UI)
+│   ├── ui/                 # shadcn/ui components
+│   └── figma/              # Figma integration
+├── context/                # React context providers
+├── hooks/                  # 9 custom React hooks
+├── styles/                 # Global CSS
+└── utils/                  # Utilities & mock data
+```
+
+## Key Features
+
+### Chat System
+- Streaming responses with character-by-character rendering
+- Edit/regenerate messages
+- File attachments and knowledge context
+- Multi-model support
+
+### Workspace Management
+- Multiple workspaces for organization
+- Conversation archiving and pinning
+- Search across all conversations
+
+### Admin Panel
+- Toggle AI models on/off
+- Manage BYOK API connections
+- MCP server configuration
+- User management
+
+### Offline Mode
+- Full functionality without backend
+- 50 mock conversations
+- Simulated streaming responses
+
+## Documentation
+
+Detailed documentation is available in `/src/`:
+
+- `COMPONENT_ARCHITECTURE_SPEC.md` - Complete technical specification
+- `SYSTEM_GUIDE.md` - Architecture and API integration
+- `API_INTEGRATION_STATUS.md` - Endpoint coverage status
+- `MODALS_AND_DIALOGS_GUIDE.md` - UI component documentation
+- `WIRED_UP_STATUS.md` - Integration checklist
+- `CHANGELOG.md` - Version history
+
+## Development
+
+### Available Scripts
+
+```bash
+npm run dev      # Start development server
+npm run build    # Build for production
+npm run preview  # Preview production build
+npm run lint     # Run ESLint
+```
+
+### Debug Mode
+
+Enable debug logging in the browser console:
+
+```javascript
+localStorage.setItem('DEBUG', 'true');
+localStorage.setItem('LOG_LEVEL', 'DEBUG');
+```
+
+## API Integration
+
+The UI integrates with 93 API endpoints across 11 categories:
+
+| Category | Endpoints | Status |
+|----------|-----------|--------|
+| Auth | 5 | Ready |
+| Chat | 8 | Ready |
+| Conversations | 12 | Ready |
+| Workspaces | 8 | Ready |
+| Knowledge | 10 | Ready |
+| Projects | 10 | Ready |
+| Files | 6 | Ready |
+| Admin | 15 | Ready |
+| Settings | 5 | Ready |
+| Usage | 6 | Ready |
+| Connections | 8 | Ready |
+
+## Safety Features
+
+aiMate includes NZ-specific safety infrastructure:
+
+- Crisis detection with verified NZ resources
+- Hard blocks on unsafe model responses
+- Content moderation
+- Privacy-focused design
+
+## Contributing
+
+1. Create a feature branch
+2. Make changes with tests
+3. Submit a pull request
+
+## License
+
+Proprietary - Firebird Solutions
+
+---
+
+**Version**: 1.0.0
+**Last Updated**: November 2025
