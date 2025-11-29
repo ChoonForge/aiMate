@@ -1,12 +1,14 @@
 /**
  * Chat Hook
- * 
- * Manages chat messages, streaming, and real-time communication
+ *
+ * Manages chat messages, streaming, and real-time communication.
+ * In offline mode with an active LM server connection, calls the server directly.
  */
 
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { messagesService, MessageDto, SendMessageDto } from '../api/services';
 import { AppConfig } from '../utils/config';
+import { useAdminSettings } from '../context/AdminSettingsContext';
 
 export interface ChatMessage {
   id: string;
@@ -29,8 +31,15 @@ export function useChat(conversationId?: string) {
   const [streaming, setStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const abortControllerRef = useRef<AbortController | null>(null);
+  const adminSettings = useAdminSettings();
+
+  // Get active LM server connection (for offline mode)
+  const getActiveLmConnection = useCallback(() => {
+    const connections = adminSettings.settings.connections;
+    return connections.find(c => c.enabled && c.url);
+  }, [adminSettings.settings.connections]);
   
   // Debug: Log streaming state changes
   useEffect(() => {
@@ -136,34 +145,127 @@ export function useChat(conversationId?: string) {
     console.log('[useChat] sendMessage called:', { content, options });
     
     if (AppConfig.isOfflineMode()) {
-      // Mock streaming in offline mode
       console.log('[useChat] Sending message in offline mode');
+
+      // Check if we have an active LM server connection
+      const activeConnection = getActiveLmConnection();
+
       const userMsg: ChatMessage = {
         id: `msg-${Date.now()}`,
         role: 'user',
         content,
         timestamp: new Date().toISOString(),
       };
-      
+
       setMessages(prev => [...prev, userMsg]);
-      
-      // Simulate streaming delay
       setStreaming(true);
-      console.log('[useChat] Streaming started');
-      
+
       const assistantMsg: ChatMessage = {
         id: `msg-${Date.now() + 1}`,
         role: 'assistant',
         content: '',
         timestamp: new Date().toISOString(),
-        model: options?.model || 'GPT-4 Turbo',
+        model: options?.model || 'LM Server',
       };
-      
+
+      // If we have an active LM server connection, use it!
+      if (activeConnection?.url) {
+        console.log('[useChat] Using LM server connection:', activeConnection.name, activeConnection.url);
+
+        try {
+          const chatUrl = activeConnection.url.replace(/\/$/, '') + '/chat/completions';
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+          };
+          if (activeConnection.apiKey) {
+            headers['Authorization'] = `Bearer ${activeConnection.apiKey}`;
+          }
+
+          // Build messages array for the API
+          const chatMessages = [
+            ...messages.map(m => ({ role: m.role, content: m.content })),
+            { role: 'user' as const, content }
+          ];
+
+          const response = await fetch(chatUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              model: options?.model || 'default',
+              messages: chatMessages,
+              stream: true,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          // Handle streaming response
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
+          let fullContent = '';
+          let messageAdded = false;
+
+          if (reader) {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split('\n');
+
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6);
+                  if (data === '[DONE]') continue;
+
+                  try {
+                    const parsed = JSON.parse(data);
+                    const delta = parsed.choices?.[0]?.delta?.content || '';
+                    if (delta) {
+                      fullContent += delta;
+
+                      if (!messageAdded) {
+                        setMessages(prev => [...prev, { ...assistantMsg, content: fullContent }]);
+                        messageAdded = true;
+                      } else {
+                        setMessages(prev => prev.map(msg =>
+                          msg.id === assistantMsg.id
+                            ? { ...msg, content: fullContent }
+                            : msg
+                        ));
+                      }
+                    }
+                  } catch {
+                    // Skip invalid JSON chunks
+                  }
+                }
+              }
+            }
+          }
+
+          console.log('[useChat] LM server streaming complete');
+          return { ...assistantMsg, content: fullContent };
+        } catch (err) {
+          console.error('[useChat] LM server call failed:', err);
+          // Fall back to error message
+          const errorMsg = `Failed to reach LM server: ${err instanceof Error ? err.message : 'Unknown error'}`;
+          setMessages(prev => [...prev, { ...assistantMsg, content: errorMsg }]);
+          return { ...assistantMsg, content: errorMsg };
+        } finally {
+          setStreaming(false);
+        }
+      }
+
+      // No active connection - fall back to mock responses
+      console.log('[useChat] No active LM connection, using mock responses');
+
       // Check for structured content commands
       let mockResponse = '';
       let structuredData = null;
       const contentLower = content.toLowerCase().trim();
-      
+
       if (contentLower === 'gettable') {
         mockResponse = "Here's a table of New Zealand AI safety metrics:";
         structuredData = {
@@ -229,36 +331,28 @@ export function useChat(conversationId?: string) {
           }
         };
       } else {
-        mockResponse = `I understand you said: "${content}". This is a mock response in offline mode. The real API would provide a proper response here.`;
+        mockResponse = `No LM server connection configured. Add a connection in Admin > Connections to enable AI chat.\n\nYou said: "${content}"`;
       }
-      
-      // Simulate streaming text - add message on first character
-      console.log('[useChat] Starting mock streaming, response length:', mockResponse.length);
+
+      // Simulate streaming text
       try {
         for (let i = 0; i < mockResponse.length; i++) {
           await new Promise(resolve => setTimeout(resolve, 20));
-          
+
           if (i === 0) {
-            // Add the message with first character
-            console.log('[useChat] Adding assistant message with first character');
             setMessages(prev => [...prev, { ...assistantMsg, content: mockResponse.substring(0, 1), structuredContent: structuredData }]);
           } else {
-            // Update existing message
-            setMessages(prev => prev.map(msg => 
-              msg.id === assistantMsg.id 
+            setMessages(prev => prev.map(msg =>
+              msg.id === assistantMsg.id
                 ? { ...msg, content: mockResponse.substring(0, i + 1), structuredContent: structuredData }
                 : msg
             ));
           }
         }
-        
-        console.log('[useChat] Streaming complete - response:', mockResponse);
-        console.log('[useChat] Final assistant message:', { ...assistantMsg, content: mockResponse, structuredContent: structuredData });
+
         return { ...assistantMsg, content: mockResponse, structuredContent: structuredData };
       } finally {
-        console.log('[useChat] FINALLY block - setting streaming to false');
         setStreaming(false);
-        console.log('[useChat] Streaming state should now be false');
       }
     }
 
