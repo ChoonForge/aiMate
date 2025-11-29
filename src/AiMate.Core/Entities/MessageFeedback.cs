@@ -11,7 +11,6 @@ public class MessageFeedback
 
     public Guid MessageId { get; set; }
     public Message? Message { get; set; }
-
     /// <summary>
     /// Rating on a 1-10 scale
     /// </summary>

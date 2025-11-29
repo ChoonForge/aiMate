@@ -54,7 +54,7 @@ public class FeedbackApiController : ControllerBase
                 Key = t.Key,
                 Value = t.Value,
                 Color = t.Color,
-                Sentiment = t.Sentiment
+                Sentiment = Enum.TryParse<TagSentiment>(t.Sentiment, true, out var sentiment) ? sentiment : TagSentiment.Neutral
             }).ToList() ?? [];
 
             var feedback = await _feedbackService.CreateOrUpdateFeedbackAsync(
@@ -102,7 +102,8 @@ public class FeedbackApiController : ControllerBase
         {
             _logger.LogInformation("Updating feedback {FeedbackId}", feedbackId);
 
-            var feedback = await _feedbackService.GetFeedbackByIdAsync(feedbackId);
+            var feedbacks = await _feedbackService.GetFeedbackByUserIdAsync(request.UserId, 0, 100);
+            var feedback = feedbacks.FirstOrDefault(f => f.Id == feedbackId);
             if (feedback == null)
             {
                 return NotFound(new { error = "Feedback not found" });
@@ -122,7 +123,7 @@ public class FeedbackApiController : ControllerBase
                     Key = t.Key,
                     Value = t.Value,
                     Color = t.Color,
-                    Sentiment = t.Sentiment
+                    Sentiment = Enum.TryParse<TagSentiment>(t.Sentiment, true, out var sentiment) ? sentiment : TagSentiment.Neutral
                 }).ToList();
             }
 
@@ -132,7 +133,15 @@ public class FeedbackApiController : ControllerBase
             if (request.ResponseTimeMs.HasValue)
                 feedback.ResponseTimeMs = request.ResponseTimeMs.Value;
 
-            await _feedbackService.UpdateFeedbackAsync(feedback);
+            await _feedbackService.CreateOrUpdateFeedbackAsync(
+                feedback.MessageId,
+                feedback.UserId,
+                feedback.Rating,
+                feedback.TextFeedback,
+                feedback.Tags,
+                feedback.ModelId,
+                feedback.ResponseTimeMs
+            );
 
             _logger.LogInformation("Feedback {FeedbackId} updated successfully", feedbackId);
             return Ok(new { feedback.Id, feedback.Rating, feedback.CreatedAt, feedback.UpdatedAt });
@@ -316,7 +325,7 @@ public class FeedbackApiController : ControllerBase
             {
                 Value = o.Value,
                 Color = o.Color,
-                Sentiment = o.Sentiment,
+                Sentiment = Enum.TryParse<TagSentiment>(o.Sentiment, true, out var sentiment) ? sentiment : TagSentiment.Neutral,
                 Icon = o.Icon,
                 DisplayOrder = o.DisplayOrder
             }).ToList();

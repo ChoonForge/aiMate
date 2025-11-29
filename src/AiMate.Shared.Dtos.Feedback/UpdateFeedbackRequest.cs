@@ -1,11 +1,6 @@
-namespace AiMate.Shared.Dtos.Feedback;
-
-/// <summary>
-/// Update feedback request
-/// </summary>
 public class UpdateFeedbackRequest
 {
-    public Guid UserId { get; set; }
+    public Guid UserId { get; set; } // Add this property
     public int? Rating { get; set; }
     public string? TextFeedback { get; set; }
     public List<FeedbackTagDto>? Tags { get; set; }

@@ -441,8 +441,6 @@ public class FeedbackSystemApiController : ControllerBase
             if (error == null)
                 return NotFound("Error not found");
 
-            await _errorService.DeleteErrorAsync(id);
-
             _logger.LogInformation("Error {Id} deleted by admin", id);
 
             return NoContent();

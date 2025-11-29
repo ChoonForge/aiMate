@@ -468,13 +468,11 @@ app.MapControllers();
 // Health check endpoint
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }))
     .WithName("Health")
-    .WithOpenApi()
     .AllowAnonymous();
 
 // API version endpoint
 app.MapGet("/api/version", () => Results.Ok(new { version = "2.0.0", api = "aiMate REST API" }))
     .WithName("Version")
-    .WithOpenApi()
     .AllowAnonymous();
 
 app.Run();
