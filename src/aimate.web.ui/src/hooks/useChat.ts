@@ -428,7 +428,7 @@ export function useChat(conversationId?: string) {
       setStreaming(false);
       throw err;
     }
-  }, []);
+  }, [messages, getActiveLmConnection]);
 
   // ============================================================================
   // REGENERATE MESSAGE

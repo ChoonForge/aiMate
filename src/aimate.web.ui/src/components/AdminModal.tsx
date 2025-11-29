@@ -154,6 +154,8 @@ function GeneralTab() {
       payload: { offlineMode: checked },
       type: 'info'
     });
+    // Reload to apply offline mode change across all components
+    window.location.reload();
   };
 
   const handleAdminEnabledChange = (checked: boolean) => {
