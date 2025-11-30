@@ -322,6 +322,12 @@ export function AdminSettingsProvider({ children }: { children: ReactNode }) {
   // Persist to localStorage whenever settings change
   useEffect(() => {
     try {
+      console.log('[AdminSettingsContext] Saving to localStorage:', {
+        connectionsCount: settings.connections.length,
+        modelsCount: settings.models.length,
+        connections: settings.connections.map(c => ({ id: c.id, name: c.name, url: c.url })),
+        models: settings.models.map(m => ({ id: m.id, name: m.name })),
+      });
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     } catch (e) {
       console.error('Failed to save admin settings:', e);
@@ -343,6 +349,7 @@ export function AdminSettingsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateConnections = useCallback((connections: Connection[]) => {
+    console.log('[AdminSettingsContext] updateConnections called:', connections);
     setSettings(prev => ({
       ...prev,
       connections,
@@ -350,6 +357,7 @@ export function AdminSettingsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateModels = useCallback((models: Model[]) => {
+    console.log('[AdminSettingsContext] updateModels called:', models);
     setSettings(prev => ({
       ...prev,
       models,
