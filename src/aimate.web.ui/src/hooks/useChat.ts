@@ -286,51 +286,79 @@ export function useChat(conversationId?: string) {
           throw lastError || new Error('Failed to connect after retries');
         }
 
-        // Handle streaming response
+        // Handle streaming response with mid-stream error recovery
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
         let fullContent = '';
         let messageAdded = false;
+        let streamInterrupted = false;
 
         if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
 
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n');
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split('\n');
 
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.slice(6);
-                if (data === '[DONE]') continue;
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6);
+                  if (data === '[DONE]') continue;
 
-                try {
-                  const parsed = JSON.parse(data);
-                  const delta = parsed.choices?.[0]?.delta?.content || '';
-                  if (delta) {
-                    fullContent += delta;
+                  try {
+                    const parsed = JSON.parse(data);
+                    const delta = parsed.choices?.[0]?.delta?.content || '';
+                    if (delta) {
+                      fullContent += delta;
 
-                    if (!messageAdded) {
-                      setMessages(prev => [...prev, { ...assistantMsg, content: fullContent }]);
-                      messageAdded = true;
-                    } else {
-                      setMessages(prev => prev.map(msg =>
-                        msg.id === assistantMsg.id
-                          ? { ...msg, content: fullContent }
-                          : msg
-                      ));
+                      if (!messageAdded) {
+                        setMessages(prev => [...prev, { ...assistantMsg, content: fullContent }]);
+                        messageAdded = true;
+                      } else {
+                        setMessages(prev => prev.map(msg =>
+                          msg.id === assistantMsg.id
+                            ? { ...msg, content: fullContent }
+                            : msg
+                        ));
+                      }
                     }
+                  } catch {
+                    // Skip invalid JSON chunks
                   }
-                } catch {
-                  // Skip invalid JSON chunks
                 }
               }
+            }
+          } catch (streamErr) {
+            // Mid-stream error - connection dropped
+            console.error('[useChat] Stream interrupted:', streamErr);
+            streamInterrupted = true;
+
+            if (fullContent.length > 0) {
+              // We got partial content - append interruption notice
+              const partialContent = fullContent + '\n\n⚠️ *[Response interrupted - connection lost]*';
+              setMessages(prev => prev.map(msg =>
+                msg.id === assistantMsg.id
+                  ? { ...msg, content: partialContent }
+                  : msg
+              ));
+              toast.warning('Connection lost during response', {
+                description: 'Partial response saved. Use Continue to resume.',
+              });
+            } else {
+              // No content received
+              toast.error('Connection lost', {
+                description: 'Please try again.',
+              });
+              throw streamErr;
             }
           }
         }
 
-        console.log('[useChat] LM server streaming complete');
+        if (!streamInterrupted) {
+          console.log('[useChat] LM server streaming complete');
+        }
         return { ...assistantMsg, content: fullContent };
       } catch (err) {
         console.error('[useChat] LM server call failed:', err);
