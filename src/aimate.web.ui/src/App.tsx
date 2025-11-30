@@ -13,6 +13,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { AdminSettingsProvider } from "./context/AdminSettingsContext";
 import { UserSettingsProvider } from "./context/UserSettingsContext";
 import { AppDataProvider, useAppData } from "./context/AppDataContext";
+import { AppConfig } from "./utils/config";
 import { ScrollArea } from "./components/ui/scroll-area";
 import { Sheet, SheetContent, SheetTitle } from "./components/ui/sheet";
 import { Sparkles } from "lucide-react";
@@ -287,8 +288,20 @@ function ChatApp() {
     timestamp: new Date(conv.lastMessageAt || conv.createdAt),
   }));
 
-  // Get available models from admin or use default
-  const availableModels = admin?.models || [];
+  // Get available models from admin
+  // Filter to only show models with valid enabled connections (unless in offline mode with no connections)
+  const allModels = admin?.models || [];
+  const enabledConnectionNames = new Set(
+    admin?.connections?.filter(c => c.isActive || c.enabled).map(c => c.name) || []
+  );
+  const availableModels = allModels.filter(model => {
+    // Always show models that have a matching enabled connection
+    if (enabledConnectionNames.has(model.provider)) return true;
+    // In offline mode, show all models as fallback (for testing)
+    if (AppConfig.isOfflineMode() && enabledConnectionNames.size === 0) return true;
+    // Otherwise filter out models without valid connections
+    return false;
+  });
   const enabledModels = availableModels.reduce((acc, model) => {
     acc[model.id] = model.isActive || false;
     return acc;
