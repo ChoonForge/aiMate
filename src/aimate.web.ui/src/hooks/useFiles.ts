@@ -6,7 +6,14 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { filesService, FileDto } from '../api/services';
-import { AppConfig } from '../utils/config';
+import {
+  isOfflineMode,
+  withOfflineFallback,
+  skipInOfflineMode,
+  generateMockId,
+  logOfflineOperation,
+  createDelayedMockResponse,
+} from '../utils/offlineMode';
 
 export function useFiles(workspaceId?: string) {
   const [files, setFiles] = useState<FileDto[]>([]);
@@ -19,54 +26,56 @@ export function useFiles(workspaceId?: string) {
   // LOAD FILES
   // ============================================================================
 
+  // Mock files generator for offline mode
+  const getMockFiles = (targetWorkspaceId: string): FileDto[] => [
+    {
+      id: 'file-1',
+      name: 'requirements.pdf',
+      fileName: 'requirements.pdf',
+      fileType: 'application/pdf',
+      fileSize: 2457600,
+      url: 'https://mock-files.aimate.nz/file-1',
+      uploadedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      uploadedBy: 'user-1',
+      workspaceId: targetWorkspaceId,
+    },
+    {
+      id: 'file-2',
+      name: 'design-mockups.fig',
+      fileName: 'design-mockups.fig',
+      fileType: 'application/figma',
+      fileSize: 5242880,
+      url: 'https://mock-files.aimate.nz/file-2',
+      uploadedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+      uploadedBy: 'user-1',
+      workspaceId: targetWorkspaceId,
+    },
+    {
+      id: 'file-3',
+      name: 'data-analysis.xlsx',
+      fileName: 'data-analysis.xlsx',
+      fileType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      fileSize: 1153433,
+      url: 'https://mock-files.aimate.nz/file-3',
+      uploadedAt: new Date(Date.now() - 86400000).toISOString(),
+      uploadedBy: 'user-1',
+      workspaceId: targetWorkspaceId,
+    },
+  ];
+
   const loadFiles = useCallback(async (wsId?: string) => {
     const targetWorkspaceId = wsId || workspaceId || 'default';
-
-    if (AppConfig.isOfflineMode()) {
-      // Mock files in offline mode
-      const mockFiles: FileDto[] = [
-        {
-          id: 'file-1',
-          name: 'requirements.pdf',
-          fileName: 'requirements.pdf',
-          fileType: 'application/pdf',
-          fileSize: 2457600,
-          url: 'https://mock-files.aimate.nz/file-1',
-          uploadedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-          uploadedBy: 'user-1',
-          workspaceId: targetWorkspaceId,
-        },
-        {
-          id: 'file-2',
-          name: 'design-mockups.fig',
-          fileName: 'design-mockups.fig',
-          fileType: 'application/figma',
-          fileSize: 5242880,
-          url: 'https://mock-files.aimate.nz/file-2',
-          uploadedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-          uploadedBy: 'user-1',
-          workspaceId: targetWorkspaceId,
-        },
-        {
-          id: 'file-3',
-          name: 'data-analysis.xlsx',
-          fileName: 'data-analysis.xlsx',
-          fileType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          fileSize: 1153433,
-          url: 'https://mock-files.aimate.nz/file-3',
-          uploadedAt: new Date(Date.now() - 86400000).toISOString(),
-          uploadedBy: 'user-1',
-          workspaceId: targetWorkspaceId,
-        },
-      ];
-      setFiles(mockFiles);
-      setLoading(false);
-      return mockFiles;
-    }
+    setLoading(true);
 
     try {
-      setLoading(true);
-      const data = await filesService.getFiles(targetWorkspaceId);
+      const data = await withOfflineFallback(
+        () => {
+          logOfflineOperation('useFiles', 'loadFiles', { workspaceId: targetWorkspaceId });
+          return getMockFiles(targetWorkspaceId);
+        },
+        () => filesService.getFiles(targetWorkspaceId)
+      );
+
       setFiles(data);
       setError(null);
       return data;
@@ -98,51 +107,48 @@ export function useFiles(workspaceId?: string) {
       onProgress?: (progress: number) => void;
     }
   ) => {
-    if (AppConfig.isOfflineMode()) {
-      // Simulate upload in offline mode
-      setUploading(true);
-      setUploadProgress(0);
-
-      const mockFile: FileDto = {
-        id: `file-${Date.now()}`,
-        name: file.name,
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        url: URL.createObjectURL(file),
-        uploadedAt: new Date().toISOString(),
-        uploadedBy: 'user',
-        workspaceId: options?.workspaceId || 'default',
-      };
-
-      // Simulate progress
-      for (let i = 0; i <= 100; i += 10) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        setUploadProgress(i);
-        options?.onProgress?.(i);
-      }
-
-      setUploading(false);
-      setUploadProgress(0);
-      return mockFile;
-    }
+    setUploading(true);
+    setUploadProgress(0);
+    setError(null);
 
     try {
-      setUploading(true);
-      setUploadProgress(0);
-      setError(null);
+      const result = await withOfflineFallback(
+        async () => {
+          logOfflineOperation('useFiles', 'uploadFile', { fileName: file.name });
 
-      const uploadedFile = await filesService.uploadFile(
-        options?.workspaceId || 'default',
-        file,
-        undefined,
-        (progress) => {
-          setUploadProgress(progress);
-          options?.onProgress?.(progress);
-        }
+          const mockFile: FileDto = {
+            id: generateMockId('file'),
+            name: file.name,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            url: URL.createObjectURL(file),
+            uploadedAt: new Date().toISOString(),
+            uploadedBy: 'user',
+            workspaceId: options?.workspaceId || 'default',
+          };
+
+          // Simulate upload progress
+          for (let i = 0; i <= 100; i += 10) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            setUploadProgress(i);
+            options?.onProgress?.(i);
+          }
+
+          return mockFile;
+        },
+        () => filesService.uploadFile(
+          options?.workspaceId || 'default',
+          file,
+          undefined,
+          (progress) => {
+            setUploadProgress(progress);
+            options?.onProgress?.(progress);
+          }
+        )
       );
 
-      return uploadedFile;
+      return result;
     } catch (err) {
       console.error('[useFiles] Failed to upload file:', err);
       setError('Failed to upload file');
@@ -194,7 +200,8 @@ export function useFiles(workspaceId?: string) {
     // Optimistic update
     setFiles(prev => prev.filter(f => f.id !== fileId));
 
-    if (AppConfig.isOfflineMode()) {
+    if (isOfflineMode()) {
+      logOfflineOperation('useFiles', 'deleteFile', { fileId });
       return;
     }
 
@@ -212,42 +219,47 @@ export function useFiles(workspaceId?: string) {
   // GET FILE URL
   // ============================================================================
 
-  const getFileUrl = useCallback(async (fileId: string, workspaceId: string = 'default') => {
-    if (AppConfig.isOfflineMode()) {
-      return `https://mock-file-url.aimate.nz/${fileId}`;
-    }
-
-    try {
-      return await filesService.getFileUrl(workspaceId, fileId);
-    } catch (err) {
-      console.error('[useFiles] Failed to get file URL:', err);
-      throw err;
-    }
+  const getFileUrl = useCallback(async (fileId: string, wsId: string = 'default') => {
+    return withOfflineFallback(
+      () => {
+        logOfflineOperation('useFiles', 'getFileUrl', { fileId });
+        return `https://mock-file-url.aimate.nz/${fileId}`;
+      },
+      async () => {
+        try {
+          return filesService.getFileUrl(wsId, fileId);
+        } catch (err) {
+          console.error('[useFiles] Failed to get file URL:', err);
+          throw err;
+        }
+      }
+    );
   }, []);
 
   // ============================================================================
   // DOWNLOAD FILE
   // ============================================================================
 
-  const downloadFile = useCallback(async (fileId: string, workspaceId: string = 'default', filename?: string) => {
-    if (AppConfig.isOfflineMode()) {
-      throw new Error('Cannot download files in offline mode');
-    }
-
-    try {
-      const blob = await filesService.downloadFile(workspaceId, fileId);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename || `file-${fileId}`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (err) {
-      console.error('[useFiles] Failed to download file:', err);
-      throw err;
-    }
+  const downloadFile = useCallback(async (fileId: string, wsId: string = 'default', filename?: string) => {
+    return skipInOfflineMode(
+      async () => {
+        try {
+          const blob = await filesService.downloadFile(wsId, fileId);
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename || `file-${fileId}`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        } catch (err) {
+          console.error('[useFiles] Failed to download file:', err);
+          throw err;
+        }
+      },
+      'Cannot download files in offline mode'
+    );
   }, []);
 
   // ============================================================================
@@ -261,26 +273,30 @@ export function useFiles(workspaceId?: string) {
       workspaceId?: string;
     }
   ) => {
-    if (AppConfig.isOfflineMode()) {
-      const mockFile: FileDto = {
-        id: `file-${Date.now()}`,
-        fileName: url.split('/').pop() || 'image.jpg',
-        fileType: 'image/jpeg',
-        fileSize: 0,
-        url: url,
-        uploadedAt: new Date().toISOString(),
-        uploadedBy: 'user',
-        workspaceId: options?.workspaceId || 'default',
-      };
-      return mockFile;
-    }
-
-    try {
-      return await filesService.uploadImageFromUrl(url, options);
-    } catch (err) {
-      console.error('[useFiles] Failed to upload image from URL:', err);
-      throw err;
-    }
+    return withOfflineFallback(
+      () => {
+        logOfflineOperation('useFiles', 'uploadImageFromUrl', { url });
+        const mockFile: FileDto = {
+          id: generateMockId('file'),
+          fileName: url.split('/').pop() || 'image.jpg',
+          fileType: 'image/jpeg',
+          fileSize: 0,
+          url: url,
+          uploadedAt: new Date().toISOString(),
+          uploadedBy: 'user',
+          workspaceId: options?.workspaceId || 'default',
+        };
+        return mockFile;
+      },
+      async () => {
+        try {
+          return await filesService.uploadImageFromUrl(url, options);
+        } catch (err) {
+          console.error('[useFiles] Failed to upload image from URL:', err);
+          throw err;
+        }
+      }
+    );
   }, []);
 
   // ============================================================================
