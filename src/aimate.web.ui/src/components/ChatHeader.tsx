@@ -102,12 +102,12 @@ export function ChatHeader({
               )}
             </Button>
             
-            {/* Model Selector */}
+            {/* Model Selector - responsive width */}
             <Select value={selectedModel} onValueChange={handleModelChange} open={modelSelectOpen} onOpenChange={setModelSelectOpen}>
-              <SelectTrigger className="w-[200px] border-none bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 focus:ring-0 focus:ring-offset-0">
+              <SelectTrigger className="w-[140px] sm:w-[200px] border-none bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 focus:ring-0 focus:ring-offset-0">
                 <div className="flex items-center gap-2">
-                  <Sparkles className={`h-4 w-4 ${models.find(m => m.id === selectedModel)?.color || "text-purple-500"}`} />
-                  <SelectValue />
+                  <Sparkles className={`h-4 w-4 shrink-0 ${models.find(m => m.id === selectedModel)?.color || "text-purple-500"}`} />
+                  <span className="truncate"><SelectValue /></span>
                 </div>
               </SelectTrigger>
               <SelectContent>
@@ -127,6 +127,17 @@ export function ChatHeader({
             <ConnectionHealthIndicator />
             <OfflineModeIndicator />
             
+            {/* Mobile: icon only */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleNewChat}
+              className="sm:hidden"
+              title="New Chat"
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
+            {/* Desktop: full button */}
             <Button
               variant="ghost"
               size="sm"
