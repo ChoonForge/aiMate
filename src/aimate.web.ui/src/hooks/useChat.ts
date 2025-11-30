@@ -9,6 +9,36 @@ import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { messagesService, MessageDto, SendMessageDto } from '../api/services';
 import { AppConfig } from '../utils/config';
 import { useAdminSettings } from '../context/AdminSettingsContext';
+import { toast } from 'sonner';
+
+// Retry configuration for LM server connections
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 10000,
+};
+
+// Helper to wait with exponential backoff
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Calculate delay with exponential backoff and jitter
+const getRetryDelay = (attempt: number): number => {
+  const exponentialDelay = RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt);
+  const jitter = Math.random() * 500;
+  return Math.min(exponentialDelay + jitter, RETRY_CONFIG.maxDelayMs);
+};
+
+// Check if error is retryable (network errors, 5xx, but not auth errors)
+const isRetryableError = (error: unknown): boolean => {
+  if (error instanceof TypeError) return true; // Network error
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    if (message.includes('network') || message.includes('fetch')) return true;
+    if (message.includes('5') && message.includes('http')) return true; // 5xx errors
+    if (message.includes('timeout')) return true;
+  }
+  return false;
+};
 
 export interface ChatMessage {
   id: string;
@@ -200,18 +230,59 @@ export function useChat(conversationId?: string) {
           { role: 'user' as const, content }
         ];
 
-        const response = await fetch(chatUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            model: options?.model || 'default',
-            messages: chatMessages,
-            stream: true,
-          }),
-        });
+        // Retry logic with exponential backoff
+        let response: Response | null = null;
+        let lastError: Error | null = null;
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+          try {
+            if (attempt > 0) {
+              const delay = getRetryDelay(attempt - 1);
+              console.log(`[useChat] Retry attempt ${attempt}/${RETRY_CONFIG.maxRetries} after ${delay}ms`);
+              toast.info(`Reconnecting to LM server... (attempt ${attempt}/${RETRY_CONFIG.maxRetries})`);
+              await wait(delay);
+            }
+
+            response = await fetch(chatUrl, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                model: options?.model || 'default',
+                messages: chatMessages,
+                stream: true,
+              }),
+              signal: AbortSignal.timeout(30000), // 30 second timeout
+            });
+
+            if (!response.ok) {
+              const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
+              // Don't retry auth errors
+              if (response.status === 401 || response.status === 403) {
+                throw error;
+              }
+              lastError = error;
+              if (attempt < RETRY_CONFIG.maxRetries && isRetryableError(error)) {
+                continue;
+              }
+              throw error;
+            }
+
+            // Success - break out of retry loop
+            if (attempt > 0) {
+              toast.success('Reconnected to LM server');
+            }
+            break;
+          } catch (err) {
+            lastError = err instanceof Error ? err : new Error(String(err));
+            if (attempt < RETRY_CONFIG.maxRetries && isRetryableError(err)) {
+              continue;
+            }
+            throw lastError;
+          }
+        }
+
+        if (!response) {
+          throw lastError || new Error('Failed to connect after retries');
         }
 
         // Handle streaming response
@@ -262,10 +333,38 @@ export function useChat(conversationId?: string) {
         return { ...assistantMsg, content: fullContent };
       } catch (err) {
         console.error('[useChat] LM server call failed:', err);
-        // Show error message
-        const errorMsg = `Failed to reach LM server: ${err instanceof Error ? err.message : 'Unknown error'}`;
-        setMessages(prev => [...prev, { ...assistantMsg, content: errorMsg }]);
-        return { ...assistantMsg, content: errorMsg };
+
+        // Map errors to user-friendly messages
+        let userMessage = 'Unable to connect to the AI server.';
+        let toastMessage = 'Connection failed';
+
+        if (err instanceof Error) {
+          const msg = err.message.toLowerCase();
+          if (msg.includes('401') || msg.includes('403')) {
+            userMessage = 'Authentication failed. Please check your API key in Admin → Connections.';
+            toastMessage = 'Authentication failed';
+          } else if (msg.includes('404')) {
+            userMessage = 'The AI endpoint was not found. Please verify the server URL in Admin → Connections.';
+            toastMessage = 'Endpoint not found';
+          } else if (msg.includes('timeout')) {
+            userMessage = 'The request timed out. The server may be busy or unreachable.';
+            toastMessage = 'Request timed out';
+          } else if (msg.includes('network') || msg.includes('fetch') || msg.includes('failed')) {
+            userMessage = 'Network error. Please check your internet connection and that the LM server is running.';
+            toastMessage = 'Network error';
+          } else if (msg.includes('5')) {
+            userMessage = 'The AI server encountered an error. Please try again or check server logs.';
+            toastMessage = 'Server error';
+          }
+        }
+
+        toast.error(toastMessage, {
+          description: err instanceof Error ? err.message : undefined,
+        });
+
+        setMessages(prev => [...prev, { ...assistantMsg, content: `⚠️ ${userMessage}` }]);
+        setError(userMessage);
+        return { ...assistantMsg, content: userMessage };
       } finally {
         setStreaming(false);
       }
