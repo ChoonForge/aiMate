@@ -7,6 +7,7 @@ import { EmptyState } from "./components/EmptyState";
 import { ChatInput, AttachmentData } from "./components/ChatInput";
 import { DebugPanel } from "./components/DebugPanel";
 import { useMemories } from "./hooks/useMemories";
+import { useTools, ToolCall } from "./hooks/useTools";
 import { ShowcaseModeIndicator } from "./components/ShowcaseModeIndicator";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { DebugProvider, useDebug } from "./components/DebugContext";
@@ -44,6 +45,7 @@ function ChatApp() {
   const { chat, conversations, workspaces, admin } = useAppData();
   const { settings: userSettings } = useUserSettings();
   const memories = useMemories();
+  const tools = useTools();
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -243,6 +245,22 @@ function ChatApp() {
     });
   };
 
+  const handleRetryToolCall = async (toolCall: ToolCall) => {
+    addLog({
+      action: 'Retrying tool call',
+      api: 'MCP tool execution',
+      payload: { toolName: toolCall.toolName, serverId: toolCall.serverId },
+      type: 'info',
+      category: 'tools:retry'
+    });
+
+    await tools.executeTool(
+      toolCall.serverId,
+      toolCall.toolName,
+      toolCall.parameters
+    );
+  };
+
   const handleDeleteConversation = async (id: string) => {
     try {
       await conversations.deleteConversation(id);
@@ -438,6 +456,7 @@ function ChatApp() {
                     content={message.content}
                     timestamp={message.timestamp}
                     structuredContent={message.structuredContent}
+                    toolCalls={message.role === "assistant" ? tools.toolCalls : undefined}
                     onEdit={
                       message.role === "user"
                         ? (newContent) => handleEditMessage(message.id, newContent)
@@ -457,6 +476,7 @@ function ChatApp() {
                         ? handleContinue
                         : undefined
                     }
+                    onRetryToolCall={handleRetryToolCall}
                   />
                 ))}
 

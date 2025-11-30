@@ -112,6 +112,7 @@ src/aimate.web.ui/
 │   │   ├── useAdmin.ts
 │   │   ├── useKnowledge.ts    # Document upload, semantic search
 │   │   ├── useMemories.ts     # Persistent user memories
+│   │   ├── useTools.ts        # MCP tool discovery & execution
 │   │   ├── useProjects.ts
 │   │   ├── useFiles.ts
 │   │   ├── useSettings.ts
@@ -130,9 +131,12 @@ src/aimate.web.ui/
 | Knowledge search | `components/KnowledgeSuggestions.tsx` | Debounced semantic search with fallback |
 | Memory persistence | `hooks/useMemories.ts` | localStorage with auto-extraction from messages |
 | Memories UI | `components/MemoriesPanel.tsx` | View/add/delete memories |
+| MCP tool discovery | `hooks/useTools.ts` | Load tools from enabled MCP servers |
+| MCP tool execution | `api/services/tools.service.ts` | Execute tools, validate params, mock responses |
+| Tool call UI | `components/ToolCallCard.tsx` | Render tool calls with status, params, results |
 | Admin connections | `context/AdminSettingsContext.tsx` | Persisted to localStorage |
 | API client | `api/client.ts` | Axios instance, JWT, retry logic |
-| Message rendering | `components/ChatMessage.tsx` | Markdown, code blocks, actions |
+| Message rendering | `components/ChatMessage.tsx` | Markdown, code blocks, actions, tool calls |
 
 ## Chat Flow (Priority System)
 
@@ -171,10 +175,17 @@ src/aimate.web.ui/
 - [x] Semantic search in chat context (KnowledgeSuggestions with debounced API)
 - [x] Memory persistence (useMemories hook, MemoriesPanel in Settings)
 
-### Stage 5: MCP & Tools (Next)
-- [ ] MCP server integration
-- [ ] Tool execution in chat
-- [ ] Custom MCP server configuration
+### Stage 5: MCP & Tools ✓
+- [x] MCP server integration (tools.service.ts with mock data fallback)
+- [x] Tool execution in chat (useTools hook, ToolCallCard rendering)
+- [x] Tool call parsing (XML and JSON formats from assistant messages)
+- [x] Custom MCP server configuration (MCPEditDialog already existed)
+
+### Stage 6: Production Readiness (Next)
+- [ ] Error boundary for graceful failures
+- [ ] Performance optimization (React.memo, virtualization)
+- [ ] Accessibility improvements (ARIA labels, keyboard nav)
+- [ ] E2E testing setup
 
 ## Commands
 

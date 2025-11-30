@@ -19,15 +19,19 @@ import {
 import { RatingModal } from "./RatingModal";
 import { ShareModal } from "./ShareModal";
 import { StructuredPanel } from "./StructuredPanel";
+import { ToolCallCard } from "./ToolCallCard";
+import { ToolCall } from "../hooks/useTools";
 
 interface ChatMessageProps {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: string;
   structuredContent?: any;
+  toolCalls?: ToolCall[];
   onEdit?: (newContent: string) => void;
   onRegenerate?: () => void;
   onContinue?: () => void;
+  onRetryToolCall?: (toolCall: ToolCall) => void;
 }
 
 export function ChatMessage({
@@ -35,9 +39,11 @@ export function ChatMessage({
   content,
   timestamp,
   structuredContent,
+  toolCalls,
   onEdit,
   onRegenerate,
   onContinue,
+  onRetryToolCall,
 }: ChatMessageProps) {
   const { logUIEvent } = useUIEventLogger();
   const isUser = role === "user";
@@ -280,6 +286,19 @@ export function ChatMessage({
                       console.log('Structured action:', action, rowData);
                     }}
                   />
+                </div>
+              )}
+
+              {/* Tool Calls */}
+              {toolCalls && toolCalls.length > 0 && (
+                <div className="w-full mt-2 space-y-2">
+                  {toolCalls.map((toolCall) => (
+                    <ToolCallCard
+                      key={toolCall.id}
+                      toolCall={toolCall}
+                      onRetry={onRetryToolCall ? () => onRetryToolCall(toolCall) : undefined}
+                    />
+                  ))}
                 </div>
               )}
 
