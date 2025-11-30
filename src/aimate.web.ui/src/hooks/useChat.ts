@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { messagesService, MessageDto, SendMessageDto } from '../api/services';
+import { messagesService, MessageDto, SendMessageDto, knowledgeService } from '../api/services';
 import { AppConfig } from '../utils/config';
 import { useAdminSettings } from '../context/AdminSettingsContext';
 import { toast } from 'sonner';
@@ -170,6 +170,8 @@ export function useChat(conversationId?: string) {
       model?: string;
       attachments?: string[];
       systemPrompt?: string;
+      knowledgeIds?: string[];
+      memoryContext?: string;
     }
   ) => {
     const isOffline = AppConfig.isOfflineMode();
@@ -224,9 +226,41 @@ export function useChat(conversationId?: string) {
           headers['Authorization'] = `Bearer ${activeConnection.apiKey}`;
         }
 
-        // Build messages array for the API (prepend system prompt if provided)
+        // Fetch document chunks if knowledge IDs are provided
+        let knowledgeContext = '';
+        if (options?.knowledgeIds && options.knowledgeIds.length > 0) {
+          console.log('[useChat] Fetching knowledge chunks for:', options.knowledgeIds);
+          try {
+            const chunkPromises = options.knowledgeIds.map(id =>
+              knowledgeService.getDocumentChunks(id)
+            );
+            const allChunks = await Promise.all(chunkPromises);
+
+            // Flatten and format chunks
+            const chunks = allChunks.flat();
+            if (chunks.length > 0) {
+              knowledgeContext = '\n\n--- ATTACHED KNOWLEDGE CONTEXT ---\n' +
+                chunks.map((chunk, i) =>
+                  `[Document Chunk ${i + 1}]:\n${chunk.content}`
+                ).join('\n\n') +
+                '\n--- END KNOWLEDGE CONTEXT ---\n\n';
+              console.log('[useChat] Injecting', chunks.length, 'knowledge chunks');
+            }
+          } catch (err) {
+            console.error('[useChat] Failed to fetch knowledge chunks:', err);
+            // Continue without knowledge context on error
+          }
+        }
+
+        // Build messages array for the API (prepend system prompt + knowledge context + memory context if provided)
+        const systemContent = [
+          options?.systemPrompt || '',
+          options?.memoryContext || '',
+          knowledgeContext,
+        ].filter(Boolean).join('\n');
+
         const chatMessages = [
-          ...(options?.systemPrompt ? [{ role: 'system' as const, content: options.systemPrompt }] : []),
+          ...(systemContent ? [{ role: 'system' as const, content: systemContent }] : []),
           ...messages.map(m => ({ role: m.role, content: m.content })),
           { role: 'user' as const, content }
         ];

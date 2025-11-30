@@ -4,8 +4,9 @@ import { ConversationSidebar, Conversation } from "./components/ConversationSide
 import { ChatHeader } from "./components/ChatHeader";
 import { ChatMessage } from "./components/ChatMessage";
 import { EmptyState } from "./components/EmptyState";
-import { ChatInput } from "./components/ChatInput";
+import { ChatInput, AttachmentData } from "./components/ChatInput";
 import { DebugPanel } from "./components/DebugPanel";
+import { useMemories } from "./hooks/useMemories";
 import { ShowcaseModeIndicator } from "./components/ShowcaseModeIndicator";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { DebugProvider, useDebug } from "./components/DebugContext";
@@ -42,6 +43,7 @@ function ChatApp() {
   // Get all our data from context
   const { chat, conversations, workspaces, admin } = useAppData();
   const { settings: userSettings } = useUserSettings();
+  const memories = useMemories();
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -105,7 +107,7 @@ function ChatApp() {
     }
   };
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, attachments?: AttachmentData) => {
     // Determine which conversation to use
     let targetConversationId = activeConversationId;
 
@@ -128,16 +130,32 @@ function ChatApp() {
       addLog({
         action: 'Sending message',
         api: 'api/v1/chat/send',
-        payload: { message: content, conversationId: targetConversationId, model: selectedModel },
+        payload: {
+          message: content,
+          conversationId: targetConversationId,
+          model: selectedModel,
+          attachments: attachments ? {
+            knowledge: attachments.knowledgeIds.length,
+            notes: attachments.noteIds.length,
+            files: attachments.fileIds.length,
+            chats: attachments.chatIds.length,
+            webpages: attachments.webpageUrls.length,
+          } : null,
+        },
         type: 'info',
         category: 'chat:message'
       });
+
+      // Extract any new memories from the user's message
+      memories.extractMemoriesFromText(content, targetConversationId);
 
       await chat.sendMessage(content, {
         conversationId: targetConversationId,
         workspaceId: workspaces.currentWorkspace?.id,
         model: selectedModel,
         systemPrompt: userSettings.general?.systemPrompt,
+        knowledgeIds: attachments?.knowledgeIds,
+        memoryContext: memories.getContextString(),
       });
 
       addLog({

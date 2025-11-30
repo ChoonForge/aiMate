@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "./ui/button";
-import { Settings, Palette, Link2, User, Sparkles, BarChart3 } from "lucide-react";
+import { Settings, Palette, Link2, User, Sparkles, BarChart3, Brain } from "lucide-react";
+import { MemoriesPanel } from "./MemoriesPanel";
 import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
 import { useUsage } from "../hooks/useUsage";
@@ -62,7 +63,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
   };
 
   // MVP visible tabs - connections hidden until BYOK phase
-  const visibleTabs = ['general', 'interface', 'personalisation', 'account', 'usage'];
+  const visibleTabs = ['general', 'interface', 'personalisation', 'memories', 'account', 'usage'];
 
   const tabs = useMemo(() => [
     {
@@ -94,6 +95,12 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
       label: "Account",
       icon: User,
       content: <AccountTab />,
+    },
+    {
+      id: "memories",
+      label: "Memories",
+      icon: Brain,
+      content: <MemoriesPanel />,
     },
     {
       id: "usage",

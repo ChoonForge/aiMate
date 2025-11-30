@@ -34,8 +34,6 @@ We have achieved **first light** - the first successful live connection to an in
 - Text-to-speech (hook ready, UI shows toast)
 - Email/social sharing (link sharing works)
 - MCP import/export (TODOs in code)
-- Model connection testing
-- Continue message generation
 
 ## Priority Focus: Chat is Core
 
@@ -69,7 +67,7 @@ To hide tabs, filter the `tabs` array in `AdminModal.tsx` around line 58.
 
 ## Settings Modal Tabs
 
-The settings modal (`SettingsModal.tsx`) has 6 tabs:
+The settings modal (`SettingsModal.tsx`) has 7 tabs:
 
 | Tab | Status | Notes |
 |-----|--------|-------|
@@ -77,10 +75,11 @@ The settings modal (`SettingsModal.tsx`) has 6 tabs:
 | Interface | **SHOW** | Theme, appearance |
 | Connections | HIDE | BYOK - Phase 3 |
 | Personalisation | **SHOW** | AI personality settings |
+| Memories | **SHOW** | Persistent user facts/preferences |
 | Account | **SHOW** | User profile |
 | Usage | **SHOW** | Usage stats |
 
-To hide tabs, filter the `tabs` array in `SettingsModal.tsx` around line 64.
+To hide tabs, filter the `tabs` array in `SettingsModal.tsx` around line 66.
 
 ## File Structure
 
@@ -107,11 +106,12 @@ src/aimate.web.ui/
 │   │   ├── AuthContext.tsx
 │   │   └── UserSettingsContext.tsx
 │   ├── hooks/
-│   │   ├── useChat.ts         # 550+ lines - streaming, offline mock
+│   │   ├── useChat.ts         # 600+ lines - streaming, offline mock, RAG
 │   │   ├── useConversations.ts
 │   │   ├── useWorkspaces.ts
 │   │   ├── useAdmin.ts
-│   │   ├── useKnowledge.ts
+│   │   ├── useKnowledge.ts    # Document upload, semantic search
+│   │   ├── useMemories.ts     # Persistent user memories
 │   │   ├── useProjects.ts
 │   │   ├── useFiles.ts
 │   │   ├── useSettings.ts
@@ -126,6 +126,10 @@ src/aimate.web.ui/
 |---------|------|-------|
 | Chat streaming | `hooks/useChat.ts` | SSE handling, abort, retry |
 | LM server connection | `hooks/useChat.ts:sendMessage` | Checks for enabled LM connection first |
+| RAG injection | `hooks/useChat.ts:sendMessage` | Fetches document chunks, injects to system context |
+| Knowledge search | `components/KnowledgeSuggestions.tsx` | Debounced semantic search with fallback |
+| Memory persistence | `hooks/useMemories.ts` | localStorage with auto-extraction from messages |
+| Memories UI | `components/MemoriesPanel.tsx` | View/add/delete memories |
 | Admin connections | `context/AdminSettingsContext.tsx` | Persisted to localStorage |
 | API client | `api/client.ts` | Axios instance, JWT, retry logic |
 | Message rendering | `components/ChatMessage.tsx` | Markdown, code blocks, actions |
@@ -162,10 +166,15 @@ src/aimate.web.ui/
 - [x] Multiple provider support (dropdown with auto-configured URLs)
 - [x] Usage tracking per connection (getUsageByConnection, local tracking)
 
-### Stage 4: Knowledge & Memory (Next)
-- [ ] Document upload end-to-end
-- [ ] Semantic search in chat context
-- [ ] Memory persistence
+### Stage 4: Knowledge & Memory ✓
+- [x] Document upload end-to-end (ChatInput → App → useChat → knowledgeService)
+- [x] Semantic search in chat context (KnowledgeSuggestions with debounced API)
+- [x] Memory persistence (useMemories hook, MemoriesPanel in Settings)
+
+### Stage 5: MCP & Tools (Next)
+- [ ] MCP server integration
+- [ ] Tool execution in chat
+- [ ] Custom MCP server configuration
 
 ## Commands
 
