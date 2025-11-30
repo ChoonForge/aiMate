@@ -99,6 +99,7 @@ src/aimate.web.ui/
 │   │   ├── ConversationSidebar.tsx
 │   │   ├── AdminModal.tsx     # Admin panel (11 tabs)
 │   │   ├── SettingsModal.tsx  # User settings
+│   │   ├── ConnectionHealthIndicator.tsx  # LM server status
 │   │   └── ui/                # 48 shadcn/ui components
 │   ├── context/
 │   │   ├── AppDataContext.tsx      # Central hook provider
@@ -144,13 +145,13 @@ src/aimate.web.ui/
 
 ## Development Stages
 
-### Stage 1: Stabilize First Light (Current)
-- [ ] Connection health indicator in UI
-- [ ] Reconnection logic on disconnect
-- [ ] Graceful error messages
-- [ ] Validate model exists on server
+### Stage 1: Stabilize First Light ✓
+- [x] Connection health indicator in UI (`ConnectionHealthIndicator.tsx`)
+- [x] Reconnection logic with exponential backoff (3 retries)
+- [x] Graceful error messages with toast notifications
+- [x] Model validation with available models suggestion
 
-### Stage 2: Core UX Polish
+### Stage 2: Core UX Polish (Current)
 - [ ] System prompt configuration
 - [ ] Continue message feature
 - [ ] Handle mid-stream network drops
