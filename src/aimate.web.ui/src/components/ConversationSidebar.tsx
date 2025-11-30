@@ -5,6 +5,7 @@ import { MessageSquare, Plus, Trash2, X, Search, FileText, FolderKanban, Sparkle
 import { useTheme } from "./ThemeProvider";
 import { useDebug } from "./DebugContext";
 import { ErrorBoundary, ModalErrorFallback } from "./ErrorBoundary";
+import { ConversationListSkeleton } from "./LoadingSkeletons";
 import { SettingsModal } from "./SettingsModal";
 import { AdminModal } from "./AdminModal";
 import { AboutModal } from "./AboutModal";
@@ -529,7 +530,9 @@ export function ConversationSidebar({
         <div className="flex-1 overflow-hidden flex flex-col">
           <ScrollArea className="flex-1">
             <div className="p-2 space-y-4">
-              {conversations.length === 0 ? (
+              {loading && conversations.length === 0 ? (
+                <ConversationListSkeleton count={5} />
+              ) : conversations.length === 0 ? (
                 <div className="text-center py-8 px-4 text-sm text-gray-500 dark:text-gray-400">
                   No conversations yet. Start a new chat!
                 </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Upload, Trash2, FileText, Download, Eye, Loader2, RefreshCw } from "lucide-react";
+import { FileListSkeleton } from "./LoadingSkeletons";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
@@ -196,10 +197,7 @@ export function FilesModal({ open, onOpenChange }: FilesModalProps) {
         {/* Files List */}
         <div className="space-y-3">
           {filesHook.loading ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-500 dark:text-gray-400">
-              <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-              <p>Loading files...</p>
-            </div>
+            <FileListSkeleton count={3} />
           ) : files.length === 0 ? (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               No files yet. Upload your first file!

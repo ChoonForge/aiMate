@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { FileText, Globe, FileType, Video, Headphones, Code, Image as ImageIcon, Search, Filter, Plus, Download, ExternalLink, Trash2, Eye, EyeOff, X, ChevronDown, Grid3x3, List, FolderOpen, Tag, Clock, User, Hash, Sparkles, Calendar, TrendingUp, Layers, ArrowUpDown, Check, BarChart3, Brain, File, GitBranch, Link2, Upload, Settings, Share2, History, Loader2, Star, Zap, RefreshCw } from "lucide-react";
+import { KnowledgeListSkeleton } from "./LoadingSkeletons";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -510,10 +511,7 @@ export function KnowledgeModal({ open, onOpenChange }: KnowledgeModalProps) {
               <ScrollArea className="flex-1">
                 <div className="px-3 sm:px-6 py-3 sm:py-4 space-y-2 sm:space-y-3">
                   {knowledge.loading ? (
-                    <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-500 dark:text-gray-400">
-                      <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-                      <p>Loading knowledge...</p>
-                    </div>
+                    <KnowledgeListSkeleton count={4} />
                   ) : sortedItems.length === 0 ? (
                     <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                       {searchQuery ? "No results found. Try different keywords." : "No knowledge items yet. Import or add your first item!"}
