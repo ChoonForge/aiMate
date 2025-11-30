@@ -142,13 +142,25 @@ export function useChat(conversationId?: string) {
       systemPrompt?: string;
     }
   ) => {
-    console.log('[useChat] sendMessage called:', { content, options });
-    
-    if (AppConfig.isOfflineMode()) {
-      console.log('[useChat] Sending message in offline mode');
+    const isOffline = AppConfig.isOfflineMode();
+    console.log('[useChat] sendMessage called:', {
+      content: content.substring(0, 50) + '...',
+      options,
+      isOfflineMode: isOffline,
+      localStorage: {
+        offlineMode: localStorage.getItem('aimate_offline_mode'),
+        backendAvailable: localStorage.getItem('aimate_backend_available'),
+      }
+    });
 
+    if (isOffline) {
       // Check if we have an active LM server connection
       const activeConnection = getActiveLmConnection();
+      console.log('[useChat] OFFLINE MODE - Active connection:', activeConnection ? {
+        name: activeConnection.name,
+        url: activeConnection.url,
+        enabled: activeConnection.enabled,
+      } : 'NONE');
 
       const userMsg: ChatMessage = {
         id: `msg-${Date.now()}`,
@@ -170,10 +182,15 @@ export function useChat(conversationId?: string) {
 
       // If we have an active LM server connection, use it!
       if (activeConnection?.url) {
-        console.log('[useChat] Using LM server connection:', activeConnection.name, activeConnection.url);
+        const chatUrl = activeConnection.url.replace(/\/$/, '') + '/chat/completions';
+        console.log('[useChat] CALLING LM SERVER:', {
+          connectionName: activeConnection.name,
+          baseUrl: activeConnection.url,
+          chatUrl: chatUrl,
+          model: options?.model || 'default',
+        });
 
         try {
-          const chatUrl = activeConnection.url.replace(/\/$/, '') + '/chat/completions';
           const headers: Record<string, string> = {
             'Content-Type': 'application/json',
           };

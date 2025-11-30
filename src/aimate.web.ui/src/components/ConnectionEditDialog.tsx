@@ -156,7 +156,7 @@ export function ConnectionEditDialog({
     });
   };
 
-  // Test connection to LM server
+  // Test connection to LM server (does NOT fetch models)
   const handleTestConnection = async () => {
     if (!formData.url) {
       setTestStatus('error');
@@ -179,46 +179,23 @@ export function ConnectionEditDialog({
         }
       }
 
-      if (onTestConnection) {
-        const result = await onTestConnection(formData.url, apiKey);
-        setTestStatus(result.success ? 'success' : 'error');
-        setTestMessage(result.message);
-
-        // Auto-populate models if found
-        if (result.success && result.availableModels && result.availableModels.length > 0) {
-          setFormData(prev => ({
-            ...prev,
-            modelIds: result.availableModels!,
-          }));
-        }
-      } else {
-        // Direct fetch if no callback provided (offline mode)
-        const modelsUrl = formData.url.replace(/\/$/, '') + '/models';
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-        };
-        if (apiKey) {
-          headers['Authorization'] = `Bearer ${apiKey}`;
-        }
-
-        const response = await fetch(modelsUrl, { headers });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const modelIds = (data.data || data.models || []).map((m: any) => m.id || m.name || m);
-
-        setTestStatus('success');
-        setTestMessage(`Connected! Found ${modelIds.length} models`);
-
-        if (modelIds.length > 0) {
-          setFormData(prev => ({
-            ...prev,
-            modelIds,
-          }));
-        }
+      // Just test connection - don't fetch models
+      const modelsUrl = formData.url.replace(/\/$/, '') + '/models';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
       }
+
+      const response = await fetch(modelsUrl, { headers });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Just confirm the connection worked
+      setTestStatus('success');
+      setTestMessage('Connected successfully! Use "Fetch" to load models.');
     } catch (err) {
       setTestStatus('error');
       setTestMessage(`Connection failed: ${err instanceof Error ? err.message : 'Unknown error'}`);

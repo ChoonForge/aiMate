@@ -13,18 +13,19 @@ export const AppConfig = {
    */
   isOfflineMode(): boolean {
     if (typeof window === 'undefined') return true; // Default to offline on server
-    
-    // Check explicit offline mode setting
+
+    // Check explicit offline mode setting - respect user's choice
     const explicitOffline = localStorage.getItem(OFFLINE_MODE_KEY);
     if (explicitOffline === 'true') return true;
-    
-    // Check if backend is available (checked on startup)
+    if (explicitOffline === 'false') return false; // User explicitly disabled offline mode
+
+    // No explicit setting - check if backend is available (checked on startup)
     const backendAvailable = localStorage.getItem(BACKEND_AVAILABLE_KEY);
     if (backendAvailable === 'false') return true;
-    
+
     // Default to offline mode if never checked
     if (backendAvailable === null) return true;
-    
+
     return false;
   },
 

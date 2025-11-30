@@ -202,12 +202,7 @@ const defaultSettings: AdminSettings = {
     },
   ],
   models: [
-    { id: 'gpt-4', name: 'GPT-4', color: 'text-purple-500', description: 'Most capable model, best for complex tasks', connection: 'OpenAI' },
-    { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', color: 'text-blue-500', description: 'Faster GPT-4 with improved performance', connection: 'OpenAI' },
-    { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', color: 'text-green-500', description: 'Fast and efficient for most tasks', connection: 'OpenAI' },
-    { id: 'claude-3-opus', name: 'Claude 3 Opus', color: 'text-orange-500', description: "Anthropic's most capable model", connection: 'Anthropic' },
-    { id: 'claude-3-sonnet', name: 'Claude 3 Sonnet', color: 'text-amber-500', description: 'Balanced speed and capability', connection: 'Anthropic' },
-    { id: 'structured-gpt', name: 'Structured GPT', color: 'text-cyan-500', description: 'Model with structured content support (tables, forms, panels)', connection: 'OpenAI' },
+    // Empty by default - add models from your LM server via Admin > Connections > Fetch > Add to Models
   ],
   plugins: [
     { id: 'web-search', name: 'Web Search', description: 'Search the web for real-time information', enabled: false, parameters: [{ name: 'api_key', type: 'string', value: '', required: true }, { name: 'max_results', type: 'number', value: '10', required: false }] },
