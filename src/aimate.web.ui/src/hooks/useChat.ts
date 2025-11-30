@@ -143,24 +143,22 @@ export function useChat(conversationId?: string) {
     }
   ) => {
     const isOffline = AppConfig.isOfflineMode();
+    const activeConnection = getActiveLmConnection();
+
     console.log('[useChat] sendMessage called:', {
       content: content.substring(0, 50) + '...',
       options,
       isOfflineMode: isOffline,
-      localStorage: {
-        offlineMode: localStorage.getItem('aimate_offline_mode'),
-        backendAvailable: localStorage.getItem('aimate_backend_available'),
-      }
-    });
-
-    if (isOffline) {
-      // Check if we have an active LM server connection
-      const activeConnection = getActiveLmConnection();
-      console.log('[useChat] OFFLINE MODE - Active connection:', activeConnection ? {
+      activeConnection: activeConnection ? {
         name: activeConnection.name,
         url: activeConnection.url,
         enabled: activeConnection.enabled,
-      } : 'NONE');
+      } : 'NONE',
+    });
+
+    // PRIORITY 1: If we have an active LM server connection, use it directly (regardless of offline mode)
+    if (activeConnection?.url) {
+      console.log('[useChat] Using LM server connection (connection-first mode)');
 
       const userMsg: ChatMessage = {
         id: `msg-${Date.now()}`,
@@ -177,106 +175,123 @@ export function useChat(conversationId?: string) {
         role: 'assistant',
         content: '',
         timestamp: new Date().toISOString(),
-        model: options?.model || 'LM Server',
+        model: options?.model || activeConnection.name || 'LM Server',
       };
 
-      // If we have an active LM server connection, use it!
-      if (activeConnection?.url) {
-        const chatUrl = activeConnection.url.replace(/\/$/, '') + '/chat/completions';
-        console.log('[useChat] CALLING LM SERVER:', {
-          connectionName: activeConnection.name,
-          baseUrl: activeConnection.url,
-          chatUrl: chatUrl,
-          model: options?.model || 'default',
+      const chatUrl = activeConnection.url.replace(/\/$/, '') + '/chat/completions';
+      console.log('[useChat] CALLING LM SERVER:', {
+        connectionName: activeConnection.name,
+        baseUrl: activeConnection.url,
+        chatUrl: chatUrl,
+        model: options?.model || 'default',
+      });
+
+      try {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        if (activeConnection.apiKey) {
+          headers['Authorization'] = `Bearer ${activeConnection.apiKey}`;
+        }
+
+        // Build messages array for the API
+        const chatMessages = [
+          ...messages.map(m => ({ role: m.role, content: m.content })),
+          { role: 'user' as const, content }
+        ];
+
+        const response = await fetch(chatUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model: options?.model || 'default',
+            messages: chatMessages,
+            stream: true,
+          }),
         });
 
-        try {
-          const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-          };
-          if (activeConnection.apiKey) {
-            headers['Authorization'] = `Bearer ${activeConnection.apiKey}`;
-          }
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
 
-          // Build messages array for the API
-          const chatMessages = [
-            ...messages.map(m => ({ role: m.role, content: m.content })),
-            { role: 'user' as const, content }
-          ];
+        // Handle streaming response
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let fullContent = '';
+        let messageAdded = false;
 
-          const response = await fetch(chatUrl, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              model: options?.model || 'default',
-              messages: chatMessages,
-              stream: true,
-            }),
-          });
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n');
 
-          // Handle streaming response
-          const reader = response.body?.getReader();
-          const decoder = new TextDecoder();
-          let fullContent = '';
-          let messageAdded = false;
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6);
+                if (data === '[DONE]') continue;
 
-          if (reader) {
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
+                try {
+                  const parsed = JSON.parse(data);
+                  const delta = parsed.choices?.[0]?.delta?.content || '';
+                  if (delta) {
+                    fullContent += delta;
 
-              const chunk = decoder.decode(value, { stream: true });
-              const lines = chunk.split('\n');
-
-              for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                  const data = line.slice(6);
-                  if (data === '[DONE]') continue;
-
-                  try {
-                    const parsed = JSON.parse(data);
-                    const delta = parsed.choices?.[0]?.delta?.content || '';
-                    if (delta) {
-                      fullContent += delta;
-
-                      if (!messageAdded) {
-                        setMessages(prev => [...prev, { ...assistantMsg, content: fullContent }]);
-                        messageAdded = true;
-                      } else {
-                        setMessages(prev => prev.map(msg =>
-                          msg.id === assistantMsg.id
-                            ? { ...msg, content: fullContent }
-                            : msg
-                        ));
-                      }
+                    if (!messageAdded) {
+                      setMessages(prev => [...prev, { ...assistantMsg, content: fullContent }]);
+                      messageAdded = true;
+                    } else {
+                      setMessages(prev => prev.map(msg =>
+                        msg.id === assistantMsg.id
+                          ? { ...msg, content: fullContent }
+                          : msg
+                      ));
                     }
-                  } catch {
-                    // Skip invalid JSON chunks
                   }
+                } catch {
+                  // Skip invalid JSON chunks
                 }
               }
             }
           }
-
-          console.log('[useChat] LM server streaming complete');
-          return { ...assistantMsg, content: fullContent };
-        } catch (err) {
-          console.error('[useChat] LM server call failed:', err);
-          // Fall back to error message
-          const errorMsg = `Failed to reach LM server: ${err instanceof Error ? err.message : 'Unknown error'}`;
-          setMessages(prev => [...prev, { ...assistantMsg, content: errorMsg }]);
-          return { ...assistantMsg, content: errorMsg };
-        } finally {
-          setStreaming(false);
         }
-      }
 
-      // No active connection - fall back to mock responses
-      console.log('[useChat] No active LM connection, using mock responses');
+        console.log('[useChat] LM server streaming complete');
+        return { ...assistantMsg, content: fullContent };
+      } catch (err) {
+        console.error('[useChat] LM server call failed:', err);
+        // Show error message
+        const errorMsg = `Failed to reach LM server: ${err instanceof Error ? err.message : 'Unknown error'}`;
+        setMessages(prev => [...prev, { ...assistantMsg, content: errorMsg }]);
+        return { ...assistantMsg, content: errorMsg };
+      } finally {
+        setStreaming(false);
+      }
+    }
+
+    // PRIORITY 2: No active LM connection - check offline mode
+    if (isOffline) {
+      console.log('[useChat] No active LM connection, using mock responses (offline mode)');
+
+      const userMsg: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        role: 'user',
+        content,
+        timestamp: new Date().toISOString(),
+      };
+
+      setMessages(prev => [...prev, userMsg]);
+      setStreaming(true);
+
+      const assistantMsg: ChatMessage = {
+        id: `msg-${Date.now() + 1}`,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date().toISOString(),
+        model: options?.model || 'Mock',
+      };
 
       // Check for structured content commands
       let mockResponse = '';
