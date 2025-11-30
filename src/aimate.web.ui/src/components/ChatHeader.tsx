@@ -19,6 +19,7 @@ import { SettingsModal } from "./SettingsModal";
 import { AboutModal } from "./AboutModal";
 import { HelpModal } from "./HelpModal";
 import { OfflineModeIndicator } from "./OfflineModeIndicator";
+import { ErrorBoundary, ModalErrorFallback } from "./ErrorBoundary";
 import { useDebug, useUIEventLogger } from "./DebugContext";
 
 interface ModelOption {
@@ -81,9 +82,15 @@ export function ChatHeader({
 
   return (
     <>
-      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
-      <AboutModal open={aboutOpen} onOpenChange={setAboutOpen} />
-      <HelpModal open={helpOpen} onOpenChange={setHelpOpen} />
+      <ErrorBoundary context="settings-modal" fallback={<ModalErrorFallback onClose={() => setSettingsOpen(false)} />}>
+        <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+      </ErrorBoundary>
+      <ErrorBoundary context="about-modal" fallback={<ModalErrorFallback onClose={() => setAboutOpen(false)} />}>
+        <AboutModal open={aboutOpen} onOpenChange={setAboutOpen} />
+      </ErrorBoundary>
+      <ErrorBoundary context="help-modal" fallback={<ModalErrorFallback onClose={() => setHelpOpen(false)} />}>
+        <HelpModal open={helpOpen} onOpenChange={setHelpOpen} />
+      </ErrorBoundary>
       
       <header className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
         <div className="flex items-center justify-between px-4 py-3">
