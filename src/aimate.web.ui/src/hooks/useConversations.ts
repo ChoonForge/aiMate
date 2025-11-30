@@ -193,32 +193,38 @@ export function useConversations(workspaceId?: string) {
   // ============================================================================
 
   const createConversation = useCallback(async (data: CreateConversationDto) => {
-    if (AppConfig.isOfflineMode()) {
-      const newConv: ConversationDto = {
-        id: `conv-${Date.now()}`,
-        title: data.title || 'New Conversation',
-        workspaceId: data.workspaceId || 'default',
-        lastMessageAt: new Date().toISOString(),
-        messageCount: 0,
-        isPinned: false,
-        isArchived: false,
-        modelId: data.modelId || null,
-        tags: data.tags || [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setConversations(prev => [newConv, ...prev]);
-      return newConv;
+    // Always create locally first (works with or without backend)
+    const newConv: ConversationDto = {
+      id: `conv-${Date.now()}`,
+      title: data.title || 'New Conversation',
+      workspaceId: data.workspaceId || 'default',
+      lastMessageAt: new Date().toISOString(),
+      messageCount: 0,
+      isPinned: false,
+      isArchived: false,
+      modelId: data.modelId || null,
+      tags: data.tags || [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setConversations(prev => [newConv, ...prev]);
+
+    // If not offline, also try to sync with backend (but don't fail if it errors)
+    if (!AppConfig.isOfflineMode()) {
+      try {
+        const backendConv = await conversationsService.createConversation(data);
+        // Update with backend ID if successful
+        setConversations(prev => prev.map(c =>
+          c.id === newConv.id ? { ...c, id: backendConv.id } : c
+        ));
+        return backendConv;
+      } catch (err) {
+        console.warn('[useConversations] Failed to sync conversation to backend:', err);
+        // Return local conversation - it still works
+      }
     }
 
-    try {
-      const conv = await conversationsService.createConversation(data);
-      setConversations(prev => [conv, ...prev]);
-      return conv;
-    } catch (err) {
-      console.error('[useConversations] Failed to create conversation:', err);
-      throw err;
-    }
+    return newConv;
   }, []);
 
   // ============================================================================
