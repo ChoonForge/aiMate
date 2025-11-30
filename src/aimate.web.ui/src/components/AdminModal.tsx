@@ -55,6 +55,9 @@ export function AdminModal({ open, onOpenChange, enabledModels, onToggleModel }:
     }
   }, [open, logUIEvent, addLog]);
 
+  // MVP visible tabs - others hidden until needed
+  const visibleTabs = ['general', 'interface', 'connections', 'models', 'mcp'];
+
   const tabs = useMemo(() => [
     {
       id: "general",
@@ -122,7 +125,7 @@ export function AdminModal({ open, onOpenChange, enabledModels, onToggleModel }:
       icon: Sparkles,
       content: <ImagesTab />,
     },
-  ], [enabledModels, onToggleModel]);
+  ].filter(tab => visibleTabs.includes(tab.id)), [enabledModels, onToggleModel]);
 
   return (
     <BaseModal
