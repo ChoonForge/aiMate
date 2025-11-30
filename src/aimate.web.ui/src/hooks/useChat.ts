@@ -224,8 +224,9 @@ export function useChat(conversationId?: string) {
           headers['Authorization'] = `Bearer ${activeConnection.apiKey}`;
         }
 
-        // Build messages array for the API
+        // Build messages array for the API (prepend system prompt if provided)
         const chatMessages = [
+          ...(options?.systemPrompt ? [{ role: 'system' as const, content: options.systemPrompt }] : []),
           ...messages.map(m => ({ role: m.role, content: m.content })),
           { role: 'user' as const, content }
         ];

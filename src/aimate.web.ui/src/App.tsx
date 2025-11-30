@@ -11,7 +11,7 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import { DebugProvider, useDebug } from "./components/DebugContext";
 import { AuthProvider } from "./context/AuthContext";
 import { AdminSettingsProvider } from "./context/AdminSettingsContext";
-import { UserSettingsProvider } from "./context/UserSettingsContext";
+import { UserSettingsProvider, useUserSettings } from "./context/UserSettingsContext";
 import { AppDataProvider, useAppData } from "./context/AppDataContext";
 import { AppConfig } from "./utils/config";
 import { ScrollArea } from "./components/ui/scroll-area";
@@ -41,6 +41,7 @@ function ChatApp() {
 
   // Get all our data from context
   const { chat, conversations, workspaces, admin } = useAppData();
+  const { settings: userSettings } = useUserSettings();
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -136,6 +137,7 @@ function ChatApp() {
         conversationId: targetConversationId,
         workspaceId: workspaces.currentWorkspace?.id,
         model: selectedModel,
+        systemPrompt: userSettings.general?.systemPrompt,
       });
 
       addLog({
