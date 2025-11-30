@@ -1,17 +1,90 @@
 /**
  * Files Hook
- * 
+ *
  * Manages file uploads, attachments, and media
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { filesService, FileDto } from '../api/services';
 import { AppConfig } from '../utils/config';
 
-export function useFiles() {
+export function useFiles(workspaceId?: string) {
+  const [files, setFiles] = useState<FileDto[]>([]);
+  const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+
+  // ============================================================================
+  // LOAD FILES
+  // ============================================================================
+
+  const loadFiles = useCallback(async (wsId?: string) => {
+    const targetWorkspaceId = wsId || workspaceId || 'default';
+
+    if (AppConfig.isOfflineMode()) {
+      // Mock files in offline mode
+      const mockFiles: FileDto[] = [
+        {
+          id: 'file-1',
+          name: 'requirements.pdf',
+          fileName: 'requirements.pdf',
+          fileType: 'application/pdf',
+          fileSize: 2457600,
+          url: 'https://mock-files.aimate.nz/file-1',
+          uploadedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+          uploadedBy: 'user-1',
+          workspaceId: targetWorkspaceId,
+        },
+        {
+          id: 'file-2',
+          name: 'design-mockups.fig',
+          fileName: 'design-mockups.fig',
+          fileType: 'application/figma',
+          fileSize: 5242880,
+          url: 'https://mock-files.aimate.nz/file-2',
+          uploadedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+          uploadedBy: 'user-1',
+          workspaceId: targetWorkspaceId,
+        },
+        {
+          id: 'file-3',
+          name: 'data-analysis.xlsx',
+          fileName: 'data-analysis.xlsx',
+          fileType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          fileSize: 1153433,
+          url: 'https://mock-files.aimate.nz/file-3',
+          uploadedAt: new Date(Date.now() - 86400000).toISOString(),
+          uploadedBy: 'user-1',
+          workspaceId: targetWorkspaceId,
+        },
+      ];
+      setFiles(mockFiles);
+      setLoading(false);
+      return mockFiles;
+    }
+
+    try {
+      setLoading(true);
+      const data = await filesService.getFiles(targetWorkspaceId);
+      setFiles(data);
+      setError(null);
+      return data;
+    } catch (err) {
+      console.error('[useFiles] Failed to load files:', err);
+      setError('Failed to load files');
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [workspaceId]);
+
+  // Load files on mount and when workspaceId changes
+  useEffect(() => {
+    if (workspaceId) {
+      loadFiles(workspaceId);
+    }
+  }, [workspaceId, loadFiles]);
 
   // ============================================================================
   // UPLOAD FILE
@@ -115,18 +188,25 @@ export function useFiles() {
   // DELETE FILE
   // ============================================================================
 
-  const deleteFile = useCallback(async (fileId: string, workspaceId: string = 'default') => {
+  const deleteFile = useCallback(async (fileId: string, wsId?: string) => {
+    const targetWorkspaceId = wsId || workspaceId || 'default';
+
+    // Optimistic update
+    setFiles(prev => prev.filter(f => f.id !== fileId));
+
     if (AppConfig.isOfflineMode()) {
       return;
     }
 
     try {
-      await filesService.deleteFile(workspaceId, fileId);
+      await filesService.deleteFile(targetWorkspaceId, fileId);
     } catch (err) {
       console.error('[useFiles] Failed to delete file:', err);
+      // Revert on failure
+      await loadFiles(targetWorkspaceId);
       throw err;
     }
-  }, []);
+  }, [workspaceId, loadFiles]);
 
   // ============================================================================
   // GET FILE URL
@@ -245,11 +325,16 @@ export function useFiles() {
   }, []);
 
   return {
+    // State
+    files,
+    loading,
     uploading,
     uploadProgress,
     error,
 
     // Actions
+    refresh: () => loadFiles(workspaceId),
+    loadFiles,
     uploadFile,
     uploadFiles,
     deleteFile,

@@ -206,6 +206,7 @@ try {
 | **Workspaces** | 8/8 | ✅ Wired | ✅ Ready | ✅ **100%** |
 | **Admin Panel** | 15/15 | ✅ Wired | ✅ Ready | ✅ **100%** |
 | **Settings** | 5/5 | ✅ Wired | ✅ Ready | ✅ **100%** |
+| **Tools/MCP** | 3/3 | ✅ Wired | ✅ Ready | ✅ **100%** |
 | **Knowledge** | 10/10 | 🔜 Ready | ✅ Ready | 🔜 **Next** |
 | **Projects** | 10/10 | 🔜 Ready | ✅ Ready | 🔜 **Next** |
 | **Files** | 6/6 | 🔜 Ready | ✅ Ready | 🔜 **Next** |

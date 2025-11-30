@@ -203,8 +203,9 @@
 | **Settings** | 5/5 | ✅ 100% |
 | **Usage** | 6/6 | ✅ 100% |
 | **Connections** | 8/8 | ✅ 100% |
+| **Tools/MCP** | 3/3 | ✅ 100% |
 
-**Total: 93/93 endpoints integrated** ✅
+**Total: 96/96 endpoints integrated** ✅
 
 ---
 

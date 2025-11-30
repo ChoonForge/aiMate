@@ -13,3 +13,4 @@ export { useWorkspaces } from './useWorkspaces';
 export { useKnowledge } from './useKnowledge';
 export { useProjects } from './useProjects';
 export { useFiles } from './useFiles';
+export { useTools } from './useTools';

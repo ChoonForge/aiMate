@@ -12,7 +12,9 @@ import { Label } from "./ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Switch } from "./ui/switch";
 import { Separator } from "./ui/separator";
+import { Progress } from "./ui/progress";
 import { useDebug, useUIEventLogger } from "./DebugContext";
+import { useAppData } from "../context/AppDataContext";
 import { toast } from "sonner";
 import { KnowledgeSuggestions } from "./KnowledgeSuggestions";
 import { AttachedContext } from "./AttachedContext";
@@ -41,6 +43,14 @@ interface AttachedItem {
 export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const { addLog, showcaseMode } = useDebug();
   const { logUIEvent } = useUIEventLogger();
+
+  // Get files hook from context for real file uploads
+  const { files: filesHook, workspaces } = useAppData();
+  const currentWorkspaceId = workspaces.currentWorkspace?.id || 'default';
+
+  // File input ref for manual file selection
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [message, setMessage] = useState("");
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [notesMenuOpen, setNotesMenuOpen] = useState(false);
@@ -52,6 +62,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const [weatherModalOpen, setWeatherModalOpen] = useState(false);
   const [webpageUrl, setWebpageUrl] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [attachedItems, setAttachedItems] = useState<AttachedItem[]>([]);
   const [attachedKnowledge, setAttachedKnowledge] = useState<string[]>([]);
   const [attachedNotes, setAttachedNotes] = useState<string[]>([]);
@@ -341,7 +352,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     e.stopPropagation();
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
@@ -349,30 +360,147 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
     const droppedFiles = Array.from(e.dataTransfer.files);
 
     if (droppedFiles.length > 0) {
-      const newItems: AttachedItem[] = droppedFiles.map((file) => {
-        const isImage = file.type.startsWith("image/");
-        const isDoc = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"].includes(file.type);
+      // Validate files first
+      const validationErrors: string[] = [];
+      for (const file of droppedFiles) {
+        const validation = filesHook.validateFile(file);
+        if (!validation.valid) {
+          validationErrors.push(`${file.name}: ${validation.error}`);
+        }
+      }
+
+      if (validationErrors.length > 0) {
+        toast.error(validationErrors.join('\n'));
+        return;
+      }
+
+      setIsUploading(true);
+      logUIEvent('Files dropped for upload', 'ui:chat:files:drop', { fileCount: droppedFiles.length });
+
+      try {
+        // Upload files using the files hook
+        const uploadedFiles = await filesHook.uploadFiles(droppedFiles, {
+          workspaceId: currentWorkspaceId,
+          onProgress: (fileIndex, progress) => {
+            console.log(`[ChatInput] Uploading file ${fileIndex + 1}/${droppedFiles.length}: ${progress}%`);
+          },
+        });
+
+        // Create attached items from uploaded files
+        const newItems: AttachedItem[] = uploadedFiles.map((uploadedFile) => {
+          const isImage = uploadedFile.fileType?.startsWith("image/");
+          const isDoc = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"].includes(uploadedFile.fileType || '');
+
+          return {
+            id: uploadedFile.id,
+            name: uploadedFile.fileName || uploadedFile.name || 'Unknown',
+            type: isImage ? "image" : isDoc ? "document" : "file",
+            size: formatFileSize(uploadedFile.fileSize || 0),
+            preview: isImage ? uploadedFile.url : undefined,
+          };
+        });
+
+        setAttachedItems((prev) => [...prev, ...newItems]);
+        setAttachedFiles((prev) => [...prev, ...uploadedFiles.map(f => f.id)]);
+        toast.success(`${uploadedFiles.length} file(s) uploaded and attached`);
+
+        addLog({
+          category: 'chat:input',
+          action: 'Files Uploaded',
+          api: '/api/v1/files/upload',
+          payload: { fileCount: uploadedFiles.length, files: newItems },
+          type: 'success'
+        });
+      } catch (error) {
+        console.error('[ChatInput] Failed to upload files:', error);
+        toast.error('Failed to upload files. Please try again.');
+
+        addLog({
+          category: 'chat:input',
+          action: 'Files Upload Failed',
+          api: '/api/v1/files/upload',
+          payload: { error: String(error) },
+          type: 'error'
+        });
+      } finally {
+        setIsUploading(false);
+      }
+    }
+  };
+
+  // Handle file input selection (from file picker)
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length === 0) return;
+
+    // Reuse the same upload logic as handleDrop
+    const validationErrors: string[] = [];
+    for (const file of selectedFiles) {
+      const validation = filesHook.validateFile(file);
+      if (!validation.valid) {
+        validationErrors.push(`${file.name}: ${validation.error}`);
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      toast.error(validationErrors.join('\n'));
+      return;
+    }
+
+    setIsUploading(true);
+    logUIEvent('Files selected for upload', 'ui:chat:files:select', { fileCount: selectedFiles.length });
+
+    try {
+      const uploadedFiles = await filesHook.uploadFiles(selectedFiles, {
+        workspaceId: currentWorkspaceId,
+        onProgress: (fileIndex, progress) => {
+          console.log(`[ChatInput] Uploading file ${fileIndex + 1}/${selectedFiles.length}: ${progress}%`);
+        },
+      });
+
+      const newItems: AttachedItem[] = uploadedFiles.map((uploadedFile) => {
+        const isImage = uploadedFile.fileType?.startsWith("image/");
+        const isDoc = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"].includes(uploadedFile.fileType || '');
 
         return {
-          id: `${Date.now()}-${file.name}`,
-          name: file.name,
+          id: uploadedFile.id,
+          name: uploadedFile.fileName || uploadedFile.name || 'Unknown',
           type: isImage ? "image" : isDoc ? "document" : "file",
-          size: formatFileSize(file.size),
-          preview: isImage ? URL.createObjectURL(file) : undefined,
+          size: formatFileSize(uploadedFile.fileSize || 0),
+          preview: isImage ? uploadedFile.url : undefined,
         };
       });
 
       setAttachedItems((prev) => [...prev, ...newItems]);
-      toast.success(`${droppedFiles.length} file(s) attached`);
+      setAttachedFiles((prev) => [...prev, ...uploadedFiles.map(f => f.id)]);
+      toast.success(`${uploadedFiles.length} file(s) uploaded and attached`);
 
       addLog({
         category: 'chat:input',
-        action: 'Files Dropped',
-        api: '/api/v1/DropFiles',
-        payload: { fileCount: droppedFiles.length, files: newItems },
+        action: 'Files Uploaded',
+        api: '/api/v1/files/upload',
+        payload: { fileCount: uploadedFiles.length, files: newItems },
         type: 'success'
       });
+    } catch (error) {
+      console.error('[ChatInput] Failed to upload files:', error);
+      toast.error('Failed to upload files. Please try again.');
+    } finally {
+      setIsUploading(false);
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
+
+    // Close the attach menu
+    setFilesMenuOpen(false);
+    setAttachMenuOpen(false);
+  };
+
+  // Trigger file input click
+  const handleAttachFilesClick = () => {
+    fileInputRef.current?.click();
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -521,6 +649,16 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
         </DialogContent>
       </Dialog>
 
+      {/* Hidden file input for manual file selection */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+        onChange={handleFileInputChange}
+        accept="image/*,application/pdf,text/plain,text/markdown,.doc,.docx,.xls,.xlsx"
+      />
+
       <form onSubmit={handleSubmit} className="space-y-2">
         {/* Attached Items Display */}
         {attachedItems.length > 0 && (
@@ -598,6 +736,22 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
           </div>
         )}
 
+        {/* Upload Progress Overlay */}
+        {isUploading && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 rounded-3xl backdrop-blur-sm">
+            <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+              <Loader2 className="h-8 w-8 mx-auto mb-3 text-purple-600 dark:text-purple-400 animate-spin" />
+              <div className="text-lg font-medium text-gray-900 dark:text-gray-100">Uploading files...</div>
+              <div className="w-48 mt-3">
+                <Progress value={filesHook.uploadProgress} className="h-2" />
+              </div>
+              <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                {filesHook.uploadProgress}% complete
+              </div>
+            </div>
+          </div>
+        )}
+
         <div
           className="flex gap-2 items-center bg-gray-100 dark:bg-gray-900 rounded-3xl p-2 pr-3 relative"
           onDragEnter={handleDragEnter}
@@ -647,10 +801,20 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
                       align="start"
                       className="w-64 p-0 bg-gray-900 dark:bg-gray-900 text-white border-gray-700"
                     >
+                      {/* Upload New Button */}
+                      <div className="p-2 border-b border-gray-800">
+                        <button
+                          className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md bg-purple-600 hover:bg-purple-700 transition-colors text-left cursor-pointer"
+                          onClick={handleAttachFilesClick}
+                        >
+                          <Upload className="h-4 w-4" />
+                          <span>Upload New File</span>
+                        </button>
+                      </div>
                       <div className="px-4 py-2.5 border-b border-gray-800">
                         <div className="text-xs text-gray-400">Recent Files</div>
                       </div>
-                      <ScrollArea className="h-80">
+                      <ScrollArea className="h-64">
                         <div className="p-2 space-y-1">
                           {loading && files.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-8 gap-2 text-gray-400">
@@ -658,7 +822,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
                               <span className="text-sm">Loading files...</span>
                             </div>
                           ) : files.length === 0 ? (
-                            <div className="px-3 py-2 text-sm text-gray-400">No files found</div>
+                            <div className="px-3 py-2 text-sm text-gray-400">No recent files</div>
                           ) : (
                             files.map((file) => (
                               <button

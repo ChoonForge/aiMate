@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { FileText, Globe, FileType, Video, Headphones, Code, Image as ImageIcon, Search, Filter, Plus, Download, ExternalLink, Trash2, Eye, EyeOff, X, ChevronDown, Grid3x3, List, FolderOpen, Tag, Clock, User, Hash, Sparkles, Calendar, TrendingUp, Layers, ArrowUpDown, Check, BarChart3, Brain, File, GitBranch, Link2, Upload, Settings, Share2, History, Loader2, Star, Zap } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { FileText, Globe, FileType, Video, Headphones, Code, Image as ImageIcon, Search, Filter, Plus, Download, ExternalLink, Trash2, Eye, EyeOff, X, ChevronDown, Grid3x3, List, FolderOpen, Tag, Clock, User, Hash, Sparkles, Calendar, TrendingUp, Layers, ArrowUpDown, Check, BarChart3, Brain, File, GitBranch, Link2, Upload, Settings, Share2, History, Loader2, Star, Zap, RefreshCw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -20,7 +20,7 @@ import { Progress } from "./ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { useDebug } from "./DebugContext";
 import { toast } from "sonner";
-import { knowledgeService } from "../api/services";
+import { useAppData } from "../context/AppDataContext";
 import { useSwipeGesture } from "../utils/useSwipeGesture";
 
 interface KnowledgeItem {
@@ -65,27 +65,29 @@ interface KnowledgeModalProps {
 
 export function KnowledgeModal({ open, onOpenChange }: KnowledgeModalProps) {
   const { addLog } = useDebug();
+  const { knowledge } = useAppData();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [activeTab, setActiveTab] = useState("knowledge");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterCollection, setFilterCollection] = useState("all");
   const [sortBy, setSortBy] = useState("recent");
-  const [items, setItems] = useState<KnowledgeItem[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [artifacts, setArtifacts] = useState<ArtifactItem[]>([
-    { 
-      id: "1", 
-      title: "API Response Analysis", 
-      content: "Detailed analysis of the API response...", 
+    {
+      id: "1",
+      title: "API Response Analysis",
+      content: "Detailed analysis of the API response...",
       date: "Nov 3, 2025",
       type: "Analysis",
       version: 2,
       tags: ["API", "Analysis"]
     },
-    { 
-      id: "2", 
-      title: "Code Optimization Ideas", 
-      content: "Several approaches to optimize performance...", 
+    {
+      id: "2",
+      title: "Code Optimization Ideas",
+      content: "Several approaches to optimize performance...",
       date: "Nov 2, 2025",
       type: "Code",
       version: 1,
@@ -94,9 +96,27 @@ export function KnowledgeModal({ open, onOpenChange }: KnowledgeModalProps) {
   ]);
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
   const [deleteArtifactId, setDeleteArtifactId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [showImportMenu, setShowImportMenu] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+
+  // Map documents from hook to KnowledgeItem format
+  const items: KnowledgeItem[] = useMemo(() => {
+    return knowledge.documents.map((doc) => ({
+      id: doc.id,
+      title: doc.title || doc.fileName,
+      type: mapFileTypeToKnowledgeType(doc.fileType),
+      date: formatDate(doc.createdAt),
+      tags: doc.tags || [],
+      summary: `${doc.fileName} - ${doc.status === 'ready' ? `${doc.chunkCount} chunks indexed` : doc.status}`,
+      entities: [],
+      collection: undefined,
+      size: formatFileSize(doc.fileSize),
+      usageCount: 0,
+      lastUsed: formatDate(doc.updatedAt),
+      source: doc.fileName,
+      version: 1,
+    }));
+  }, [knowledge.documents]);
 
   const tabs = [
     { id: "knowledge", label: "Knowledge", icon: FileText },
@@ -125,102 +145,19 @@ export function KnowledgeModal({ open, onOpenChange }: KnowledgeModalProps) {
     onSwipeRight: handleSwipeRight,
   });
 
-  // Load knowledge items
+  // Load collections when modal opens
   useEffect(() => {
-    if (open && items.length === 0) {
-      loadKnowledge();
+    if (open) {
       loadCollections();
+      addLog({
+        category: 'knowledge:modal',
+        action: 'Loaded Knowledge',
+        api: '/api/v1/knowledge',
+        payload: knowledge.documents,
+        type: 'success'
+      });
     }
-  }, [open]);
-
-  const loadKnowledge = async () => {
-    setLoading(true);
-    
-    // Use mock data in offline mode (simulating knowledge items)
-    const mockItems: KnowledgeItem[] = [
-      {
-        id: '1',
-        title: 'React Best Practices Guide',
-        type: 'Document',
-        date: 'Nov 20, 2025',
-        tags: ['react', 'javascript', 'frontend'],
-        summary: 'Comprehensive guide covering React patterns, hooks, performance optimization, and common pitfalls.',
-        entities: ['React', 'Hooks', 'Components'],
-        collection: 'Frontend Development',
-        size: '2.4 MB',
-        usageCount: 12,
-        lastUsed: 'Nov 25, 2025',
-        source: 'docs.react.dev',
-        version: 3,
-      },
-      {
-        id: '2',
-        title: 'NZ Mental Health Resources',
-        type: 'Web',
-        date: 'Nov 15, 2025',
-        tags: ['health', 'nz', 'crisis'],
-        summary: 'Curated list of verified New Zealand mental health support services and crisis hotlines.',
-        entities: ['1737', 'Lifeline', 'Youthline'],
-        collection: 'Meeting Notes',
-        size: '180 KB',
-        usageCount: 45,
-        lastUsed: 'Nov 26, 2025',
-        source: 'health.govt.nz',
-        version: 2,
-      },
-      {
-        id: '3',
-        title: 'TypeScript Advanced Types',
-        type: 'PDF',
-        date: 'Oct 30, 2025',
-        tags: ['typescript', 'types', 'programming'],
-        summary: 'Deep dive into TypeScript utility types, conditional types, and type inference.',
-        entities: ['TypeScript', 'Generics', 'Type System'],
-        collection: 'Frontend Development',
-        size: '1.8 MB',
-        usageCount: 8,
-        lastUsed: 'Nov 22, 2025',
-      },
-      {
-        id: '4',
-        title: 'API Security Checklist',
-        type: 'Document',
-        date: 'Nov 10, 2025',
-        tags: ['security', 'api', 'backend'],
-        summary: 'Essential security practices for REST APIs including authentication, rate limiting, and input validation.',
-        entities: ['JWT', 'OAuth', 'CORS'],
-        collection: 'API Documentation',
-        size: '450 KB',
-        usageCount: 23,
-        lastUsed: 'Nov 24, 2025',
-        version: 4,
-      },
-      {
-        id: '5',
-        title: 'UI Design System Tokens',
-        type: 'Code',
-        date: 'Nov 5, 2025',
-        tags: ['design', 'tokens', 'css'],
-        summary: 'Design tokens for colors, typography, spacing, and component styles.',
-        entities: ['Tailwind', 'CSS Variables', 'Design Tokens'],
-        collection: 'Design Specs',
-        size: '125 KB',
-        usageCount: 34,
-        lastUsed: 'Nov 27, 2025',
-      },
-    ];
-    
-    setItems(mockItems);
-    setLoading(false);
-    
-    addLog({
-      category: 'knowledge:modal',
-      action: 'Loaded Knowledge',
-      api: '/api/v1/knowledge',
-      payload: mockItems,
-      type: 'success'
-    });
-  };
+  }, [open, knowledge.documents]);
 
   const loadCollections = () => {
     setCollections([
@@ -231,12 +168,67 @@ export function KnowledgeModal({ open, onOpenChange }: KnowledgeModalProps) {
     ]);
   };
 
-  const handleDeleteItem = () => {
+  const handleDeleteItem = async () => {
     if (deleteItemId) {
-      setItems((prev) => prev.filter((item) => item.id !== deleteItemId));
-      toast.success("Knowledge item deleted");
+      try {
+        await knowledge.deleteDocument(deleteItemId);
+        toast.success("Knowledge item deleted");
+        addLog({
+          category: 'knowledge:modal',
+          action: 'Deleted Document',
+          api: '/api/v1/knowledge',
+          payload: { id: deleteItemId },
+          type: 'success'
+        });
+      } catch (err) {
+        toast.error("Failed to delete document");
+        addLog({
+          category: 'knowledge:modal',
+          action: 'Delete Failed',
+          api: '/api/v1/knowledge',
+          payload: { id: deleteItemId, error: err },
+          type: 'error'
+        });
+      }
       setDeleteItemId(null);
     }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    try {
+      await knowledge.uploadDocument(file);
+      toast.success(`Uploaded ${file.name}`);
+      addLog({
+        category: 'knowledge:modal',
+        action: 'Uploaded Document',
+        api: '/api/v1/knowledge/upload',
+        payload: { fileName: file.name, size: file.size },
+        type: 'success'
+      });
+    } catch (err) {
+      toast.error(`Failed to upload ${file.name}`);
+      addLog({
+        category: 'knowledge:modal',
+        action: 'Upload Failed',
+        api: '/api/v1/knowledge/upload',
+        payload: { fileName: file.name, error: err },
+        type: 'error'
+      });
+    }
+
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRefresh = () => {
+    knowledge.refresh();
+    toast.success("Refreshing knowledge base...");
   };
 
   const handleDeleteArtifact = () => {
@@ -415,9 +407,26 @@ export function KnowledgeModal({ open, onOpenChange }: KnowledgeModalProps) {
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <Button className="gap-2" size="sm">
-                    <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">Add</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefresh}
+                    disabled={knowledge.loading}
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${knowledge.loading ? 'animate-spin' : ''}`} />
+                  </Button>
+                  <Button
+                    className="gap-2"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={knowledge.uploading}
+                  >
+                    {knowledge.uploading ? (
+                      <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                    ) : (
+                      <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    )}
+                    <span className="hidden sm:inline">{knowledge.uploading ? 'Uploading...' : 'Add'}</span>
                   </Button>
                 </div>
 
@@ -500,7 +509,7 @@ export function KnowledgeModal({ open, onOpenChange }: KnowledgeModalProps) {
               {/* Knowledge Items List */}
               <ScrollArea className="flex-1">
                 <div className="px-3 sm:px-6 py-3 sm:py-4 space-y-2 sm:space-y-3">
-                  {loading ? (
+                  {knowledge.loading ? (
                     <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-500 dark:text-gray-400">
                       <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
                       <p>Loading knowledge...</p>
@@ -902,6 +911,52 @@ export function KnowledgeModal({ open, onOpenChange }: KnowledgeModalProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Hidden file input for uploads */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleFileUpload}
+        accept=".pdf,.doc,.docx,.txt,.md,.json,.csv"
+      />
     </>
   );
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+function mapFileTypeToKnowledgeType(fileType: string): KnowledgeItem['type'] {
+  const type = fileType.toLowerCase();
+  if (type.includes('pdf')) return 'PDF';
+  if (type.includes('doc') || type.includes('text') || type.includes('markdown')) return 'Document';
+  if (type.includes('video') || type.includes('mp4') || type.includes('webm')) return 'Video';
+  if (type.includes('audio') || type.includes('mp3') || type.includes('wav')) return 'Audio';
+  if (type.includes('image') || type.includes('png') || type.includes('jpg') || type.includes('jpeg')) return 'Image';
+  if (type.includes('code') || type.includes('json') || type.includes('javascript') || type.includes('typescript')) return 'Code';
+  if (type.includes('http') || type.includes('url') || type.includes('web')) return 'Web';
+  return 'Document';
+}
+
+function formatDate(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-NZ', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return dateString;
+  }
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }

@@ -10,7 +10,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { FolderKanban, Upload, Download, Eye, Trash2, File, MessageSquare, MoreVertical, Pin, Share, Edit, Archive, Copy, ListRestart, Search, X, GripVertical, Check } from "lucide-react";
+import { FolderKanban, Upload, Download, Eye, Trash2, File, MessageSquare, MoreVertical, Pin, Share, Edit, Archive, Copy, ListRestart, Search, X, GripVertical, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "./ui/scroll-area";
 import {
@@ -30,6 +30,8 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import { useSwipeGesture } from "../utils/useSwipeGesture";
+import { useAppData } from "../context/AppDataContext";
+import { useDebug } from "./DebugContext";
 
 export interface Project {
   id: string;
@@ -62,9 +64,14 @@ interface ProjectModalProps {
 }
 
 export function ProjectModal({ open, onOpenChange, project, mode, onCreateProject }: ProjectModalProps) {
+  const { projects: projectsHook } = useAppData();
+  const { addLog } = useDebug();
+
   const [activeTab, setActiveTab] = useState("general");
   const [name, setName] = useState(project?.name || "");
   const [description, setDescription] = useState(project?.description || "");
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [files, setFiles] = useState<ProjectFile[]>(
     mode === "view" ? [
       { id: "1", name: "requirements.pdf", size: "2.4 MB", uploadedAt: "Nov 3, 2025" },
@@ -93,34 +100,108 @@ export function ProjectModal({ open, onOpenChange, project, mode, onCreateProjec
     }
   }, [open]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name.trim()) {
       toast.error("Project name is required");
       return;
     }
 
-    if (mode === "create") {
-      const newProject: Project = {
-        id: Date.now().toString(),
-        name: name.trim(),
-        description: description.trim(),
-        createdAt: new Date(),
-      };
-      
-      if (onCreateProject) {
-        onCreateProject(newProject);
+    setSaving(true);
+    try {
+      if (mode === "create") {
+        // Generate a project key from the name
+        const projectKey = name.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) || 'PROJ';
+
+        const createdProject = await projectsHook.createProject({
+          key: projectKey,
+          name: name.trim(),
+          description: description.trim(),
+          owner: 'User', // Will be filled by backend
+          ownerEmail: 'user@example.com', // Will be filled by backend
+          status: 'Planning',
+          priority: 'Medium',
+        });
+
+        // Also call the callback if provided (for UI updates)
+        if (onCreateProject && createdProject) {
+          const localProject: Project = {
+            id: createdProject.id,
+            name: createdProject.name,
+            description: createdProject.description,
+            createdAt: new Date(createdProject.createdAt),
+          };
+          onCreateProject(localProject);
+        }
+
+        addLog({
+          category: 'projects:modal',
+          action: 'Created Project',
+          api: '/api/v1/projects',
+          payload: { name: name.trim() },
+          type: 'success'
+        });
+
+        toast.success("Project created!");
+      } else if (project) {
+        await projectsHook.updateProject(project.id, {
+          name: name.trim(),
+          description: description.trim(),
+        });
+
+        addLog({
+          category: 'projects:modal',
+          action: 'Updated Project',
+          api: '/api/v1/projects',
+          payload: { id: project.id, name: name.trim() },
+          type: 'success'
+        });
+
+        toast.success("Project saved!");
       }
-      
-      toast.success("Project saved!");
-    } else {
-      toast.success("Project saved!");
+      onOpenChange(false);
+    } catch (err) {
+      toast.error("Failed to save project");
+      addLog({
+        category: 'projects:modal',
+        action: 'Save Failed',
+        api: '/api/v1/projects',
+        payload: { error: err },
+        type: 'error'
+      });
+    } finally {
+      setSaving(false);
     }
-    onOpenChange(false);
   };
 
-  const handleDelete = () => {
-    toast.success("Project deleted successfully");
-    onOpenChange(false);
+  const handleDelete = async () => {
+    if (!project) return;
+
+    setDeleting(true);
+    try {
+      await projectsHook.deleteProject(project.id);
+
+      addLog({
+        category: 'projects:modal',
+        action: 'Deleted Project',
+        api: '/api/v1/projects',
+        payload: { id: project.id },
+        type: 'success'
+      });
+
+      toast.success("Project deleted successfully");
+      onOpenChange(false);
+    } catch (err) {
+      toast.error("Failed to delete project");
+      addLog({
+        category: 'projects:modal',
+        action: 'Delete Failed',
+        api: '/api/v1/projects',
+        payload: { id: project.id, error: err },
+        type: 'error'
+      });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleAddFile = () => {
@@ -650,15 +731,45 @@ export function ProjectModal({ open, onOpenChange, project, mode, onCreateProjec
           {/* Footer */}
           <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex gap-2 justify-end">
             {mode === "view" && activeTab === "general" && (
-              <Button variant="destructive" onClick={handleDelete} className="cursor-pointer">
-                Delete
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="cursor-pointer"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
               </Button>
             )}
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="cursor-pointer">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={saving || deleting}
+              className="cursor-pointer"
+            >
               {mode === "view" ? "Close" : "Cancel"}
             </Button>
             {mode === "create" && (
-              <Button onClick={handleSave} className="cursor-pointer">Create Project</Button>
+              <Button
+                onClick={handleSave}
+                disabled={saving}
+                className="cursor-pointer"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Project"
+                )}
+              </Button>
             )}
           </div>
         </DialogContent>
