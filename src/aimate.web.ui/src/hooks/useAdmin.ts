@@ -147,20 +147,24 @@ export function useAdmin() {
   // ============================================================================
 
   const loadModels = useCallback(async () => {
-    if (AppConfig.isOfflineMode()) {
-      // In offline mode, use AdminSettingsContext for persistence
-      const settingsModels = adminSettings.settings.models;
-      const modelDtos = settingsModels.map(toModelDto);
-      setModels(modelDtos);
-      return;
-    }
+    // Always load from localStorage first (AdminSettingsContext)
+    const settingsModels = adminSettings.settings.models;
+    const localModelDtos = settingsModels.map(toModelDto);
+    setModels(localModelDtos);
 
-    try {
-      const data = await adminService.getModels();
-      setModels(data);
-    } catch (err) {
-      console.error('[useAdmin] Failed to load models:', err);
-      setModels([]);
+    // If not offline, also try to load from backend and merge
+    if (!AppConfig.isOfflineMode()) {
+      try {
+        const backendModels = await adminService.getModels();
+        // Merge: keep local models, add any from backend that don't exist locally
+        const localIds = new Set(localModelDtos.map(m => m.id));
+        const newBackendModels = backendModels.filter(m => !localIds.has(m.id));
+        if (newBackendModels.length > 0) {
+          setModels([...localModelDtos, ...newBackendModels]);
+        }
+      } catch (err) {
+        console.warn('[useAdmin] Failed to load models from backend, using localStorage:', err);
+      }
     }
   }, [adminSettings.settings.models]);
 
@@ -274,14 +278,9 @@ export function useAdmin() {
     }
   }, [loadModels, adminSettings]);
 
-  // Add multiple models from a connection (for offline LM server testing)
+  // Add multiple models from a connection (works in all modes - persists to localStorage)
   const addModelsFromConnection = useCallback((modelsToAdd: Array<{ id: string; name: string; connectionName: string }>) => {
     console.log('[useAdmin] addModelsFromConnection called with:', modelsToAdd);
-
-    if (!AppConfig.isOfflineMode()) {
-      console.warn('[useAdmin] addModelsFromConnection is only available in offline mode');
-      return;
-    }
 
     // Filter out models that already exist
     const existingIds = new Set(adminSettings.settings.models.map(m => m.id));
@@ -292,7 +291,7 @@ export function useAdmin() {
       return;
     }
 
-    // Add to AdminSettingsContext
+    // Add to AdminSettingsContext (localStorage)
     const newAdminModels = newModels.map(m => ({
       id: m.id,
       name: m.name,
@@ -316,20 +315,24 @@ export function useAdmin() {
   // ============================================================================
 
   const loadConnections = useCallback(async () => {
-    if (AppConfig.isOfflineMode()) {
-      // In offline mode, use AdminSettingsContext for persistence
-      const settingsConnections = adminSettings.settings.connections;
-      const connectionDtos = settingsConnections.map(toConnectionDto);
-      setConnections(connectionDtos);
-      return;
-    }
+    // Always load from localStorage first (AdminSettingsContext)
+    const settingsConnections = adminSettings.settings.connections;
+    const localConnectionDtos = settingsConnections.map(toConnectionDto);
+    setConnections(localConnectionDtos);
 
-    try {
-      const data = await connectionsService.getConnections();
-      setConnections(data);
-    } catch (err) {
-      console.error('[useAdmin] Failed to load connections:', err);
-      setConnections([]);
+    // If not offline, also try to load from backend and merge
+    if (!AppConfig.isOfflineMode()) {
+      try {
+        const backendConnections = await connectionsService.getConnections();
+        // Merge: keep local connections, add any from backend that don't exist locally
+        const localIds = new Set(localConnectionDtos.map(c => c.id));
+        const newBackendConnections = backendConnections.filter(c => !localIds.has(c.id));
+        if (newBackendConnections.length > 0) {
+          setConnections([...localConnectionDtos, ...newBackendConnections]);
+        }
+      } catch (err) {
+        console.warn('[useAdmin] Failed to load connections from backend, using localStorage:', err);
+      }
     }
   }, [adminSettings.settings.connections]);
 
@@ -369,88 +372,86 @@ export function useAdmin() {
   const createConnection = useCallback(async (data: any) => {
     console.log('[useAdmin] createConnection called with:', data);
 
-    if (AppConfig.isOfflineMode()) {
-      const newId = `conn-${Date.now()}`;
-      const apiKey = extractApiKeyFromHeaders(data);
+    const newId = `conn-${Date.now()}`;
+    const apiKey = extractApiKeyFromHeaders(data);
 
-      const newConnection: ConnectionDto = {
-        id: newId,
-        provider: data.provider || data.providerType || 'Custom',
-        name: data.name,
-        isActive: data.isActive ?? data.enabled ?? true,
-        apiKeyPrefix: apiKey ? apiKey.substring(0, 10) + '...' : '',
-        createdAt: new Date().toISOString(),
-        models: data.modelIds || [],
-        enabled: data.enabled ?? true,
-        url: data.url,
-      };
-      setConnections(prev => [...prev, newConnection]);
+    // Always create local connection first
+    const newConnection: ConnectionDto = {
+      id: newId,
+      provider: data.provider || data.providerType || 'Custom',
+      name: data.name,
+      isActive: data.isActive ?? data.enabled ?? true,
+      apiKeyPrefix: apiKey ? apiKey.substring(0, 10) + '...' : '',
+      createdAt: new Date().toISOString(),
+      models: data.modelIds || [],
+      enabled: data.enabled ?? true,
+      url: data.url,
+    };
+    setConnections(prev => [...prev, newConnection]);
 
-      // Persist to AdminSettingsContext
-      const newAdminConnection: AdminConnection = {
-        id: newId,
-        name: data.name,
-        type: data.provider || data.providerType || 'Custom',
-        url: data.url || '',
-        enabled: data.enabled ?? true,
-        apiKey: apiKey,
-      };
+    // Always persist to AdminSettingsContext (localStorage)
+    const newAdminConnection: AdminConnection = {
+      id: newId,
+      name: data.name,
+      type: data.provider || data.providerType || 'Custom',
+      url: data.url || '',
+      enabled: data.enabled ?? true,
+      apiKey: apiKey,
+    };
 
-      const updatedConnections = [...adminSettings.settings.connections, newAdminConnection];
-      console.log('[useAdmin] Persisting connections to localStorage:', updatedConnections);
-      adminSettings.updateConnections(updatedConnections);
+    const updatedConnections = [...adminSettings.settings.connections, newAdminConnection];
+    console.log('[useAdmin] Persisting connections to localStorage:', updatedConnections);
+    adminSettings.updateConnections(updatedConnections);
 
-      return newConnection;
+    // If not offline, also try to sync with backend (but don't fail if it errors)
+    if (!AppConfig.isOfflineMode()) {
+      try {
+        await connectionsService.createConnection(data);
+        console.log('[useAdmin] Synced connection to backend');
+      } catch (err) {
+        console.warn('[useAdmin] Failed to sync connection to backend (will use localStorage):', err);
+      }
     }
 
-    try {
-      const connection = await connectionsService.createConnection(data);
-      await loadConnections();
-      return connection;
-    } catch (err) {
-      console.error('[useAdmin] Failed to create connection:', err);
-      throw err;
-    }
-  }, [loadConnections, adminSettings]);
+    return newConnection;
+  }, [adminSettings]);
 
   const updateConnection = useCallback(async (connectionId: string, data: any) => {
     console.log('[useAdmin] updateConnection called:', { connectionId, data });
 
-    // Optimistic update
+    const apiKey = extractApiKeyFromHeaders(data);
+
+    // Optimistic update to local state
     setConnections(prev => prev.map(c =>
       c.id === connectionId ? { ...c, ...data } : c
     ));
 
-    if (AppConfig.isOfflineMode()) {
-      const apiKey = extractApiKeyFromHeaders(data);
+    // Always persist to AdminSettingsContext (localStorage)
+    const updatedConnections = adminSettings.settings.connections.map(c =>
+      c.id === connectionId
+        ? {
+            ...c,
+            name: data.name ?? c.name,
+            type: data.provider ?? data.providerType ?? c.type,
+            url: data.url ?? c.url,
+            enabled: data.enabled ?? data.isActive ?? c.enabled,
+            apiKey: apiKey ?? c.apiKey,
+          }
+        : c
+    );
+    console.log('[useAdmin] Updating connections in localStorage:', updatedConnections);
+    adminSettings.updateConnections(updatedConnections);
 
-      // Persist to AdminSettingsContext
-      const updatedConnections = adminSettings.settings.connections.map(c =>
-        c.id === connectionId
-          ? {
-              ...c,
-              name: data.name ?? c.name,
-              type: data.provider ?? data.providerType ?? c.type,
-              url: data.url ?? c.url,
-              enabled: data.enabled ?? data.isActive ?? c.enabled,
-              apiKey: apiKey ?? c.apiKey,
-            }
-          : c
-      );
-      console.log('[useAdmin] Updating connections in localStorage:', updatedConnections);
-      adminSettings.updateConnections(updatedConnections);
-      return;
+    // If not offline, also try to sync with backend
+    if (!AppConfig.isOfflineMode()) {
+      try {
+        await connectionsService.updateConnection(connectionId, data);
+        console.log('[useAdmin] Synced connection update to backend');
+      } catch (err) {
+        console.warn('[useAdmin] Failed to sync connection update to backend (using localStorage):', err);
+      }
     }
-
-    try {
-      await connectionsService.updateConnection(connectionId, data);
-      await loadConnections();
-    } catch (err) {
-      console.error('[useAdmin] Failed to update connection:', err);
-      await loadConnections(); // Revert
-      throw err;
-    }
-  }, [loadConnections, adminSettings]);
+  }, [adminSettings]);
 
   const deleteConnection = useCallback(async (connectionId: string) => {
     // Optimistic update
