@@ -4,14 +4,16 @@ import { ConversationSidebar, Conversation } from "./components/ConversationSide
 import { ChatHeader } from "./components/ChatHeader";
 import { ChatMessage } from "./components/ChatMessage";
 import { EmptyState } from "./components/EmptyState";
-import { ChatInput } from "./components/ChatInput";
+import { ChatInput, AttachmentData } from "./components/ChatInput";
 import { DebugPanel } from "./components/DebugPanel";
+import { useMemories } from "./hooks/useMemories";
+import { useTools, ToolCall } from "./hooks/useTools";
 import { ShowcaseModeIndicator } from "./components/ShowcaseModeIndicator";
 import { ThemeProvider } from "./components/ThemeProvider";
 import { DebugProvider, useDebug } from "./components/DebugContext";
 import { AuthProvider } from "./context/AuthContext";
 import { AdminSettingsProvider } from "./context/AdminSettingsContext";
-import { UserSettingsProvider } from "./context/UserSettingsContext";
+import { UserSettingsProvider, useUserSettings } from "./context/UserSettingsContext";
 import { AppDataProvider, useAppData } from "./context/AppDataContext";
 import { AppConfig } from "./utils/config";
 import { ScrollArea } from "./components/ui/scroll-area";
@@ -41,6 +43,9 @@ function ChatApp() {
 
   // Get all our data from context
   const { chat, conversations, workspaces, admin } = useAppData();
+  const { settings: userSettings } = useUserSettings();
+  const memories = useMemories();
+  const tools = useTools();
 
   // Load messages when conversation changes
   useEffect(() => {
@@ -104,7 +109,7 @@ function ChatApp() {
     }
   };
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, attachments?: AttachmentData) => {
     // Determine which conversation to use
     let targetConversationId = activeConversationId;
 
@@ -127,15 +132,32 @@ function ChatApp() {
       addLog({
         action: 'Sending message',
         api: 'api/v1/chat/send',
-        payload: { message: content, conversationId: targetConversationId, model: selectedModel },
+        payload: {
+          message: content,
+          conversationId: targetConversationId,
+          model: selectedModel,
+          attachments: attachments ? {
+            knowledge: attachments.knowledgeIds.length,
+            notes: attachments.noteIds.length,
+            files: attachments.fileIds.length,
+            chats: attachments.chatIds.length,
+            webpages: attachments.webpageUrls.length,
+          } : null,
+        },
         type: 'info',
         category: 'chat:message'
       });
+
+      // Extract any new memories from the user's message
+      memories.extractMemoriesFromText(content, targetConversationId);
 
       await chat.sendMessage(content, {
         conversationId: targetConversationId,
         workspaceId: workspaces.currentWorkspace?.id,
         model: selectedModel,
+        systemPrompt: userSettings.general?.systemPrompt,
+        knowledgeIds: attachments?.knowledgeIds,
+        memoryContext: memories.getContextString(),
       });
 
       addLog({
@@ -205,6 +227,38 @@ function ChatApp() {
       console.error('Failed to regenerate:', err);
       toast.error("Failed to regenerate response");
     }
+  };
+
+  const handleContinue = async () => {
+    if (!chat.messages.length || chat.streaming) return;
+
+    addLog({
+      action: 'Continuing message',
+      api: 'LM server /chat/completions',
+      type: 'info',
+      category: 'chat:continue'
+    });
+
+    await chat.continueMessage({
+      model: selectedModel,
+      systemPrompt: userSettings.general?.systemPrompt,
+    });
+  };
+
+  const handleRetryToolCall = async (toolCall: ToolCall) => {
+    addLog({
+      action: 'Retrying tool call',
+      api: 'MCP tool execution',
+      payload: { toolName: toolCall.toolName, serverId: toolCall.serverId },
+      type: 'info',
+      category: 'tools:retry'
+    });
+
+    await tools.executeTool(
+      toolCall.serverId,
+      toolCall.toolName,
+      toolCall.parameters
+    );
   };
 
   const handleDeleteConversation = async (id: string) => {
@@ -402,6 +456,7 @@ function ChatApp() {
                     content={message.content}
                     timestamp={message.timestamp}
                     structuredContent={message.structuredContent}
+                    toolCalls={message.role === "assistant" ? tools.toolCalls : undefined}
                     onEdit={
                       message.role === "user"
                         ? (newContent) => handleEditMessage(message.id, newContent)
@@ -414,6 +469,14 @@ function ChatApp() {
                         ? handleRegenerateResponse
                         : undefined
                     }
+                    onContinue={
+                      message.role === "assistant" &&
+                        index === chat.messages.length - 1 &&
+                        !chat.streaming
+                        ? handleContinue
+                        : undefined
+                    }
+                    onRetryToolCall={handleRetryToolCall}
                   />
                 ))}
 

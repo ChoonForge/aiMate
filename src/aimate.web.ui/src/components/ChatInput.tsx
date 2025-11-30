@@ -19,8 +19,16 @@ import { toast } from "sonner";
 import { KnowledgeSuggestions } from "./KnowledgeSuggestions";
 import { AttachedContext } from "./AttachedContext";
 
+export interface AttachmentData {
+  knowledgeIds: string[];
+  noteIds: string[];
+  fileIds: string[];
+  chatIds: string[];
+  webpageUrls: string[];
+}
+
 interface ChatInputProps {
-  onSend: (message: string) => void;
+  onSend: (message: string, attachments?: AttachmentData) => void;
   disabled?: boolean;
 }
 
@@ -90,18 +98,40 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && !disabled) {
+      const hasAttachments = attachedKnowledge.length > 0 || attachedNotes.length > 0 ||
+                             attachedFiles.length > 0 || attachedChats.length > 0 ||
+                             attachedWebpages.length > 0;
+
       // Log the UI event
-      logUIEvent('Message sent', 'ui:chat:send', { messageLength: message.trim().length, hasAttachments: attachedItems.length > 0 });
+      logUIEvent('Message sent', 'ui:chat:send', { messageLength: message.trim().length, hasAttachments });
       // Log the send event
       addLog({
         category: 'chat:input',
         action: 'Message Sent',
         api: '/api/v1/SendMessage',
-        payload: { message: message.trim(), timestamp: new Date().toISOString() },
+        payload: { message: message.trim(), timestamp: new Date().toISOString(), hasAttachments },
         type: 'success'
       });
-      onSend(message.trim());
+
+      // Build attachment data
+      const attachments: AttachmentData | undefined = hasAttachments ? {
+        knowledgeIds: attachedKnowledge,
+        noteIds: attachedNotes,
+        fileIds: attachedFiles,
+        chatIds: attachedChats,
+        webpageUrls: webpages.filter(w => attachedWebpages.includes(w.id)).map(w => w.url || w.title),
+      } : undefined;
+
+      onSend(message.trim(), attachments);
       setMessage("");
+
+      // Clear attachments after sending
+      setAttachedKnowledge([]);
+      setAttachedNotes([]);
+      setAttachedFiles([]);
+      setAttachedChats([]);
+      setAttachedWebpages([]);
+      setAttachedItems([]);
     }
   };
 

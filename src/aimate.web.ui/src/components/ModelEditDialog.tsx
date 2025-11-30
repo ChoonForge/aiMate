@@ -24,7 +24,6 @@ import { Switch } from "./ui/switch";
 import { Separator } from "./ui/separator";
 import { ChevronDown, ChevronUp, Download, Loader2, Zap, CheckCircle2, XCircle } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
-// import { testConnection } from "../api/attachments"; // Module doesn't exist yet
 import { toast } from "sonner";
 
 interface Model {
@@ -165,8 +164,22 @@ export function ModelEditDialog({
   }, [open]);
 
   const handleTestConnection = async () => {
-    if (!apiKey) {
-      toast.error("Please enter an API key");
+    // Build endpoint based on connection type or use custom endpoint
+    let testUrl = endpoint;
+    if (!testUrl) {
+      // Default endpoints by provider
+      const defaultEndpoints: Record<string, string> = {
+        'OpenAI': 'https://api.openai.com/v1',
+        'Anthropic': 'https://api.anthropic.com/v1',
+        'Google': 'https://generativelanguage.googleapis.com/v1',
+        'Local': 'http://localhost:1234/v1',
+        'LM Studio': 'http://localhost:1234/v1',
+      };
+      testUrl = defaultEndpoints[formData.connection || 'OpenAI'] || '';
+    }
+
+    if (!testUrl) {
+      toast.error("Please enter an endpoint URL");
       return;
     }
 
@@ -174,21 +187,40 @@ export function ModelEditDialog({
     setConnectionStatus("idle");
 
     try {
-      // TODO: Implement testConnection when module is available
-      // const result = await testConnection(
-      //   formData.connection || "OpenAI",
-      //   apiKey,
-      //   endpoint || undefined,
-      //   formData.id
-      // );
+      const modelsUrl = testUrl.replace(/\/$/, '') + '/models';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
 
-      // Mock success for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setConnectionStatus("success");
-      toast.success("Connection test not yet implemented - showing mock success");
+      if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      }
+
+      const response = await fetch(modelsUrl, {
+        headers,
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const models = data.data || data.models || [];
+      const modelIds = models.map((m: { id: string }) => m.id);
+
+      // Check if our model ID exists
+      if (formData.id && modelIds.length > 0 && !modelIds.includes(formData.id)) {
+        setConnectionStatus("error");
+        toast.warning(`Model "${formData.id}" not found. Available: ${modelIds.slice(0, 3).join(', ')}${modelIds.length > 3 ? '...' : ''}`);
+      } else {
+        setConnectionStatus("success");
+        toast.success(`Connected! ${modelIds.length} models available.`);
+      }
     } catch (error) {
       setConnectionStatus("error");
-      toast.error("Connection test failed");
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Connection failed: ${message}`);
     } finally {
       setTestingConnection(false);
     }

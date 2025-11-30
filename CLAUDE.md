@@ -1,238 +1,209 @@
-# CLAUDE.md - aiMate Project Context
+# aiMate Development Guide
 
 ## Project Overview
 
-**aiMate.nz** is a sovereign AI chat platform for New Zealand, featuring:
-- Real-time streaming chat with multiple AI models
-- Multi-workspace conversation management
-- Knowledge base with RAG (Retrieval Augmented Generation)
-- MCP (Model Context Protocol) tool integration
-- Admin panel for model/connection management
-- Crisis detection and NZ-specific safety features
+aiMate is a privacy-first AI chat application for New Zealand. The web UI is built with React 18 + TypeScript + Vite, using shadcn/ui components and Tailwind CSS.
 
-## Tech Stack
+**Tagline**: "Your AI Mate. Free for Kiwis. Fair for Everyone."
 
-### Frontend (`/src/aimate.web.ui`)
-- **Framework**: React 18 + TypeScript
-- **Build Tool**: Vite 7.x
-- **Styling**: Tailwind CSS v4
-- **UI Components**: shadcn/ui (48 components)
-- **HTTP Client**: Axios with JWT authentication
-- **Icons**: Lucide React
+### Why aiMate Exists
 
-### Backend (`/src/AiMate.Api`, `/src/AiMate.Core`, `/src/AiMate.Infrastructure`)
-- **Framework**: ASP.NET Core 9.0
-- **Database**: PostgreSQL + pgvector
-- **ORM**: Entity Framework Core 9.0
-- **Authentication**: JWT + BCrypt
-- **AI Gateway**: LiteLLM Proxy
+This is a **true open source (MIT) alternative** to OpenWebUI, which has moved to an enterprise license. We believe AI tooling should be:
 
-## Directory Structure
+- **Genuinely open** - MIT licensed, no enterprise license traps
+- **Extensible** - MCP-first architecture, not bolted-on integrations
+- **Flexible** - use personally, self-host, or build a PaaS on top
+- **Community-owned** - contributions welcome, governance transparent
+
+We're building the foundation others can build on, not a walled garden.
+
+## Current State (Post-First Light)
+
+We have achieved **first light** - the first successful live connection to an inference server with streaming responses working.
+
+### What's Working
+- **Core chat with SSE streaming** to live LM server
+- **Direct LM server connection** (bypasses backend, works in offline mode)
+- **Conversation management** - create, delete, archive, pin, search, export
+- **Workspace switching** - multi-workspace support with filtering
+- **Admin panel** - connections and models configuration
+- **Settings modal** - user preferences and theme
+- **Offline mode** - full mock data fallback with 50 sample conversations
+
+### What's Stubbed/Placeholder
+- Text-to-speech (hook ready, UI shows toast)
+- Email/social sharing (link sharing works)
+- MCP import/export (TODOs in code)
+
+## Priority Focus: Chat is Core
+
+The chat experience is the product. Everything else supports it.
+
+### Critical Path (in order)
+1. **Stable streaming** - robust reconnection, error handling
+2. **Conversation context** - proper message history sent to LM
+3. **System prompts** - personality/instruction configuration
+4. **Model selection** - validated against available models
+
+## Admin Panel Tabs
+
+The admin panel (`AdminModal.tsx`) has 11 tabs. For MVP, we show only essential ones:
+
+| Tab | Status | Notes |
+|-----|--------|-------|
+| General | **SHOW** | Debug settings, offline mode toggle |
+| Interface | **SHOW** | UI customization |
+| Users & Groups | HIDE | Not needed for single-user alpha |
+| Connections | **SHOW** | Critical - LM server configuration |
+| Models | **SHOW** | Critical - model enable/disable |
+| Plugins | HIDE | Future feature |
+| MCP | **SHOW** | First-class citizen - tool integration |
+| Documents | HIDE | RAG - Phase 2 |
+| Web Search | HIDE | Future feature |
+| Code Execution | HIDE | Future feature |
+| Images | HIDE | Future feature |
+
+To hide tabs, filter the `tabs` array in `AdminModal.tsx` around line 58.
+
+## Settings Modal Tabs
+
+The settings modal (`SettingsModal.tsx`) has 7 tabs:
+
+| Tab | Status | Notes |
+|-----|--------|-------|
+| General | **SHOW** | Language, notifications |
+| Interface | **SHOW** | Theme, appearance |
+| Connections | HIDE | BYOK - Phase 3 |
+| Personalisation | **SHOW** | AI personality settings |
+| Memories | **SHOW** | Persistent user facts/preferences |
+| Account | **SHOW** | User profile |
+| Usage | **SHOW** | Usage stats |
+
+To hide tabs, filter the `tabs` array in `SettingsModal.tsx` around line 66.
+
+## File Structure
 
 ```
-/home/user/aiMate/
+src/aimate.web.ui/
 ├── src/
-│   ├── aimate.web.ui/          # React TypeScript frontend
-│   │   ├── src/
-│   │   │   ├── api/            # API client layer
-│   │   │   │   ├── client.ts   # Axios instance with JWT & SSE
-│   │   │   │   ├── types.ts    # 90+ TypeScript interfaces
-│   │   │   │   └── services/   # 15 service files
-│   │   │   ├── components/     # React components (35 custom + 48 UI)
-│   │   │   ├── context/        # React context providers
-│   │   │   ├── hooks/          # 9 custom React hooks
-│   │   │   └── utils/          # Utilities & mock data
-│   │   └── package.json
-│   ├── AiMate.Api/             # ASP.NET Core Web API
-│   ├── AiMate.Core/            # Domain models & interfaces
-│   ├── AiMate.Infrastructure/  # Data access & services
-│   ├── AiMate.Shared/          # Shared DTOs
-│   └── AiMate.Web/             # Blazor Server (legacy)
-├── docs/                       # Documentation
-├── tests/                      # Test projects
-└── CLAUDE.md                   # This file
+│   ├── api/
+│   │   ├── client.ts          # Axios + SSE streaming
+│   │   ├── types.ts           # 90+ TypeScript interfaces
+│   │   └── services/          # 14 service files, 93 endpoints
+│   ├── components/
+│   │   ├── App.tsx            # Main app, hooks up everything
+│   │   ├── ChatMessage.tsx    # Message rendering
+│   │   ├── ChatInput.tsx      # Message input + attachments
+│   │   ├── ChatHeader.tsx     # Model selection, new chat
+│   │   ├── ConversationSidebar.tsx
+│   │   ├── AdminModal.tsx     # Admin panel (11 tabs)
+│   │   ├── SettingsModal.tsx  # User settings
+│   │   ├── ConnectionHealthIndicator.tsx  # LM server status
+│   │   └── ui/                # 48 shadcn/ui components
+│   ├── context/
+│   │   ├── AppDataContext.tsx      # Central hook provider
+│   │   ├── AdminSettingsContext.tsx # Admin + localStorage
+│   │   ├── AuthContext.tsx
+│   │   └── UserSettingsContext.tsx
+│   ├── hooks/
+│   │   ├── useChat.ts         # 600+ lines - streaming, offline mock, RAG
+│   │   ├── useConversations.ts
+│   │   ├── useWorkspaces.ts
+│   │   ├── useAdmin.ts
+│   │   ├── useKnowledge.ts    # Document upload, semantic search
+│   │   ├── useMemories.ts     # Persistent user memories
+│   │   ├── useTools.ts        # MCP tool discovery & execution
+│   │   ├── useProjects.ts
+│   │   ├── useFiles.ts
+│   │   ├── useSettings.ts
+│   │   └── useUsage.ts
+│   └── utils/
+│       └── config.ts          # AppConfig, offline mode
 ```
 
----
+## Key Code Locations
 
-## Implementation Stages
+| Feature | File | Notes |
+|---------|------|-------|
+| Chat streaming | `hooks/useChat.ts` | SSE handling, abort, retry |
+| LM server connection | `hooks/useChat.ts:sendMessage` | Checks for enabled LM connection first |
+| RAG injection | `hooks/useChat.ts:sendMessage` | Fetches document chunks, injects to system context |
+| Knowledge search | `components/KnowledgeSuggestions.tsx` | Debounced semantic search with fallback |
+| Memory persistence | `hooks/useMemories.ts` | localStorage with auto-extraction from messages |
+| Memories UI | `components/MemoriesPanel.tsx` | View/add/delete memories |
+| MCP tool discovery | `hooks/useTools.ts` | Load tools from enabled MCP servers |
+| MCP tool execution | `api/services/tools.service.ts` | Execute tools, validate params, mock responses |
+| Tool call UI | `components/ToolCallCard.tsx` | Render tool calls with status, params, results |
+| Admin connections | `context/AdminSettingsContext.tsx` | Persisted to localStorage |
+| API client | `api/client.ts` | Axios instance, JWT, retry logic |
+| Message rendering | `components/ChatMessage.tsx` | Markdown, code blocks, actions, tool calls |
 
-### Stage 1: Type Definitions ✅ COMPLETE
-- 90+ TypeScript interfaces for all API DTOs
-- Request/Response types for all endpoints
-- Enums for status codes, user tiers, etc.
+## Chat Flow (Priority System)
 
-### Stage 2: API Client Infrastructure ✅ COMPLETE
-- JWT authentication with automatic token management
-- SSE (Server-Sent Events) streaming support
-- Retry logic with exponential backoff
-- Request/response interceptors
-- Error handling and logging
-
-### Stage 3: Service Layer ✅ COMPLETE
-16 organized service files:
-- `admin.service.ts` - Admin dashboard, system management
-- `auth.service.ts` - Login, registration, JWT refresh
-- `chat.service.ts` - Real-time chat with streaming
-- `connections.service.ts` - BYOK connection management
-- `conversations.service.ts` - Conversation CRUD & search
-- `feedback.service.ts` - Message ratings & feedback
-- `files.service.ts` - File upload/download with progress
-- `knowledge.service.ts` - RAG documents & semantic search
-- `messages.service.ts` - Message CRUD operations
-- `projects.service.ts` - Project management
-- `search.service.ts` - Full-text search
-- `settings.service.ts` - User preferences
-- `tools.service.ts` - MCP tool discovery & execution ← NEW
-- `usage.service.ts` - Analytics, billing, tracking
-- `workspaces.service.ts` - Workspace management
-- `index.ts` - Barrel exports
-
-### Stage 4: React Hooks Layer ✅ COMPLETE
-10 production-ready hooks:
-- `useAdmin.ts` - Admin panel data & operations
-- `useSettings.ts` - User settings management
-- `useUsage.ts` - Analytics & billing
-- `useChat.ts` - Real-time streaming chat
-- `useConversations.ts` - Conversation management
-- `useWorkspaces.ts` - Workspace organization
-- `useKnowledge.ts` - Knowledge base (RAG)
-- `useProjects.ts` - Project management
-- `useFiles.ts` - File management
-- `useTools.ts` - MCP tool execution ← NEW
-
-### Stage 5: UI Integration ✅ COMPLETE
-
-#### All Components Wired:
-- ✅ Chat streaming with SSE
-- ✅ Conversation management (create/edit/delete)
-- ✅ Workspace switching
-- ✅ Admin Panel (Models, Connections, MCP servers, Users)
-- ✅ Settings Modal (Usage tab)
-- ✅ **MCP Tool Integration**
-  - ✅ `tools.service.ts` for MCP tool execution
-  - ✅ `useTools.ts` hook with offline mock support
-  - ✅ `ToolCallDisplay.tsx` component for rendering tool calls
-  - ✅ AppDataContext updated with tools hook
-- ✅ **ChatInput Attachments**
-  - ✅ Wired to `useFiles()` hook for real file uploads
-  - ✅ Drag & drop with validation and upload progress
-  - ✅ Manual file selection via "Upload New File" button
-  - ✅ Upload progress overlay with percentage
-- ✅ **KnowledgeModal**
-  - ✅ Wired to `useKnowledge()` hook
-  - ✅ Load, delete, upload documents via hook
-  - ✅ Added refresh functionality
-- ✅ **ProjectModal**
-  - ✅ Wired to `useProjects()` hook
-  - ✅ Create, update, delete projects via hook
-  - ✅ Loading states for operations
-- ✅ **FilesModal**
-  - ✅ Wired to `useFiles()` hook (enhanced with loadFiles)
-  - ✅ Upload, delete, download, view files via hook
-  - ✅ Added refresh and upload progress
-
-### Stage 6: Testing & Polish (Future)
-- End-to-end testing
-- Error boundary improvements
-- Performance optimization
-- Documentation finalization
-
----
-
-## Current Focus: Stage 6 - Testing & Polish
-
-Stage 5 is complete. All modals and components are now wired to their respective hooks.
-
-### What's Ready for Testing
-- **MCP Admin UI** - Toggle/CRUD MCP servers in AdminModal ✅
-- **MCP Service** - `admin.service.ts` has MCP server management ✅
-- **MCP Types** - `ToolDto`, `ToolExecutionRequest`, `ToolExecutionResponse` ✅
-
-### What's Needed
-1. **`tools.service.ts`** - Service for executing MCP tools
-   - `getAvailableTools()` - List tools from connected MCP servers
-   - `executeTool(request)` - Execute a tool and get result
-
-2. **`useTools.ts`** - Hook for tool integration in chat
-   - Available tools state
-   - Tool execution with loading/error states
-   - Integration with chat flow
-
-3. **Tool Execution UI**
-   - Display tool calls in chat messages
-   - Show tool results (formatted)
-   - Loading states during execution
-
-### Backend Endpoints for Tools
 ```
-GET  /api/v1/tools              - List available tools
-POST /api/v1/tools/execute      - Execute a tool
-GET  /api/v1/tools/{name}       - Get tool details
+1. Check AdminSettings for enabled LM Server connection
+   └── YES → Direct to LM server at connection.baseUrl + /chat/completions
+
+2. Check if offline mode enabled
+   └── YES → Return mock streaming response
+
+3. Use backend API
+   └── POST /api/v1/chat/send with SSE streaming
 ```
 
----
+## Development Stages
 
-## Development Guidelines
+### Stage 1: Stabilize First Light ✓
+- [x] Connection health indicator in UI (`ConnectionHealthIndicator.tsx`)
+- [x] Reconnection logic with exponential backoff (3 retries)
+- [x] Graceful error messages with toast notifications
+- [x] Model validation with available models suggestion
 
-### Running the Frontend
+### Stage 2: Core UX Polish ✓
+- [x] System prompt configuration (wired from Settings → General)
+- [x] Continue message feature (appends to last assistant message)
+- [x] Handle mid-stream network drops (partial content saved)
+- [x] Mobile responsive fixes (ChatHeader, model selector)
+
+### Stage 3: BYOK & Multi-Provider ✓
+- [x] Connection testing (ModelEditDialog tests /models endpoint)
+- [x] Multiple provider support (dropdown with auto-configured URLs)
+- [x] Usage tracking per connection (getUsageByConnection, local tracking)
+
+### Stage 4: Knowledge & Memory ✓
+- [x] Document upload end-to-end (ChatInput → App → useChat → knowledgeService)
+- [x] Semantic search in chat context (KnowledgeSuggestions with debounced API)
+- [x] Memory persistence (useMemories hook, MemoriesPanel in Settings)
+
+### Stage 5: MCP & Tools ✓
+- [x] MCP server integration (tools.service.ts with mock data fallback)
+- [x] Tool execution in chat (useTools hook, ToolCallCard rendering)
+- [x] Tool call parsing (XML and JSON formats from assistant messages)
+- [x] Custom MCP server configuration (MCPEditDialog already existed)
+
+### Stage 6: Production Readiness (Next)
+- [ ] Error boundary for graceful failures
+- [ ] Performance optimization (React.memo, virtualization)
+- [ ] Accessibility improvements (ARIA labels, keyboard nav)
+- [ ] E2E testing setup
+
+## Commands
+
 ```bash
+# Development
 cd src/aimate.web.ui
-npm install
 npm run dev
+
+# Build
+npm run build
+
+# Type check
+npm run typecheck
 ```
 
-### Environment Variables
-```bash
-VITE_API_BASE_URL=http://localhost:5000
-VITE_AUTH_ENABLED=true
-VITE_DEBUG_MODE=false
-```
+## Notes
 
-### Offline Mode
-The UI supports full offline mode with mock data. Toggle via:
-- Environment: `VITE_OFFLINE_MODE=true`
-- Or in AppConfig context
-
-### Code Patterns
-- Use existing hooks from `useAppData()` context
-- Follow optimistic update pattern for mutations
-- Add debug logging for troubleshooting
-- Support both online and offline modes
-
----
-
-## API Coverage Summary
-
-| Category | Endpoints | Hook | UI Status |
-|----------|-----------|------|-----------|
-| Auth | 5/5 | ✅ | ✅ Wired |
-| Chat | 8/8 | ✅ | ✅ Wired |
-| Conversations | 12/12 | ✅ | ✅ Wired |
-| Workspaces | 8/8 | ✅ | ✅ Wired |
-| Admin | 15/15 | ✅ | ✅ Wired |
-| Settings | 5/5 | ✅ | ✅ Wired |
-| Usage | 6/6 | ✅ | ✅ Wired |
-| **Tools/MCP** | 3/3 | ✅ | ✅ Wired |
-| Knowledge | 10/10 | ✅ | ✅ Wired |
-| Projects | 10/10 | ✅ | ✅ Wired |
-| Files | 6/6 | ✅ | ✅ Wired |
-
----
-
-## Key Files Reference
-
-### Frontend Entry Points
-- `/src/aimate.web.ui/src/App.tsx` - Main application
-- `/src/aimate.web.ui/src/context/AppDataContext.tsx` - Central data provider
-- `/src/aimate.web.ui/src/api/client.ts` - API client configuration
-
-### Documentation
-- `/src/aimate.web.ui/src/SYSTEM_GUIDE.md` - Full system documentation
-- `/src/aimate.web.ui/src/API_INTEGRATION_STATUS.md` - Integration status
-- `/src/aimate.web.ui/src/WIRED_UP_STATUS.md` - Component wiring status
-
----
-
-*Last Updated: November 2025*
-*Current Stage: 5 Complete - Ready for Stage 6 (Testing & Polish)*
+- The UI is **production-ready** for core chat functionality
+- All 93 API endpoints are integrated in the service layer
+- Offline mode provides full functionality for development/demos
+- Theme defaults to dark mode, persisted in localStorage

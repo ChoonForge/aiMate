@@ -6,9 +6,39 @@
  */
 
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
-import { messagesService, MessageDto, SendMessageDto } from '../api/services';
+import { messagesService, MessageDto, SendMessageDto, knowledgeService } from '../api/services';
 import { AppConfig } from '../utils/config';
 import { useAdminSettings } from '../context/AdminSettingsContext';
+import { toast } from 'sonner';
+
+// Retry configuration for LM server connections
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 10000,
+};
+
+// Helper to wait with exponential backoff
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Calculate delay with exponential backoff and jitter
+const getRetryDelay = (attempt: number): number => {
+  const exponentialDelay = RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt);
+  const jitter = Math.random() * 500;
+  return Math.min(exponentialDelay + jitter, RETRY_CONFIG.maxDelayMs);
+};
+
+// Check if error is retryable (network errors, 5xx, but not auth errors)
+const isRetryableError = (error: unknown): boolean => {
+  if (error instanceof TypeError) return true; // Network error
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    if (message.includes('network') || message.includes('fetch')) return true;
+    if (message.includes('5') && message.includes('http')) return true; // 5xx errors
+    if (message.includes('timeout')) return true;
+  }
+  return false;
+};
 
 export interface ChatMessage {
   id: string;
@@ -140,6 +170,8 @@ export function useChat(conversationId?: string) {
       model?: string;
       attachments?: string[];
       systemPrompt?: string;
+      knowledgeIds?: string[];
+      memoryContext?: string;
     }
   ) => {
     const isOffline = AppConfig.isOfflineMode();
@@ -194,78 +226,228 @@ export function useChat(conversationId?: string) {
           headers['Authorization'] = `Bearer ${activeConnection.apiKey}`;
         }
 
-        // Build messages array for the API
+        // Fetch document chunks if knowledge IDs are provided
+        let knowledgeContext = '';
+        if (options?.knowledgeIds && options.knowledgeIds.length > 0) {
+          console.log('[useChat] Fetching knowledge chunks for:', options.knowledgeIds);
+          try {
+            const chunkPromises = options.knowledgeIds.map(id =>
+              knowledgeService.getDocumentChunks(id)
+            );
+            const allChunks = await Promise.all(chunkPromises);
+
+            // Flatten and format chunks
+            const chunks = allChunks.flat();
+            if (chunks.length > 0) {
+              knowledgeContext = '\n\n--- ATTACHED KNOWLEDGE CONTEXT ---\n' +
+                chunks.map((chunk, i) =>
+                  `[Document Chunk ${i + 1}]:\n${chunk.content}`
+                ).join('\n\n') +
+                '\n--- END KNOWLEDGE CONTEXT ---\n\n';
+              console.log('[useChat] Injecting', chunks.length, 'knowledge chunks');
+            }
+          } catch (err) {
+            console.error('[useChat] Failed to fetch knowledge chunks:', err);
+            // Continue without knowledge context on error
+          }
+        }
+
+        // Build messages array for the API (prepend system prompt + knowledge context + memory context if provided)
+        const systemContent = [
+          options?.systemPrompt || '',
+          options?.memoryContext || '',
+          knowledgeContext,
+        ].filter(Boolean).join('\n');
+
         const chatMessages = [
+          ...(systemContent ? [{ role: 'system' as const, content: systemContent }] : []),
           ...messages.map(m => ({ role: m.role, content: m.content })),
           { role: 'user' as const, content }
         ];
 
-        const response = await fetch(chatUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            model: options?.model || 'default',
-            messages: chatMessages,
-            stream: true,
-          }),
-        });
+        // Retry logic with exponential backoff
+        let response: Response | null = null;
+        let lastError: Error | null = null;
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+          try {
+            if (attempt > 0) {
+              const delay = getRetryDelay(attempt - 1);
+              console.log(`[useChat] Retry attempt ${attempt}/${RETRY_CONFIG.maxRetries} after ${delay}ms`);
+              toast.info(`Reconnecting to LM server... (attempt ${attempt}/${RETRY_CONFIG.maxRetries})`);
+              await wait(delay);
+            }
+
+            response = await fetch(chatUrl, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                model: options?.model || 'default',
+                messages: chatMessages,
+                stream: true,
+              }),
+              signal: AbortSignal.timeout(30000), // 30 second timeout
+            });
+
+            if (!response.ok) {
+              const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
+              // Don't retry auth errors
+              if (response.status === 401 || response.status === 403) {
+                throw error;
+              }
+              lastError = error;
+              if (attempt < RETRY_CONFIG.maxRetries && isRetryableError(error)) {
+                continue;
+              }
+              throw error;
+            }
+
+            // Success - break out of retry loop
+            if (attempt > 0) {
+              toast.success('Reconnected to LM server');
+            }
+            break;
+          } catch (err) {
+            lastError = err instanceof Error ? err : new Error(String(err));
+            if (attempt < RETRY_CONFIG.maxRetries && isRetryableError(err)) {
+              continue;
+            }
+            throw lastError;
+          }
         }
 
-        // Handle streaming response
+        if (!response) {
+          throw lastError || new Error('Failed to connect after retries');
+        }
+
+        // Handle streaming response with mid-stream error recovery
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
         let fullContent = '';
         let messageAdded = false;
+        let streamInterrupted = false;
 
         if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
 
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n');
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split('\n');
 
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.slice(6);
-                if (data === '[DONE]') continue;
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  const data = line.slice(6);
+                  if (data === '[DONE]') continue;
 
-                try {
-                  const parsed = JSON.parse(data);
-                  const delta = parsed.choices?.[0]?.delta?.content || '';
-                  if (delta) {
-                    fullContent += delta;
+                  try {
+                    const parsed = JSON.parse(data);
+                    const delta = parsed.choices?.[0]?.delta?.content || '';
+                    if (delta) {
+                      fullContent += delta;
 
-                    if (!messageAdded) {
-                      setMessages(prev => [...prev, { ...assistantMsg, content: fullContent }]);
-                      messageAdded = true;
-                    } else {
-                      setMessages(prev => prev.map(msg =>
-                        msg.id === assistantMsg.id
-                          ? { ...msg, content: fullContent }
-                          : msg
-                      ));
+                      if (!messageAdded) {
+                        setMessages(prev => [...prev, { ...assistantMsg, content: fullContent }]);
+                        messageAdded = true;
+                      } else {
+                        setMessages(prev => prev.map(msg =>
+                          msg.id === assistantMsg.id
+                            ? { ...msg, content: fullContent }
+                            : msg
+                        ));
+                      }
                     }
+                  } catch {
+                    // Skip invalid JSON chunks
                   }
-                } catch {
-                  // Skip invalid JSON chunks
                 }
               }
+            }
+          } catch (streamErr) {
+            // Mid-stream error - connection dropped
+            console.error('[useChat] Stream interrupted:', streamErr);
+            streamInterrupted = true;
+
+            if (fullContent.length > 0) {
+              // We got partial content - append interruption notice
+              const partialContent = fullContent + '\n\n⚠️ *[Response interrupted - connection lost]*';
+              setMessages(prev => prev.map(msg =>
+                msg.id === assistantMsg.id
+                  ? { ...msg, content: partialContent }
+                  : msg
+              ));
+              toast.warning('Connection lost during response', {
+                description: 'Partial response saved. Use Continue to resume.',
+              });
+            } else {
+              // No content received
+              toast.error('Connection lost', {
+                description: 'Please try again.',
+              });
+              throw streamErr;
             }
           }
         }
 
-        console.log('[useChat] LM server streaming complete');
+        if (!streamInterrupted) {
+          console.log('[useChat] LM server streaming complete');
+        }
         return { ...assistantMsg, content: fullContent };
       } catch (err) {
         console.error('[useChat] LM server call failed:', err);
-        // Show error message
-        const errorMsg = `Failed to reach LM server: ${err instanceof Error ? err.message : 'Unknown error'}`;
-        setMessages(prev => [...prev, { ...assistantMsg, content: errorMsg }]);
-        return { ...assistantMsg, content: errorMsg };
+
+        // Map errors to user-friendly messages
+        let userMessage = 'Unable to connect to the AI server.';
+        let toastMessage = 'Connection failed';
+        const selectedModel = options?.model || 'default';
+
+        if (err instanceof Error) {
+          const msg = err.message.toLowerCase();
+          if (msg.includes('401') || msg.includes('403')) {
+            userMessage = 'Authentication failed. Please check your API key in Admin → Connections.';
+            toastMessage = 'Authentication failed';
+          } else if (msg.includes('404')) {
+            // Could be model not found or endpoint not found
+            userMessage = `The model "${selectedModel}" may not exist on this server, or the endpoint was not found.`;
+            toastMessage = 'Model or endpoint not found';
+
+            // Try to fetch available models to help the user
+            try {
+              const modelsUrl = activeConnection.url.replace(/\/$/, '') + '/models';
+              const modelsRes = await fetch(modelsUrl, {
+                headers: activeConnection.apiKey ? { 'Authorization': `Bearer ${activeConnection.apiKey}` } : {},
+                signal: AbortSignal.timeout(5000),
+              });
+              if (modelsRes.ok) {
+                const modelsData = await modelsRes.json();
+                const modelIds = modelsData.data?.map((m: { id: string }) => m.id) || [];
+                if (modelIds.length > 0) {
+                  userMessage = `Model "${selectedModel}" not found. Available models: ${modelIds.slice(0, 5).join(', ')}${modelIds.length > 5 ? ` (+${modelIds.length - 5} more)` : ''}`;
+                }
+              }
+            } catch {
+              // Ignore - just use the original error message
+            }
+          } else if (msg.includes('timeout')) {
+            userMessage = 'The request timed out. The server may be busy or unreachable.';
+            toastMessage = 'Request timed out';
+          } else if (msg.includes('network') || msg.includes('fetch') || msg.includes('failed')) {
+            userMessage = 'Network error. Please check your internet connection and that the LM server is running.';
+            toastMessage = 'Network error';
+          } else if (msg.includes('5')) {
+            userMessage = 'The AI server encountered an error. Please try again or check server logs.';
+            toastMessage = 'Server error';
+          }
+        }
+
+        toast.error(toastMessage, {
+          description: err instanceof Error ? err.message : undefined,
+        });
+
+        setMessages(prev => [...prev, { ...assistantMsg, content: `⚠️ ${userMessage}` }]);
+        setError(userMessage);
+        return { ...assistantMsg, content: userMessage };
       } finally {
         setStreaming(false);
       }
@@ -591,20 +773,120 @@ export function useChat(conversationId?: string) {
     setMessages([]);
   }, []);
 
+  // ============================================================================
+  // CONTINUE MESSAGE
+  // ============================================================================
+
+  const continueMessage = useCallback(async (options?: { model?: string; systemPrompt?: string }) => {
+    const activeConnection = adminSettings.settings.connections?.find(c => c.enabled && c.url);
+
+    if (!activeConnection?.url) {
+      toast.error('No active LM connection');
+      return;
+    }
+
+    // Get the last assistant message to continue from
+    const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
+    if (!lastAssistantMsg) {
+      toast.error('No message to continue');
+      return;
+    }
+
+    setStreaming(true);
+
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (activeConnection.apiKey) {
+        headers['Authorization'] = `Bearer ${activeConnection.apiKey}`;
+      }
+
+      // Build messages with a continuation prompt
+      const chatMessages = [
+        ...(options?.systemPrompt ? [{ role: 'system' as const, content: options.systemPrompt }] : []),
+        ...messages.map(m => ({ role: m.role, content: m.content })),
+        { role: 'user' as const, content: 'Please continue from where you left off.' }
+      ];
+
+      const chatUrl = activeConnection.url.replace(/\/$/, '') + '/chat/completions';
+      const response = await fetch(chatUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model: options?.model || 'default',
+          messages: chatMessages,
+          stream: true,
+        }),
+        signal: AbortSignal.timeout(30000),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Handle streaming response - append to last assistant message
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let continuedContent = lastAssistantMsg.content;
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              if (data === '[DONE]') continue;
+
+              try {
+                const parsed = JSON.parse(data);
+                const delta = parsed.choices?.[0]?.delta?.content || '';
+                if (delta) {
+                  continuedContent += delta;
+                  setMessages(prev => prev.map(msg =>
+                    msg.id === lastAssistantMsg.id
+                      ? { ...msg, content: continuedContent }
+                      : msg
+                  ));
+                }
+              } catch {
+                // Skip invalid JSON chunks
+              }
+            }
+          }
+        }
+      }
+
+        console.log('[useChat] Continue message complete');
+      toast.success('Message continued');
+    } catch (err) {
+      console.error('[useChat] Continue failed:', err);
+      toast.error('Failed to continue message');
+    } finally {
+      setStreaming(false);
+    }
+  }, [messages, adminSettings.settings.connections]);
+
   return useMemo(() => ({
     messages,
     streaming,
     loading,
     error,
-    
+
     // Actions
     loadMessages,
     sendMessage,
+    continueMessage,
     regenerateMessage,
     editMessage,
     deleteMessage,
     submitFeedback,
     cancelStreaming,
     clearMessages,
-  }), [messages, streaming, loading, error, loadMessages, sendMessage, regenerateMessage, editMessage, deleteMessage, submitFeedback, cancelStreaming, clearMessages]);
+  }), [messages, streaming, loading, error, loadMessages, sendMessage, continueMessage, regenerateMessage, editMessage, deleteMessage, submitFeedback, cancelStreaming, clearMessages]);
 }

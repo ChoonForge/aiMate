@@ -1,21 +1,24 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { 
-  Brain, 
-  FileText, 
-  X, 
-  ChevronDown, 
-  ChevronUp, 
+import {
+  Brain,
+  FileText,
+  X,
+  ChevronDown,
+  ChevronUp,
   Sparkles,
   Plus,
-  FolderOpen
+  FolderOpen,
+  Loader2
 } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "./ui/collapsible";
+import { knowledgeService } from "../api/services";
+import { AppConfig } from "../utils/config";
 
 interface KnowledgeItem {
   id: string;
@@ -39,29 +42,70 @@ interface KnowledgeSuggestionsProps {
   onAttachCollection: (collectionId: string) => void;
 }
 
-export function KnowledgeSuggestions({ 
-  inputValue, 
-  attachedKnowledge, 
-  onAttach, 
+export function KnowledgeSuggestions({
+  inputValue,
+  attachedKnowledge,
+  onAttach,
   onDetach,
-  onAttachCollection 
+  onAttachCollection
 }: KnowledgeSuggestionsProps) {
   const [suggestions, setSuggestions] = useState<KnowledgeItem[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [isOpen, setIsOpen] = useState(true);
   const [showCollections, setShowCollections] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Mock suggestions based on input
+  // Semantic search with debouncing
+  const performSemanticSearch = useCallback(async (query: string) => {
+    if (query.length < 15) {
+      setSuggestions([]);
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const result = await knowledgeService.semanticSearch({ query, limit: 5 });
+      const items: KnowledgeItem[] = result.results.map((r: any) => ({
+        id: r.id,
+        title: r.title,
+        type: r.type || 'Document',
+        collection: r.collection,
+        summary: r.content?.substring(0, 150) + '...',
+      }));
+      setSuggestions(items);
+      setIsOpen(items.length > 0);
+    } catch (err) {
+      console.error('[KnowledgeSuggestions] Semantic search failed:', err);
+      // Fallback to keyword-based suggestions
+      const fallbackSuggestions = generateKeywordSuggestions(query);
+      setSuggestions(fallbackSuggestions);
+      setIsOpen(fallbackSuggestions.length > 0);
+    } finally {
+      setSearching(false);
+    }
+  }, []);
+
+  // Debounced search effect
   useEffect(() => {
-    if (inputValue.length > 10) {
-      // Simulate semantic search suggestions
-      const mockSuggestions = generateSuggestions(inputValue);
-      setSuggestions(mockSuggestions);
-      setIsOpen(mockSuggestions.length > 0);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    if (inputValue.length > 15) {
+      debounceRef.current = setTimeout(() => {
+        performSemanticSearch(inputValue);
+      }, 500); // 500ms debounce
     } else {
       setSuggestions([]);
     }
-  }, [inputValue]);
+
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, [inputValue, performSemanticSearch]);
 
   useEffect(() => {
     // Load collections
@@ -72,10 +116,10 @@ export function KnowledgeSuggestions({
     ]);
   }, []);
 
-  const generateSuggestions = (query: string): KnowledgeItem[] => {
+  // Fallback keyword-based suggestions for offline mode or API errors
+  const generateKeywordSuggestions = (query: string): KnowledgeItem[] => {
     const lowerQuery = query.toLowerCase();
-    
-    // Simulate semantic understanding
+
     if (lowerQuery.includes("auth") || lowerQuery.includes("login") || lowerQuery.includes("oauth")) {
       return [
         {
@@ -94,7 +138,7 @@ export function KnowledgeSuggestions({
         }
       ];
     }
-    
+
     if (lowerQuery.includes("react") || lowerQuery.includes("hooks") || lowerQuery.includes("component")) {
       return [
         {
@@ -113,8 +157,8 @@ export function KnowledgeSuggestions({
         }
       ];
     }
-    
-    if (lowerQuery.includes("design") || lowerQuery.includes("ui") || lowerQuery.includes("component")) {
+
+    if (lowerQuery.includes("design") || lowerQuery.includes("ui")) {
       return [
         {
           id: "kb_005",
@@ -163,11 +207,21 @@ export function KnowledgeSuggestions({
         }
       ];
     }
-    
+
     return [];
   };
 
   const relevantSuggestions = suggestions.filter(s => !attachedKnowledge.includes(s.id));
+
+  // Show loading indicator while searching
+  if (searching) {
+    return (
+      <div className="mb-3 flex items-center gap-2 text-sm text-gray-500">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <span>Searching knowledge base...</span>
+      </div>
+    );
+  }
 
   if (relevantSuggestions.length === 0) {
     return null;
