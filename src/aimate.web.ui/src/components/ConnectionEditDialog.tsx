@@ -308,13 +308,48 @@ export function ConnectionEditDialog({
 
         <ScrollArea className="flex-1 overflow-hidden">
           <div className="px-6 py-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="connection-type">
-                Connection Type
-              </Label>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                {formData.type}
-              </span>
+            <div className="space-y-2">
+              <Label htmlFor="connection-type">Provider Type</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value) => {
+                  // Auto-fill URL based on provider
+                  const providerUrls: Record<string, string> = {
+                    'Local': 'http://localhost:1234/v1',
+                    'LM Studio': 'http://localhost:1234/v1',
+                    'Ollama': 'http://localhost:11434/v1',
+                    'OpenAI': 'https://api.openai.com/v1',
+                    'Anthropic': 'https://api.anthropic.com/v1',
+                    'OpenRouter': 'https://openrouter.ai/api/v1',
+                    'Together': 'https://api.together.xyz/v1',
+                    'Groq': 'https://api.groq.com/openai/v1',
+                    'Custom': formData.url,
+                  };
+                  setFormData({
+                    ...formData,
+                    type: value,
+                    url: providerUrls[value] || formData.url,
+                    providerType: value === 'Anthropic' ? 'Anthropic' : 'OpenAI', // API format
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Local">Local (LM Studio / vLLM)</SelectItem>
+                  <SelectItem value="Ollama">Ollama</SelectItem>
+                  <SelectItem value="OpenAI">OpenAI</SelectItem>
+                  <SelectItem value="Anthropic">Anthropic</SelectItem>
+                  <SelectItem value="OpenRouter">OpenRouter</SelectItem>
+                  <SelectItem value="Together">Together AI</SelectItem>
+                  <SelectItem value="Groq">Groq</SelectItem>
+                  <SelectItem value="Custom">Custom Endpoint</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {formData.providerType === 'Anthropic' ? 'Uses Anthropic API format' : 'Uses OpenAI-compatible API format'}
+              </p>
             </div>
 
             <div className="space-y-2">

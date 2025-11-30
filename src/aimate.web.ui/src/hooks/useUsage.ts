@@ -186,6 +186,74 @@ export function useUsage() {
   }, []);
 
   // ============================================================================
+  // GET USAGE BY CONNECTION
+  // ============================================================================
+
+  const getUsageByConnection = useCallback(() => {
+    if (!stats?.usageByModel) return [];
+
+    // Aggregate usage by connection
+    const byConnection = new Map<string, {
+      connection: string;
+      messages: number;
+      tokens: number;
+      cost: number;
+      models: string[];
+    }>();
+
+    for (const model of stats.usageByModel) {
+      const conn = model.connection || 'Unknown';
+      const existing = byConnection.get(conn) || {
+        connection: conn,
+        messages: 0,
+        tokens: 0,
+        cost: 0,
+        models: [],
+      };
+      existing.messages += model.messages;
+      existing.tokens += model.tokens;
+      existing.cost += model.cost;
+      if (!existing.models.includes(model.model)) {
+        existing.models.push(model.model);
+      }
+      byConnection.set(conn, existing);
+    }
+
+    return Array.from(byConnection.values()).sort((a, b) => b.tokens - a.tokens);
+  }, [stats]);
+
+  // ============================================================================
+  // TRACK LOCAL USAGE (for direct LM server calls)
+  // ============================================================================
+
+  const trackLocalUsage = useCallback((connectionName: string, model: string, tokens: number) => {
+    // Store in localStorage for session tracking
+    const key = 'aiMate_localUsage';
+    const existing = JSON.parse(localStorage.getItem(key) || '[]');
+    existing.push({
+      timestamp: new Date().toISOString(),
+      connection: connectionName,
+      model,
+      tokens,
+    });
+    // Keep last 1000 entries
+    if (existing.length > 1000) {
+      existing.splice(0, existing.length - 1000);
+    }
+    localStorage.setItem(key, JSON.stringify(existing));
+  }, []);
+
+  const getLocalUsage = useCallback(() => {
+    const key = 'aiMate_localUsage';
+    return JSON.parse(localStorage.getItem(key) || '[]') as Array<{
+      timestamp: string;
+      connection: string;
+      model: string;
+      tokens: number;
+    }>;
+  }, []);
+
+  // ============================================================================
   // INITIALIZATION
   // ============================================================================
 
@@ -202,5 +270,8 @@ export function useUsage() {
     loadDailyUsage,
     getCostProjection,
     exportUsage,
+    getUsageByConnection,
+    trackLocalUsage,
+    getLocalUsage,
   };
 }

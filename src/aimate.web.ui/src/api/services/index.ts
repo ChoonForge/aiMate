@@ -21,6 +21,9 @@ export { knowledgeService } from './knowledge.service';
 export { adminService } from './admin.service';
 export { usageService } from './usage.service';
 
+// MCP & Tools services
+export { toolsService } from './tools.service';
+
 // BYOK services
 export { connectionsService } from './connections.service';
 
